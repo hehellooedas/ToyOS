@@ -1,4 +1,19 @@
-
+BPB_BytesPerSec     equ       512           ;每个扇区的字节数
+BPB_SecPerClus      equ       1             ;每个簇的扇区数
+BPB_RsvdSecCnt      equ       1             ;保留扇区数(第一个扇区)
+BPB_NumFATs         equ       2             ;FAT表的份数
+BPB_RootEntCnt      equ       224           ;根目录可容纳的目录项数(固定)
+BPB_TotSec16        equ       2880          ;总扇区数(刚好是3.5英寸软盘的容量)
+BPB_Media           equ       0xf0          ;介质描述符
+BPB_FATSz16         equ       9             ;每个FAT扇区数
+BPB_SecPerTrk       equ       18            ;每磁道扇区数
+BPB_NumHeads        equ       2             ;磁头数
+BPB_hiddSec         equ       0             ;隐藏扇区数
+BPB_TotSec32        equ       0             ;总扇区数(BPB_TotSec16=0时使用)
+BS_DrvNum          equ        0             ;0x13号中断的驱动器号
+BS_Reserved1       equ        0             ;预留字段
+BS_BootSig         equ        0x29          ;拓展引导标记(固定值)
+BS_VolID           equ        0             ;卷序列号
 
 RootDirSectors          equ     14   ;根目录占用的扇区数
 SectorNumOfRootDirStart equ     19   ;根目录的起始扇区号

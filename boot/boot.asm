@@ -28,10 +28,10 @@ OffsetOfLoader    equ      0x00      ;偏移地址
     BPB_NumHeads        dw       2             ;磁头数
     BPB_hiddSec         dd       0             ;隐藏扇区数
     BPB_TotSec32        dd       0             ;总扇区数(BPB_TotSec16=0时使用)
-    BPB_DrvNum          db       0             ;0x13号中断的驱动器号
-    BPB_Reserved1       db       0             ;预留字段
-    BPB_BootSig         db       0x29          ;拓展引导标记(固定值)
-    BPB_VolID           dd       0             ;卷序列号
+    BS_DrvNum           db       0             ;0x13号中断的驱动器号
+    BS_Reserved1        db       0             ;预留字段
+    BS_BootSig          db       0x29          ;拓展引导标记(固定值)
+    BS_VolID            dd       0             ;卷序列号
     BS_VolLab           db       'boot loader' ;卷标
     BS_FileSysType      db       'FAT12   '    ;文件系统类型
 
@@ -71,7 +71,7 @@ Label_Start:
     xor ah,ah  ;功能号
     xor dl,dl  ;第一个软盘
     int 0x13
-
+    
 
 ;------寻找loader.bin------
     mov word [SectorNo],SectorNumOfRootDirStart  ;从根目录起始扇区开始检查
@@ -210,7 +210,7 @@ Func_ReadOneSector:
     mov ch,al
     and dh,1   ;磁头号(0/1)
     pop bx
-    mov dl,[BPB_DrvNum]  ;驱动器号
+    mov dl,[BS_DrvNum]  ;驱动器号
 
 Label_Go_ON_Reading:
     mov ah,2

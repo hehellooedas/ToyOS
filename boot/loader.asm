@@ -69,7 +69,7 @@ Label_Start:
 
     cli
 
-    db 0x66        ;以32位方式寻址
+    ;db 0x66        ;以32位方式寻址
     lgdt [GdtPtr]
 
     mov eax,cr0
@@ -85,6 +85,7 @@ Label_Start:
     mov cr0,eax       ;关闭保护模式
 
     sti
+
 
 ;------复位软盘驱动器 ------
     xor ah,ah
@@ -125,7 +126,7 @@ Label_Cmp_FileName:
     jmp Label_Different  ;当前字符对比失败就进行下一次比对
 
 Label_Go_On:
-    inc di
+    inc di  ;对比下一个字符
     jmp Label_Cmp_FileName
 
 Label_Different:
@@ -157,7 +158,7 @@ Label_No_KernelBin:
 ;找到kernel文件名后
 Label_FileName_Found:
     mov ax,RootDirSectors
-    mov di,0xffe0
+    and di,0xffe0
     add di,0x1a
     mov cx,word [es:di]   ;FAT表项的索引
     push cx
@@ -179,7 +180,7 @@ Label_Go_On_Kernel_File:
     pop ax
 
     mov cl,1
-    call Func_ReadOneSector  ;把第一个索引映射的数据区的簇数据取出来
+    call Func_ReadOneSector  ;把索引映射的数据区的簇数据取出来
     pop ax    ;kernel.bin在数据区的起始簇号
 
 
@@ -198,6 +199,7 @@ Label_Go_On_Kernel_File:
     mov ax,BaseTmpOfKernelAddr
     mov ds,ax
     mov esi,OffsetTmpOfKernelFile  ;kernel被临时存储的位置
+
 
 Label_Mov_Kernel:  ;把kernel从临时地址搬移到目标地址
     mov al,byte [ds:esi]
@@ -228,6 +230,7 @@ Label_Mov_Kernel:  ;把kernel从临时地址搬移到目标地址
     mov dx,RootDirSectors
     add ax,dx
     add ax,SectorBalance
+    ;add bx,BPB_BytesPerSec
 
     jmp Label_Go_On_Kernel_File
 
@@ -248,15 +251,18 @@ KillMotor:
     pop dx
 
 
+
 ;------获取内存地址尺寸类型------
     mov ax,0x1301
     mov bx,0x000f
     mov dx,0x0400
     mov cx,24
+
     push ax
     mov ax,ds
     mov es,ax
     pop ax
+
     mov bp,StartGetMemStructMessage
     int 0x10
 
@@ -267,25 +273,30 @@ KillMotor:
     mov di,MemoryStructBufferAddr   ;缓冲区偏移地址
 
 Label_Get_Mem_Struct:
-    mov eax,0xE820           ;子功能号
+    mov eax,0x0E820          ;子功能号
     mov ecx,20               ;ARDS结构的字节大小
     mov edx,0x534D4150       ;签名标记
     int 0x15
     jc Label_Get_Mem_Fail    ;CF=1表示出错
     add di,20                ;缓冲区往后移动一个ARDS结构的大小
+    inc dword [MemStructNumber]
+
     cmp ebx,0                ;ebx为0意味着这是最后一个ARDS结构(不用动它)
     jne Label_Get_Mem_Struct ;查找下一个ARDS结构
     jmp Label_Get_Mem_OK
 
 Label_Get_Mem_Fail:
+    mov dword [MemStructNumber],0
     mov ax,0x1301           
     mov bx,0x008c
     mov dx,0x0500
     mov cx,24
+
     push ax
     mov ax,ds
     mov es,ax
-    push ax
+    pop ax
+
     mov bp,GetMemStructErrMessage
     int 0x10
     jmp $
@@ -295,21 +306,151 @@ Label_Get_Mem_OK:
     mov bx,0x000f
     mov dx,0x0600
     mov cx,29
+
     push ax
     mov ax,ds
     mov es,ax
     pop ax
-    mov bp,Label_Get_Mem_OK
+
+    mov bp,GetMemStructOKMessage
     int 0x10
 
-;设置SVGA模式
-    jmp $
-    ;mov ax,0x4f02
-    ;mov bx,0x4180
-    ;int 0x10
 
-    ;cmp ax,0x004f
-    ;jnz Label_SET_SVGA_Mode_VESA_VBE_FAIL
+
+;获取SVGA信息
+    mov ax,0x1301
+    mov bx,0x000f
+    mov dx,0x0800
+    mov cx,23
+
+    push ax
+    mov ax,ds
+    mov es,ax
+    pop ax
+
+    mov bp,StartGetSVGAVBEInfoMessage
+    int 0x10
+
+    mov ax,0
+    mov es,ax
+    mov di,0x8000 ;缓冲区(VbeInfoBlock放置的区域)
+    mov ax,0x4f00 ;判断是否支持VBE
+    int 0x10
+
+    cmp ax,0x004f ;只有返回的ax为0x004f才是支持的
+    jz .KO        ;支持VBE功能
+
+;不支持VBE功能
+    mov ax,0x1301
+    mov bx,0x000f
+    mov dx,0x0900
+    mov cx,15
+
+    push ax
+    mov ax,ds
+    mov es,ax
+    pop ax
+
+    mov bp,VBE_No_Support
+    int 0x10
+
+.KO:
+    mov ax,0x1301
+    mov bx,0x000f
+    mov dx,0x0a00
+    mov cx,11
+
+    push ax
+    mov ax,ds
+    mov es,ax
+    pop ax
+
+    mov bp,VBE_Support
+    int 0x10
+
+    mov ax,0
+    mov es,ax
+    mov si,0x800e    ;VideoModePtr指针
+
+    mov esi,[es:si]  ;通过该指针找到VideoModeList(其中每个模式占用2B)
+    mov edi,0x8200   ;ModeInfoBlock从该位置开始记录
+
+Label_SVGA_Mode_Info_Get:
+    mov cx,word [es:esi]
+    
+;展示SVGA模式信息
+    push ax
+
+    mov ax,0
+    mov al,ch
+    call Label_DispAL
+    
+    mov ax,0
+    mov al,cl
+    call Label_DispAL
+
+    pop ax
+ 
+    cmp cx,0xffff   ;以0XFFFF表示列表的结束
+    jz Label_SVGA_Mode_Info_Finish
+
+    mov ax,0x4f01   ;获取指定模式号的VBE显示模式拓展信息
+    int 0x10
+
+    cmp ax,0x004f
+    jnz Label_SVGA_Mode_Info_Fail  ;如果不是0x004f说明都出错了
+
+    inc dword [SVGAModeCounter]    ;获取到的模式数量+1
+    add esi,2      ;每个模式占用2B
+    add edi,0x100  ;拓展信息记录在ModeInfoBlock结构里(256B)
+
+    jmp Label_SVGA_Mode_Info_Get
+
+
+
+Label_SVGA_Mode_Info_Fail:
+    mov ax,0x1301
+    mov bx,0x000f
+    mov dx,0x0000
+    mov cx,19
+    
+    push ax
+    mov ax,ds
+    mov es,ax
+    pop ax
+
+    mov bp,GetSVGAModeFail
+    int 0x10
+    jmp $
+
+
+Label_SET_SVGA_Mode_VESA_VBE_FAIL:
+    jmp $
+
+
+Label_SVGA_Mode_Info_Finish:
+    mov ax,0x1301
+    mov bx,0x000f
+    mov dx,0x0e00
+    mov cx,27
+
+    push ax
+    mov ax,ds
+    mov es,ax
+    pop ax
+
+    mov bp,GetSVGAModeInfoMessage
+    int 0x10
+
+
+
+;设置SVGA模式
+    mov ax,0x4f02  ;初始化图形图像控制器并设置VBE显示模式
+    mov bx,0x4180
+    int 0x10
+
+    cmp ax,0x004f  ;VBE返回状态
+    jnz Label_SET_SVGA_Mode_VESA_VBE_FAIL   ;设置失败了
 
 
 
@@ -326,36 +467,120 @@ Label_Get_Mem_OK:
     mov eax,cr0
     or eax,1
     mov cr0,eax
-
     jmp dword SelectorCode32:Go_To_TMP_Protect  ;跳入保护模式
 
 
+;以下是32位的段
+[SECTION .s32]
+[BITS 32]
+Go_To_TMP_Protect:  ;进入临时保护模式
+    mov ax,0x10  ;1 0000
+    mov ds,ax
+    mov es,ax
+    mov fs,ax
+    mov ss,ax
+    mov esp,0x7e00
 
-;数据定义
-;临时的IDT
-IDT:
-    times 0x50  dq  0
-IDT_END:
+    call support_long_mode
+    test eax,eax  ;如果不支持长模式则eax为0
+                  ;test把两个操作数进行and操作,如果eax为0则zf=1
+    jz no_support 
 
-IDT_POINTER:
-    dw  IDT_END - IDT - 1
-    dd  IDT
+    ;处理器支持64位
+    ;初始化页表模板
+    mov dword [0x90000],0x91007 ;PGD的第一个项指向PUD的起始地址0x91000
+    mov dword [0x90004],0x00000 ;PGD的第二个项
+	mov	dword [0x90800],0x91007
+    mov dword [0x90804],0x00000 
 
-RootDirSizeForLoop:          dw      RootDirSectors
-SectorNo:                    dw      0
-Odd:                         dw      0 
-DisplayPosition:             dd      0
-OffsetOfKernelFileCount:     dw      OffsetTmpOfKernelFile
-StartLoaderMessage:          db      "Start Loader"
-KernelFileName:              db      'KERNEL  BIN',0
-NoKernelMessage:             db      'ERROR:NO Kernel FOUND!'
-StartGetMemStructMessage:    db      'Start Get Memory Struct.'
-GetMemStructErrMessage:      db      'Get Memory Struct ERROR!'
-GetMemStructOKMessage:       db      'Get Memory Struct SUCCESSFUL!'
+	mov	dword [0x91000],0x92007 ;PUD的第一个项指向PD的起始地址0x92000
+    mov dword [0x91004],0x00000 ;PUD的第二个项
 
-BPB_SecPerTrk       dw       18            ;每磁道扇区数
-BPB_DrvNum          db       0             ;0x13号中断的驱动器号
-BPB_BytesPerSec     dw       512           ;每个扇区的字节数
+
+	mov	dword [0x92000],0x000083 ;PD的第一个项
+    mov dword [0x92004],0x000000
+
+	mov	dword [0x92008],0x200083
+    mov	dword [0x9200c],0x000000
+
+
+	mov	dword [0x92010],0x400083
+    mov dword [0x92014],0x000000
+
+	mov	dword [0x92018],0x600083
+    mov dword [0x9201c],0x000000
+
+	mov	dword [0x92020],0x800083 ;
+    mov dword [0x92024],0x000000
+
+	mov	dword [0x92028],0xa00083
+    mov dword [0x9202c],0x000000
+
+
+    ;加载64位的GDT
+    ;db 0x66
+    lgdt [GdtPtr64]
+    mov ax,0x10
+    mov ds,ax
+    mov es,ax
+    mov fs,ax
+    mov gs,ax
+    mov ss,ax
+
+    mov esp,0x7e00
+
+
+    ;打开cr4寄存器里的PAE标志位
+    mov eax,cr4
+    bts eax,5  ;三级分页
+    mov cr4,eax
+
+    ;加载cr3 设置分页的物理基地址
+    mov eax,0x90000
+    mov cr3,eax
+
+
+    ;开启长模式
+    mov ecx,0xC0000080  ;ECX中记录读取MSR的地址
+    rdmsr       ;EDX:EAX中存储rdmsr返回值
+
+    bts eax,8   ;四级分页
+    wrmsr
+
+    ;
+    mov eax,cr0
+    bts eax,0   ;确保打开保护模式
+    bts eax,31  ;开启分页模式
+    mov cr0,eax
+
+    ;跳入内核
+    jmp SelectorCode64:OffsetOfKernelFile
+
+    
+
+
+
+support_long_mode:
+    mov eax,0x80000000  ;返回最大的扩展功能号
+    cpuid
+    cmp eax,0x80000001  ;判断最大功能号的情况
+    setnb al   ;al=!CF   只有当CPU的拓展功能号大于等于该值时才能进入长模式
+    jb support_long_mode_done   ;如果低于则无法进入
+
+    mov eax,0x80000001  ;返回扩展处理器信息和特性
+    cpuid
+    bt edx,29  ;edx的第29位为1(支持长模式)则设置CF=1
+    setc al    ;al=CF
+
+support_long_mode_done:
+    movzx eax,al  ;把al写入到eax然后多余部分变为0
+    ret
+
+no_support:
+    jmp $
+
+
+
 
 [SECTION .s16lib]
 [BITS 16]
@@ -381,7 +606,7 @@ Label_DispAL:
     jmp .2    
 
 .1:
-    sub al,0x0a
+    sub al,0x0a  ;字母从A开始的索引
     add al,'A'
 
 .2:
@@ -390,7 +615,7 @@ Label_DispAL:
     mov al,dl
     loop .begin
 
-    mov [DisplayPosition],edi
+    mov [DisplayPosition],edi  ;定位到下一个可打印字符的位置
 
     pop edi
     pop edx
@@ -411,7 +636,7 @@ Func_ReadOneSector:
     sub esp,2
     mov byte [bp - 2],cl
     push bx
-    mov bl,[BPB_SecPerTrk]
+    mov bl,BPB_SecPerTrk
     div bl     ;LBA扇区号 / 每磁道扇区数
     inc ah     ;扇区号
     mov cl,ah
@@ -420,7 +645,7 @@ Func_ReadOneSector:
     mov ch,al
     and dh,1   ;磁头号(0/1)
     pop bx
-    mov dl,[BPB_DrvNum]  ;驱动器号
+    mov dl,BS_DrvNum  ;驱动器号
 
 Label_Go_ON_Reading:
     mov ah,2
@@ -454,7 +679,7 @@ Func_GetFATEntry:
 
 Lable_Even:
     xor dx,dx
-    mov bx,[BPB_BytesPerSec]
+    mov bx,BPB_BytesPerSec
     div bx
     push dx   ;FAT表项的偏移扇区号
     mov bx,0x8000
@@ -477,36 +702,32 @@ Label_Even_2:
 
 
 
+;数据定义
+;临时的IDT
+IDT:
+    times 0x50  dq  0
+IDT_END:
 
-[SECTION .s32]
-[BITS 32]
-Go_To_TMP_Protect:  ;进入临时长模式
-    mov ax,0x10  ;1 0000
-    mov ds,ax
-    mov es,ax
-    mov fs,ax
-    mov ss,ax
-    mov esp,0x7e00
+IDT_POINTER:
+    dw  IDT_END - IDT - 1
+    dd  IDT
 
-    call support_long_mode
-    test eax,eax
 
-    jz no_support
-
-support_long_mode:
-    mov eax,0x80000000
-    cpuid
-    cmp eax,0x80000001
-    setnb al
-    jb support_long_mode_done
-    mov eax,0x80000001
-    cpuid
-    bt edx,29  ;edx的第29位为1则设置CF=1
-    setc al    ;al=CF
-
-support_long_mode_done:
-    movzx eax,al  ;把al写入到eax然后多余部分变为0
-    ret
-
-no_support:
-    jmp $
+SVGAModeCounter:             dd      0
+RootDirSizeForLoop:          dw      RootDirSectors
+SectorNo:                    dw      0
+Odd:                         dw      0 
+DisplayPosition:             dd      0
+OffsetOfKernelFileCount:     dd      OffsetOfKernelFile
+StartLoaderMessage:          db      "Start Loader"
+KernelFileName:              db      'KERNEL  BIN',0
+NoKernelMessage:             db      'ERROR:NO Kernel FOUND!'
+StartGetMemStructMessage:    db      'Start Get Memory Struct.'
+GetMemStructErrMessage:      db      'Get Memory Struct ERROR!'
+GetMemStructOKMessage:       db      'Get Memory Struct SUCCESSFUL!'
+MemStructNumber:             dd      0
+VBE_No_Support:              db      'No VBE SUPPORT!'
+VBE_Support:                 db      'VBE SUPPORT'
+StartGetSVGAVBEInfoMessage:  db      'Start Get SVGA VBE Info'
+GetSVGAModeFail:             db      'Get SVGA Mode Fail!'
+GetSVGAModeInfoMessage:      db      'Get SVGA Mode Successfully!'
