@@ -142,5 +142,53 @@
     "directory": "/home/april_zhao/coding/ToyOS",
     "file": "/home/april_zhao/coding/ToyOS/kernel/memory.c",
     "output": "/home/april_zhao/coding/ToyOS/build/memory.o"
+  },
+  {
+    "arguments": [
+      "/usr/lib64/ccache/gcc",
+      "-mcmodel=large",
+      "-fno-builtin",
+      "-m64",
+      "-fno-stack-protector",
+      "-I",
+      "./kernel",
+      "-I",
+      "./lib",
+      "-I",
+      "./device",
+      "-I",
+      "./task",
+      "-c",
+      "-o",
+      "build/interrupt.o",
+      "kernel/interrupt.c"
+    ],
+    "directory": "/home/april_zhao/coding/ToyOS",
+    "file": "/home/april_zhao/coding/ToyOS/kernel/interrupt.c",
+    "output": "/home/april_zhao/coding/ToyOS/build/interrupt.o"
+  },
+  {
+    "arguments": [
+      "/usr/lib64/ccache/gcc",
+      "-mcmodel=large",
+      "-fno-builtin",
+      "-m64",
+      "-fno-stack-protector",
+      "-I",
+      "./kernel",
+      "-I",
+      "./lib",
+      "-I",
+      "./device",
+      "-I",
+      "./task",
+      "-c",
+      "-o",
+      "build/cpu.o",
+      "kernel/cpu.c"
+    ],
+    "directory": "/home/april_zhao/coding/ToyOS",
+    "file": "/home/april_zhao/coding/ToyOS/kernel/cpu.c",
+    "output": "/home/april_zhao/coding/ToyOS/build/cpu.o"
   }
 ]

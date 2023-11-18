@@ -4,10 +4,10 @@ org 0x10000  ;loader放置在64KB的位置
 %include "./boot/fat12.inc"
 
 
-[SECTION gdt] ;临时的GDT
-LABEL_GDT:              dd      0,0
-LABEL_DESC_CODE32:      dd      0x0000ffff,0x00cf9a00
-LABEL_DESC_DATA32:      dd      0x0000ffff,0x00cf9200
+[SECTION gdt] ;临时的GDT(只需要内核代码段和数据段就好)
+LABEL_GDT:              dd      0,0     ;NULL描述符
+LABEL_DESC_CODE32:      dd      0x0000ffff,0x00cf9a00   ;非一致性,可读,未访问
+LABEL_DESC_DATA32:      dd      0x0000ffff,0x00cf9200   ;非一致性,可读写,未访问
 ;0xcf:1100 1111   粒度为4KB 32位使用EIP 
 
 
@@ -19,14 +19,16 @@ SelectorCode32      equ     LABEL_DESC_CODE32 - LABEL_GDT   ;代码段选择子
 SelectorData32      equ     LABEL_DESC_DATA32 - LABEL_GDT   ;数据段选择子
 
 
-[SECTION gdt64]
-LABEL_GDT64:        dq      0x0000000000000000
+
+[SECTION gdt64]     ;临时的64位GDT
+LABEL_GDT64:        dq      0x0000000000000000  ;NULL描述符
 LABEL_DESC_CODE64:  dq      0x0020980000000000
 LABEL_DESC_DATA64:  dq      0x0000920000000000
 
 GdtLen64      equ     $ - LABEL_GDT64
 GdtPtr64:     dw      GdtLen64 - 1
               dd      LABEL_GDT64
+
 SelectorCode64      equ    LABEL_DESC_CODE64 - LABEL_GDT64
 SelectorData64      equ    LABEL_DESC_DATA64 - LABEL_GDT64
 
@@ -67,9 +69,9 @@ Label_Start:
     out 0x92,al     ;打开后可以访问1MB以上的内存地址
     pop ax
 
-    cli
+    cli            ;模式切换的时候关闭IF
 
-    ;db 0x66        ;以32位方式寻址
+    db 0x66        ;以32位方式寻址
     lgdt [GdtPtr]
 
     mov eax,cr0
@@ -518,7 +520,7 @@ Go_To_TMP_Protect:  ;进入临时保护模式
 
 
     ;加载64位的GDT
-    ;db 0x66
+    db 0x66
     lgdt [GdtPtr64]
     mov ax,0x10
     mov ds,ax
@@ -731,3 +733,5 @@ VBE_Support:                 db      'VBE SUPPORT'
 StartGetSVGAVBEInfoMessage:  db      'Start Get SVGA VBE Info'
 GetSVGAModeFail:             db      'Get SVGA Mode Fail!'
 GetSVGAModeInfoMessage:      db      'Get SVGA Mode Successfully!'
+
+;times (0x1000 - ($ - $$)) db 0

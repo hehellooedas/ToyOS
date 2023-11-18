@@ -33,7 +33,7 @@ unsigned int in32(unsigned short port){
 static __attribute__((always_inline))
 void out8(unsigned short port,unsigned char value){
     asm volatile (
-        "outb %0,%%dx   \n\t"
+        "outb %1,%%dx   \n\t"
         "mfence         \n\t"
         :
         :"d"(port),"a"(value)
@@ -46,7 +46,7 @@ void out8(unsigned short port,unsigned char value){
 static __attribute__((always_inline))
 void out32(unsigned short port,unsigned int value){
     asm volatile (
-        "outl %0,%%dx   \n\t"
+        "outl %1,%%dx   \n\t"
         "mfence         \n\t"
         :
         :"d"(port),"a"(value)

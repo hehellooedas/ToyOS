@@ -1,6 +1,6 @@
-#include "gate.h"
-#include "trap.h"
-#include "../lib/printk.h"
+#include <gate.h>
+#include <trap.h>
+#include <printk.h>
 #include <stddef.h>
 
 
@@ -27,6 +27,7 @@ void sys_vector_init(void){
     set_trap_gate(18, 1, machine_check);
     set_trap_gate(19, 1, SIMD_exception);
     set_trap_gate(20, 1, virtualization_exception);
+    /*  21~31号中断为Intel保留  */
 
     //set_system_gate(SYSTEM_CALL_VECTOR, 7, system_call);
 }
@@ -42,7 +43,9 @@ void sys_vector_init(void){
 4、RCX
 5、R8
 6、R9
+pushq
 */
+
 
 /*
 触发中断程序时栈的变化
@@ -70,7 +73,7 @@ Error Code
 
 
 
-/*    */
+/*  除0异常  */
 void do_divide_error(unsigned long rsp,unsigned long error_code){
     unsigned long* p = NULL;
     p = (unsigned long*)(rsp + 0x98);
@@ -174,6 +177,7 @@ void do_coprocessor_segmeng_overrun(unsigned long rsp,unsigned long error_code){
 
 
 void do_segment_not_protection(unsigned long rsp,unsigned long error_code){
+    color_printk(RED,BLACK,"segment_not_protection");
     while(1);
 }
 
@@ -185,6 +189,7 @@ void do_stack_segment_fault(unsigned long rsp,unsigned long error_code){
 
 
 void do_general_protection(unsigned long rsp,unsigned long error_code){
+    color_printk(RED,BLACK,"do_general_protection(13):%d\n",error_code);
     while(1);
 }
 

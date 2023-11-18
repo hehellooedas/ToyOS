@@ -36,6 +36,8 @@ void* memset(void* ptr,int value,unsigned long size){
     return ptr;
 }
 
+
+
 void* memcpy(void* dest,void* src,unsigned long size);
 void* memmove(void* dest,const void* src,unsigned long size);
 

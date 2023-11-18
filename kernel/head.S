@@ -1,5 +1,9 @@
+#include "linkage.h"
+
+.code64
 .section .text
 .global _start
+
 
 _start:
     mov $0x10,%ax
@@ -23,7 +27,7 @@ _start:
     mov %ax,%ss
     movq $0x7e00,%rsp
 
-    #加载cr3
+    #加载(换到新地址去)
     movq $0x101000,%rax
     movq %rax,%cr3
     
@@ -42,7 +46,7 @@ entry64:
     movq %rax,%es
     movq %rax,%gs
     movq %rax,%ss
-    movq $0xffff800000007e00,%rsp
+    movq _stack_start(%rip),%rsp
 
 
 setup_IDT:
@@ -50,7 +54,7 @@ setup_IDT:
     %rdx:高8字节
     %rax:低8字节
     */
-    leaq ignore_init(%rip),%rdx
+    leaq ignore_init(%rip),%rdx  #在设置中断之前使用默认中断处理函数(后期修改)
     movq $(0x08 << 16),%rax   #代码段选择子
     movw %dx,%ax              #被调用函数在代码段内的偏移量
     movq $(0x8E00 << 32),%rcx
@@ -99,9 +103,9 @@ setup_TSS64:
 
 
     movq go_to_kernel(%rip),%rax
-    pushq $0x08
-    pushq %rax
-    lretq
+    pushq $0x08  #代码段选择子索引
+    pushq %rax   #kernel地址
+    lretq        #跳入c内核
 
 go_to_kernel:
     .quad   Start_Kernel
@@ -178,6 +182,8 @@ Loop:
 int_msg:
     .asciz "Unknow interrupt or fault at RIP\n"
 
+ENTRY(_stack_start)
+    .quad init_task_union + 32768 #内核栈
 
 
 .align 8
@@ -243,7 +249,7 @@ GDT_BASE:   .quad   GDT_Table
 #IDT
 .global IDT_Table
 IDT_Table:
-    .fill 512,8,0
+    .fill 512,8,0   #IDT最多支持256个(8字节对齐)
 IDT_END:
 
 IDT_POINTER:
@@ -255,7 +261,7 @@ IDT_BASE:   .quad   IDT_Table
 #TSS64
 .global TSS64_Table
 TSS64_Table:
-    .fill 13,8,0
+    .fill 13,8,0   #预留13个TSS槽位(每个TSS8字节)
 TSS64_END:
 
 TSS64_LIMIT:    .word   TSS64_END - TSS64_Table - 1

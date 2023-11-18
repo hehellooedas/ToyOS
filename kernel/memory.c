@@ -1,6 +1,7 @@
 #include <memory.h>
 #include <lib.h>
 #include <stddef.h>
+#include <printk.h>
 
 
 
@@ -8,6 +9,7 @@ extern char _text;   //代码段起始地址
 extern char _etext;  //代码段结束地址
 extern char _edata;  //数据段结束地址
 extern char _end;    //内核程序结束地址
+
 
 unsigned int ZONE_DMA_INDEX = 0;
 unsigned int ZONE_NORMAL_INDEX = 0;
@@ -25,8 +27,8 @@ void memory_init(void){
 
     p = (struct E820*)(0xffff800000007e00);
 
-    for(int i=0;i<32;i++){
-        color_printk(ORANGE, BLACK,\
+    for(int i=0;i<32;i++){  //遍历ARDS寻找所有可用内存
+        //color_printk(ORANGE, BLACK,\
         "Address:%#018x\tLength:%#018x\tType:%#010x\n",p->address,p->length,p->type);
         if(p->type == 1){
             TotalMem += p->length;
@@ -46,13 +48,14 @@ void memory_init(void){
         if(memory_managerment_struct.e820[i].type != 1){
             continue;
         }
-        start = PAGE_2M_ALIGN(memory_managerment_struct.e820[i].address);
+        start = PAGE_2M_ALIGN(memory_managerment_struct.e820[i].address);  //第一张可用页的地址地址
+        /*  该段内存里最后一张可用页的地址  */
         end = ((memory_managerment_struct.e820[i].address + memory_managerment_struct.e820[i].length) >> PAGE_2M_SHIFT) << PAGE_2M_SHIFT;
-        if(end <= start){
+        if(end <= start){  //如果该段的内存容量不到一页就不使用这段内存了
             continue;
         } 
         
-        TotalMem += (end - start) >> PAGE_2M_SHIFT;
+        TotalMem += (end - start) >> PAGE_2M_SHIFT;  //该段内存能提供几个页
     }
     color_printk(ORANGE,BLACK,"OS can used Total 2M Pages:%#010x=%010d\n",TotalMem,TotalMem);
     
@@ -72,7 +75,7 @@ void memory_init(void){
     /*  初始化bitmap(跟在内核程序后面)  */
     memory_managerment_struct.bits_map = (unsigned long*)((memory_managerment_struct.end_brk + PAGE_4K_SIZE - 1) & PAGE_4K_MASK);
     memory_managerment_struct.bits_size = TotalMem >> PAGE_2M_SHIFT;
-    color_printk(RED,BLACK,"TotalMem = %x,size = %x",TotalMem,TotalMem >> PAGE_2M_SHIFT);
+    color_printk(RED,BLACK,"TotalMem = %x,size = %x\n",TotalMem,TotalMem >> PAGE_2M_SHIFT);
     memory_managerment_struct.bits_length = (((unsigned long)(TotalMem >> PAGE_2M_SHIFT) + sizeof(long) * 8 - 1) / 8) & (~(sizeof(long) - 1));
     memset(memory_managerment_struct.bits_map,0xff,memory_managerment_struct.bits_length);
 
@@ -98,21 +101,22 @@ void memory_init(void){
         struct Zone* z;
         struct Page* p;
         unsigned long* b;
+
         if(memory_managerment_struct.e820[i].type != 1){  //ADRS类型不是1就跳过
             continue;
         }
         start = PAGE_2M_ALIGN(memory_managerment_struct.e820[i].address);
         end = ((memory_managerment_struct.e820[i].address + memory_managerment_struct.e820[i].length) >> PAGE_2M_SHIFT) << PAGE_2M_SHIFT;
-        if(end <= start){
+        if(end <= start){ //不足一页的内存区域跳过去不利用
             continue;
-        }
+        }  //此时无用的内存区域已经被过滤了
 
         //zone init
-        z = memory_managerment_struct.zones_struct + memory_managerment_struct.zones_size;
+        z = memory_managerment_struct.zones_struct + memory_managerment_struct.zones_size; 
         memory_managerment_struct.zones_size++;  //初值为0
-        z->zone_start_address = start;
-        z->zone_end_address = end;
-        z->zone_length = end - start;
+        z->zone_start_address = start;  //当前内存区域的起始地址
+        z->zone_end_address = end;      //结束地址
+        z->zone_length = end - start;   //长度
 
         z->page_using_count = 0;
         z->page_free_count = (end - start) >> PAGE_2M_SHIFT;
@@ -127,9 +131,9 @@ void memory_init(void){
 
         //page init
         p = z->pages_group;
-        for(int j=0;j<z->pages_length;j++,p++){
+        for(int j=0;j<z->pages_length;j++,p++){  //遍历该区域内所有页表
             p->zone_struct = z;
-            p->PHY_address = start + PAGE_2M_SIZE * j;
+            p->PHY_address = start + PAGE_2M_SIZE * j;  //当前页表的起始地址
             p->attribute = 0;
 
             p->reference_count = 0;
@@ -155,7 +159,7 @@ void memory_init(void){
         "zone_start_address:%#018x,zone_end_address:%#018x,zone_length:%#018x,pages_group:%#018x,pages_length:%#018x\n",\
         z->zone_start_address,z->zone_end_address,z->zone_length,z->pages_group,z->pages_length);
         if(z->zone_start_address == 0x100000000){
-            ZONE_DMA_INDEX = i;
+            ZONE_UNMAPED_INDEX = i;  //未映射区域
         }
     }
     memory_managerment_struct.end_of_struct = (unsigned long)((unsigned long)memory_managerment_struct.zones_struct + memory_managerment_struct.zones_length + sizeof(long) * 32) & (~(sizeof(long) - 1));
@@ -171,30 +175,30 @@ void memory_init(void){
     color_printk(INDIGO,BLACK,"Global_CR3\t:%#018x\n",Global_CR3);
     color_printk(INDIGO,BLACK,"*Global_CR3\t:%#018x\n",*Phy_To_Virt(Global_CR3) & (~0xff));
     color_printk(INDIGO,BLACK,"**Global_CR3\t:%#018x\n",*Phy_To_Virt(*Phy_To_Virt(Global_CR3) & (~0xff)) &(~0xff));
-    for(i = 0;i<10;i++){
-        *(Phy_To_Virt(Global_CR3) + i) = 0UL;
-    }
+    //for(i = 0;i<10;i++){
+        //*(Phy_To_Virt(Global_CR3) + i) = 0UL;
+    //}
     flush_tlb();
 }
 
 
 
 unsigned long page_init(struct Page* page,unsigned long flags){
-    if(!page->attribute){
-        *(memory_managerment_struct.bits_map + ((page->PHY_address >> PAGE_2M_SHIFT) >> 6)) |= 1ul << (page->PHY_address >> PAGE_2M_SHIFT) % 64;
+    if(!page->attribute){  //如果页的属性是0
+        *(memory_managerment_struct.bits_map + ((page->PHY_address >> PAGE_2M_SHIFT) >> 6)) |= 1UL << (page->PHY_address >> PAGE_2M_SHIFT) % 64;
         page->attribute = flags;
         page->reference_count++;
         /*  页所在区域可用页减少/已使用的页增加  */
         page->zone_struct->page_using_count++;
         page->zone_struct->page_free_count--;
         page->zone_struct->total_page_link++;
-    }else if((((page->attribute & PG_Referenced) || (page->attribute & PG_K_Share_To_U)) \
-    || ((flags & PG_Referenced) || (flags & PG_K_Share_To_U)))){
+    }else if((page->attribute & PG_Referenced) || (page->attribute & PG_K_Share_To_U) || \
+    (flags & PG_Referenced) || (flags & PG_K_Share_To_U) ){
         page->attribute |= flags;
         page->reference_count++;
         page->zone_struct->total_page_link++;
     }else{
-        *(memory_managerment_struct.bits_map + ((page->PHY_address >> PAGE_2M_SHIFT) >> 6)) = 1UL << (page->PHY_address >> PAGE_2M_SHIFT) % 64;
+        *(memory_managerment_struct.bits_map + ((page->PHY_address >> PAGE_2M_SHIFT) >> 6)) |= 1UL << (page->PHY_address >> PAGE_2M_SHIFT) % 64;
         page->attribute |= flags;
     }
     return 0;
@@ -202,8 +206,64 @@ unsigned long page_init(struct Page* page,unsigned long flags){
 
 
 struct Page* alloc_pages(int zone_select,int number,unsigned long page_flags){
-    int i;
-    
+    unsigned long page = 0;
+    int zone_start = 0;
+    int zone_end = 0;
+    /*  通过内存区域类型判断去哪些内存区域找  */
+    switch (zone_select){
+        case ZONE_DMA:
+            zone_start = 0;
+            zone_end = ZONE_DMA_INDEX;
+            break;
+
+        case ZONE_NORMAL:
+            zone_start = ZONE_DMA_INDEX;
+            zone_end = ZONE_NORMAL_INDEX;
+            break;
+
+        case ZONE_UNMAPED:
+            zone_start = ZONE_NORMAL_INDEX;
+            zone_end = memory_managerment_struct.zones_size - 1;
+            break;
+
+        default:
+            color_printk(RED,BLACK,"alloc_pages error zone_select index\n");
+            return NULL;
+            break;
+    }
+
+    for(int i=zone_start;i<=zone_end;i++){
+        struct Zone* z;
+        unsigned long start,end,length;
+        unsigned long tmp;
+        if((memory_managerment_struct.zones_struct + i)->page_free_count < number){
+            continue;  //当前区域的剩余页不足则判断下一个区域
+        }
+        z = memory_managerment_struct.zones_struct + i; 
+
+        start = z->zone_start_address >> PAGE_2M_SHIFT; //当前区域管理的起始页
+        end = z->zone_end_address >> PAGE_2M_SHIFT;     //当前区域管理的末尾页
+        length = z->zone_length >> PAGE_2M_SHIFT;       //当前区域总共管理的页数
+
+        tmp = 64 - start % 64;
+        for(int j=start;j<=end;j += j % 64 ? tmp:64){
+            unsigned long* p = memory_managerment_struct.bits_map + (j >> 6);
+            unsigned long shift = j % 64;
+            for(unsigned long k = shift;k < 64 - shift;k++){
+                if(!(((*p >> k) | (*(p+1) << (64-k))) & (number == 64 ? 0xffffffffffffffffUL:((1UL << number)-1)))){
+                    page = j + k - 1;
+                    for(unsigned long l=0;l<number;l++){
+                        struct Page* x = memory_managerment_struct.pages_struct + page + l;
+                        page_init(x,page_flags);
+                    }
+                    goto find_free_pages;
+                }
+            }
+        }
+    }
+    return NULL;
+find_free_pages:    
+    return (struct Page*)(memory_managerment_struct.pages_struct + page);
 }
 
 

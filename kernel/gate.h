@@ -59,11 +59,12 @@ do{                         \
 
 
 
-/*  设置TSS  */
-static void __attribute__((always_inline)) set_tss64 \
-(unsigned long rsp0,unsigned long rsp1,unsigned long rsp2,unsigned long ist1,\
-unsigned long ist2,unsigned long ist3,unsigned long ist4,unsigned long ist5,\
-unsigned long ist6,unsigned long ist7){
+/*  设置TSS(其中reserved部分不需要赋值了)  */
+static __attribute__((always_inline)) 
+void set_tss64(unsigned long rsp0,unsigned long rsp1,unsigned long rsp2\
+,unsigned long ist1,unsigned long ist2,unsigned long ist3,unsigned long ist4\
+,unsigned long ist5,unsigned long ist6,unsigned long ist7)
+{
     *(unsigned long*)(TSS64_Table + 1) = rsp0;
     *(unsigned long*)(TSS64_Table + 3) = rsp1;
     *(unsigned long*)(TSS64_Table + 5) = rsp2;
@@ -75,27 +76,30 @@ unsigned long ist6,unsigned long ist7){
     *(unsigned long*)(TSS64_Table + 17) = ist5;
     *(unsigned long*)(TSS64_Table + 19) = ist6;
     *(unsigned long*)(TSS64_Table + 21) = ist7;
-
 }
 
 
+
 /*  中断门描述符  */
-static void __attribute__((always_inline)) set_intr_gate \
-(unsigned int n,unsigned char ist,void* addr){
+static __attribute__((always_inline)) 
+void set_intr_gate(unsigned int n,unsigned char ist,void* addr)
+{
     _set_gate(IDT_Table + n, 0x8E, ist, addr);  //1000 1110
 }
 
 
 /*  陷进门描述符  */
-static void __attribute__((always_inline)) set_trap_gate \
-(unsigned int n,unsigned char ist,void* addr){
+static __attribute__((always_inline)) 
+void set_trap_gate(unsigned int n,unsigned char ist,void* addr)
+{
     _set_gate(IDT_Table + n, 0x8F, ist, addr);  //1000 1111
 }
  
 
 /* 用于系统调用的陷进门  */
-static void __attribute__((always_inline)) set_system_gate \
-(unsigned int n,unsigned char ist,void* addr){
+static __attribute__((always_inline)) 
+void set_system_gate(unsigned int n,unsigned char ist,void* addr)
+{
     _set_gate(IDT_Table + n, 0xEF, ist, addr);  //1110 1111
 }
 

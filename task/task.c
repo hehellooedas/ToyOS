@@ -1,16 +1,185 @@
+#include <gate.h>
 #include <task.h>
+#include <string.h>
+
+
+extern char _data;
+extern char _rodata;
+extern char _erodata;
+extern char _stack_start;
 
 
 
-void task_init(){
+
+void task_init(void){
     struct task_struct* p = NULL;
+    init_mm.pgd = (pml4t_t*)Get_gdt();
+    init_mm.start_code = memory_managerment_struct.start_code;
+    init_mm.end_code = memory_managerment_struct.end_code;
+    init_mm.start_data = (unsigned long)&_data;
+    init_mm.end_data = memory_managerment_struct.end_data;
+    init_mm.start_rodata = (unsigned long)&_rodata;
+    init_mm.end_rodata = (unsigned long)&_erodata;
+    init_mm.start_brk = 0;
+    init_mm.end_brk = memory_managerment_struct.end_brk;
+    init_mm.start_stack = (unsigned long)&_stack_start;
+
+
+    set_tss64(init_thread.rsp0,init_tss[0].rsp1,init_tss[0].rsp2,\
+    init_tss[0].ist1 ,init_tss[0].ist2,init_tss[0].ist3,init_tss[0].ist4,\
+    init_tss[0].ist5,init_tss[0].ist6,init_tss[0].ist7);
+
+    
+
+    init_tss[0].rsp0 = init_thread.rsp0;
+
+    list_init(&init_task_union.task.list);
+    kernel_thread(init,10,CLONE_FS|CLONE_FILES|CLONE_SIGNAL); //创建init进程
+    init_task_union.task.state = TASK_RUNNING;
+
+    p = container_of(get_List_next(&current->list),struct task_struct,list);
+
+    switch_to(current,p);
 }
 
 
+/*  init内核线程(0x200000~0x208000)  */
 unsigned long init(unsigned long arg){
     color_printk(RED,BLACK,\
     "init task is running,arg:%#018x\n",arg);
     return 1;
+}
+
+
+extern void kernel_thread_func(void);
+asm (
+"kernel_thread_func:        \n\t"
+    "popq %r15              \n\t"
+    "popq %r14              \n\t"
+    "popq %r13              \n\t"
+    "popq %r12              \n\t"
+    "popq %r11              \n\t"
+    "popq %r10              \n\t"
+    "popq %r9               \n\t"
+    "popq %r8               \n\t"
+    "popq %rbx              \n\t"
+    "popq %rcx              \n\t"
+    "popq %rdx              \n\t"
+    "popq %rsi              \n\t"
+    "popq %rdi              \n\t"
+    "popq %rbp              \n\t"
+    "popq %rax              \n\t"
+    "movq %rax,%ds          \n\t"
+    "popq %rax              \n\t"
+    "movq %rax,%es          \n\t"
+    "popq %rax              \n\t"
+    "addq $0x38,%rsp        \n\t"
+
+    "movq %rdx,%rdi         \n\t"
+    "callq *%rbx            \n\t"  //rbx中记录关键地址信息
+    "movq %rax,%rdi         \n\t"
+    "callq do_exit          \n\t"
+);
+
+
+
+
+int kernel_thread(unsigned long (*fn)(unsigned long),unsigned long arg,unsigned long flags){
+    struct pt_regs regs;
+    memset(&regs,0,sizeof(regs));
+    regs.rbx = (unsigned long)fn;  //记录init重要的执行函数地址信息
+    regs.rdx = (unsigned long)arg;
+
+    regs.ds = KERNEL_DS;
+    regs.es = KERNEL_DS;
+    regs.cs = KERNEL_CS;
+    regs.ss = KERNEL_DS;
+    regs.rflags = (1 << 9);
+    regs.rip = (unsigned long)kernel_thread_func;
+
+    return do_fork(&regs,flags,0,0);
+}
+
+
+
+unsigned long do_fork(struct pt_regs* regs,unsigned long clone_flags,unsigned long stack_start,unsigned long stack_size){
+    struct task_struct* task = NULL;
+    struct thread_struct* thread = NULL;
+    struct Page* p = NULL;
+
+    color_printk(WHITE,BLACK,"alloc_pages,bitmap:%#018x\n",\
+    *memory_managerment_struct.bits_map);
+
+    p = alloc_pages(ZONE_NORMAL,1,PG_PTable_Maped|PG_Active|PG_Kernel);
+
+    color_printk(WHITE,BLACK,"alloc_pages,bitmap:%#018x\n",\
+    *memory_managerment_struct.bits_map);
+
+    task = (struct task_struct*)(Phy_To_Virt(p->PHY_address));
+
+    
+    color_printk(WHITE,BLACK,"struct task_struct address:%#018x\n",(unsigned long)task);
+    
+    memset(task,0,sizeof(*task));
+    *task = *current;
+    
+    list_init(&task->list);
+
+    list_add_to_behind(&init_task_union.task.list,&task->list);
+
+
+
+    task->pid++;
+    task->state = TASK_UNINTERRUPTIBLE;
+
+    thread = (struct thread_struct*)(task + 1);
+    task->thread = thread;
+    
+    memcpy((void*)((unsigned long)task + STACK_SIZE - sizeof(struct pt_regs)),regs,sizeof(struct pt_regs));
+    
+    thread->rsp0 = (unsigned long)task + STACK_SIZE;
+    thread->rip = regs->rip;
+    thread->rsp = (unsigned long)task + STACK_SIZE - sizeof(struct pt_regs);
+
+    if(!(task->flags & PF_KTHREAD)){  //如果不是内核层,则设置进程运行的入口为ret_from_intr
+        thread->rip = regs->rip = (unsigned long)ret_from_intr;
+    }
+    task->state = TASK_RUNNING;
+    
+    return 0;
+}
+
+
+
+void __attribute__((always_inline)) __switch_to(struct task_struct* prev,struct task_struct* next)
+{
+    init_tss[0].rsp0 = next->thread->rsp0;
+
+    set_tss64(init_tss[0].rsp0,init_tss[0].rsp1,init_tss[0].rsp2,\
+        init_tss[0].ist1,init_tss[0].ist2,init_tss[0].ist3,init_tss[0].ist4,\
+        init_tss[0].ist5,init_tss[0].ist6,init_tss[0].ist7
+    );
+    
+/*
+    asm volatile ("movq %%fs,%0 \n\t":"=a"(prev->thread->fs));
+    asm volatile ("movq %%gs,%0 \n\t":"=a"(prev->thread->gs));
+
+    asm volatile ("movq %0,%%fs \n\t":"=a"(next->thread->fs));
+    asm volatile ("movq %0,%%gs \n\t":"=a"(next->thread->gs));
+*/
+
+    asm volatile (
+        "movq %%fs,%0       \n\t"
+        "movq %%gs,%1       \n\t"
+        "movq %2,%%fs       \n\t"
+        "movq %3,%%gs       \n\t"
+        :"=a"(prev->thread->fs),"=b"(prev->thread->gs)
+        :"c"(next->thread->fs),"d"(next->thread->gs)
+        :"memory"
+    );
+
+    color_printk(WHITE,BLACK,"prev->thread->rsp0:%#-18x\n",prev->thread->rsp0);
+    color_printk(WHITE,BLACK,"next->thread->rsp0:%#-18x\n",next->thread->rsp0);
 }
 
 

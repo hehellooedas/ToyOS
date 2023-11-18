@@ -1,6 +1,7 @@
 #ifndef __LIB_LIST_H
 #define __LIB_LIST_H
 
+#include <printk.h>
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -10,15 +11,16 @@ struct List{
 };
 
 
-static void __attribute__((always_inline)) \
+static void __attribute__((always_inline))
 list_init(struct List* list){
     list->prev = list;
     list->next = list;
 }
 
 
-static void __attribute__((always_inline)) \
-list_add_to_behind(struct List* entry,struct List* newNode){
+static void __attribute__((always_inline))
+list_add_to_behind(struct List* entry,struct List* newNode)
+{
     newNode->next = entry->next;
     newNode->prev = entry;
     entry->next->prev = newNode;
@@ -27,26 +29,29 @@ list_add_to_behind(struct List* entry,struct List* newNode){
 
 
 
-static void __attribute__((always_inline)) \
-list_add_to_before(struct List* entry,struct List* newNode){
+static void __attribute__((always_inline))
+list_add_to_before(struct List* entry,struct List* newNode)
+{
     newNode->next = entry;
-    newNode->prev = entry->prev;
     entry->prev->next = newNode;
+    newNode->prev = entry->prev;
     entry->prev = newNode;
 }
 
 
 
-static void __attribute__((always_inline)) \
-list_del(struct List* entry){
+static void __attribute__((always_inline))
+list_del(struct List* entry)
+{
     entry->prev->next = entry->next;
     entry->next->prev = entry->prev;
 }
 
 
 
-static bool __attribute__((always_inline)) \
-list_is_empty(struct List* entry){
+static bool __attribute__((always_inline))
+list_is_empty(struct List* entry)
+{
     if(entry->prev == entry && entry->next == entry){
         return true;
     }else{
@@ -56,7 +61,8 @@ list_is_empty(struct List* entry){
 
 
 static struct List *__attribute__((always_inline))
-get_List_prev(struct List *entry) {
+get_List_prev(struct List *entry) 
+{
   if (entry->prev == NULL)
     return NULL;
   else return entry->prev;
@@ -64,9 +70,13 @@ get_List_prev(struct List *entry) {
 
 
 static struct List *__attribute__((always_inline))
-get_List_next(struct List *entry) {
-  if (entry->next == NULL)
+get_List_next(struct List *entry) 
+{
+  if (entry->next == NULL){
+    color_printk(RED,BLACK,"NULL is now!");
     return NULL;
+  }
+    
   else return entry->next;
 }
 

@@ -46,7 +46,7 @@ Label_Start:
 
 ;------清屏------
     mov ax,0x0600
-    mov bx,0x0700
+    mov bx,0x0700 ;默认颜色
     mov cx,0
     mov dx,0x0184
     int 0x10
@@ -198,7 +198,7 @@ LoaderFileName:    db 'LOADER  BIN',0
 Func_ReadOneSector:
     push bp
     mov bp,sp
-    sub esp,2
+    sub esp,2  ;在栈中定义变量
     mov byte [bp - 2],cl
     push bx
     mov bl,[BPB_SecPerTrk]
@@ -217,7 +217,8 @@ Label_Go_ON_Reading:
     mov al, byte [bp - 2] ;读入扇区数从cl转到了al
     int 0x13
     jc Label_Go_ON_Reading
-    add esp,2
+
+    add esp,2  ;回收变量
     pop bp
     ret
 

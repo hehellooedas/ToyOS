@@ -2,6 +2,8 @@
 #define __KERNEL_CPU_H
 
 
+#define NR_CPUS   8
+
 static __attribute__((always_inline))
 void get_cpuid(unsigned int Mop,unsigned int Sop,unsigned int* a,unsigned int* b,unsigned int* c,unsigned int* d)
 {
@@ -12,6 +14,8 @@ void get_cpuid(unsigned int Mop,unsigned int Sop,unsigned int* a,unsigned int* b
     );
 }
 
+
+void cpu_init(void);
 
 
 #endif // !__KERNEL_CPU_H

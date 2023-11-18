@@ -1,7 +1,8 @@
 #include "linkage.h"
 
-/*各个寄存器在栈中的偏移量*/
-R15     =   0x00
+.code64
+/*  各个寄存器在栈中的偏移量  */
+R15     =   0x00  #跳入函数前最后入栈的寄存器
 R14     =   0x08
 R13     =   0x10
 R12     =   0x18
@@ -23,6 +24,7 @@ ERRCODE =   0x90
 RIP     =   0x98
 CS      =   0xa0
 RFLAGS  =   0xa8
+#以下寄存器只有在特权级切换的时候才入栈
 OLDRSP  =   0xb0
 OLDSS   =   0xb8
 
@@ -58,7 +60,7 @@ RESTORE_ALL:
 
 ret_from_exception:
 
-ENTRY(ret_from_exception)
+ENTRY(ret_from_intr)
     jmp RESTORE_ALL
 
 

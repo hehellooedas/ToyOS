@@ -9,8 +9,9 @@ LIB      = -I ./kernel -I ./lib -I ./device -I ./task
 CFLAGS   = -mcmodel=large -fno-builtin -m64 -fno-stack-protector $(LIB)
 LDFLAGS  = -b elf64-x86-64 -z muldefs -T kernel/kernel.lds
 OBJS     =  $(BUILD_DIR)/head.o $(BUILD_DIR)/main.o $(BUILD_DIR)/printk.o \
-	   		$(BUILD_DIR)/init.o $(BUILD_DIR)/screen.o $(BUILD_DIR)/trap.o \
-			$(BUILD_DIR)/entry.o $(BUILD_DIR)/memory.o
+	   		$(BUILD_DIR)/init.o $(BUILD_DIR)/screen.o $(BUILD_DIR)/string.o \
+			$(BUILD_DIR)/trap.o $(BUILD_DIR)/entry.o $(BUILD_DIR)/memory.o \
+			$(BUILD_DIR)/interrupt.o $(BUILD_DIR)/cpu.o $(BUILD_DIR)/task.o 
 
 
 .PHONY: clean build disk bochs qemu default
@@ -34,11 +35,11 @@ $(BUILD_DIR)/loader.bin: boot/loader.asm
 
 $(BUILD_DIR)/head.o: kernel/head.S kernel/linkage.h
 	gcc -E kernel/head.S > $(BUILD_DIR)/head.s
-	$(AS) --64 $(BUILD_DIR)/head.s -o $@ -a=$(BUILD_DIR)/1.lst
+	$(AS)  $(BUILD_DIR)/head.s -o $@ -a=$(BUILD_DIR)/1.lst
 
 $(BUILD_DIR)/entry.o: kernel/entry.S
 	gcc -E kernel/entry.S > $(BUILD_DIR)/entry.s
-	$(AS) --64 build/entry.s -o $@
+	$(AS)  build/entry.s -o $@
 
 
 $(BUILD_DIR)/main.o: kernel/main.c
@@ -58,6 +59,20 @@ $(BUILD_DIR)/trap.o:kernel/trap.c kernel/trap.h
 
 $(BUILD_DIR)/memory.o:kernel/memory.c kernel/memory.h
 	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/interrupt.o:kernel/interrupt.c kernel/interrupt.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/cpu.o:kernel/cpu.c kernel/cpu.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/task.o:task/task.c task/task.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/string.o:lib/string.c lib/string.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+
 
 
 
@@ -80,16 +95,16 @@ qemu: clean compile link disk
 	qemu-system-x86_64 \
 	-m 2048 \
 	-drive file=./tools/boot.img,format=raw,if=floppy \
-	-boot a \
-	-cpu qemu64 \
+	-cpu core2duo \
 	-enable-kvm \
 	-smp 1 \
-	-no-acpi \
+	-machine acpi=off \
 	-vga std \
 	-serial stdio \
 	-parallel none \
 	-net none \
 	-display gtk \
+	-device VGA,vgamem_mb=64 \
 	-name "QemuKernelDebug"
 
 default: compile link 

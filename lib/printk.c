@@ -1,5 +1,5 @@
-#include "./printk.h"
-#include "../kernel/lib.h"
+#include <printk.h>
+#include <lib.h>
 #include <stddef.h>
 #include <stdbool.h>
 

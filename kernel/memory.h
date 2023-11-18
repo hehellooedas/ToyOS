@@ -29,11 +29,35 @@ struct Memory_E820_Formate{
 
 /*  把两个32位变量表示的地址组合成一个64位的  */
 struct E820{
-    
+    /*  总共20字节大小  */
     unsigned long address;
     unsigned long length;
     unsigned int type;
 }__attribute__((packed));
+
+
+
+
+typedef struct{
+    unsigned long pml4t;
+} pml4t_t;  //page map level 4
+#define mk_pml4t(addr,attr)     ((unsigned long)addr | (unsigned long)attr)
+#define set_pml4t(pml4tptr,pml4tval) (*(pml4tptr) = (pml4tval))
+
+
+typedef struct{
+    unsigned long pdpt;
+} pdpt_t;
+#define mk_pdpt(addr,attr)      ((unsigned long)addr | (unsigned long)attr)
+#define set_pdpt(pdptptr,pdptval)   (*(pdptptr) = (pdptval))
+
+
+typedef struct{
+    unsigned long pdt;
+} pdt_t;
+#define mk_pdt(addr,attr)      ((unsigned long)addr | (unsigned long)attr)
+#define set_pdt(pdtptr,pdtval)  (*(pdtptr) = (pdtval))
+
 
 
 /*  用一个统一的结构来描述物理内存分布情况  */
@@ -42,7 +66,7 @@ struct Global_Memory_Descriptor{
     unsigned long e820_length;   //用几个ARDS结构来描述
 
     unsigned long*  bits_map;    //物理地址空间页映射位图
-    unsigned long   bits_size;   //页的数量
+    unsigned long   bits_size;   //页图的数量
     unsigned long   bits_length; //位图长度
 
     struct Page* pages_struct;   //指向全局page结构的指针
@@ -67,7 +91,7 @@ extern struct Global_Memory_Descriptor memory_managerment_struct;
 
 
 #define PAGE_OFFSET     ((unsigned long)0xffff800000000000)   //内核层起始线性地址
-#define Virt_To_Phy(addr)   ((unsigned long)(addr) - PAGE_OFFSET)
+#define Virt_To_Phy(addr)   ((unsigned long)(addr) - PAGE_OFFSET)  //虚拟地址转换成物理地址
 #define Phy_To_Virt(addr)   ((unsigned long*)((unsigned long)(addr) + PAGE_OFFSET))
 
 
@@ -149,6 +173,12 @@ struct Zone{
     unsigned long   total_page_link;     //物理页被引用次数
 };
 
+#define ZONE_DMA     0x01   //DMA内存区域通常用于支持需要高速数据传输的外部设备
+#define ZONE_NORMAL  0x02   //正常的内存区域是大多数应用程序和系统组件所使用的内存(占比最大)
+#define ZONE_UNMAPED 0x04   //未映射的内存区域(为系统保留)
+
+
+
 
 
 
@@ -174,7 +204,7 @@ struct Slab{
 /*  函数声明  */
 void memory_init(void);
 unsigned long page_init(struct Page* page,unsigned long flags);
-
+struct Page* alloc_pages(int zone_select,int number,unsigned long page_flags);
 
 
 /*  输出内存总管理中各结构统计的信息  */

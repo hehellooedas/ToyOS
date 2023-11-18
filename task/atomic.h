@@ -7,7 +7,7 @@ typedef struct{
 } atomic_T;
 
 
-/*  lock前缀会所著硬件平台的前端总线  */
+/*  lock前缀会锁住硬件平台的前端总线  */
 
 
 static __attribute__((always_inline)) 

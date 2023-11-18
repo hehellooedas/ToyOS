@@ -10,6 +10,17 @@
 #define stop()  asm volatile("jmp . \n\t")
 
 
+/*  
+根据成员找结构体变量
+@ptr:成员变量的地址
+@type:成员变量所在结构体类型
+@member:成员变量名
+*/
+#define container_of(ptr,type,member)           \
+({                                              \
+    typeof(((type*)0)->member)* p = (ptr);        \
+    (type*)((unsigned long)p - (unsigned long) & (((type*)0)->member)); \
+})
 
 
 #endif // !__KERNEL_LIB_H

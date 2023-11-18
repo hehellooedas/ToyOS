@@ -1,7 +1,7 @@
 #ifndef __KERNEL_INIT_H
 #define __KERNEL_INIT_H
 
-#include "../device/screen.h"
+#include <screen.h>
 
 void init_all(void);
 

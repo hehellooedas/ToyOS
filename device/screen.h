@@ -1,7 +1,7 @@
 #ifndef __DEVICE_SCREEN_H
 #define __DEVICE_SCREEN_H
 
-#include "../lib/printk.h"
+#include <printk.h>
 
 
 extern struct position Pos;
