@@ -112,6 +112,30 @@
       "./task",
       "-c",
       "-o",
+      "build/string.o",
+      "lib/string.c"
+    ],
+    "directory": "/home/april_zhao/coding/ToyOS",
+    "file": "/home/april_zhao/coding/ToyOS/lib/string.c",
+    "output": "/home/april_zhao/coding/ToyOS/build/string.o"
+  },
+  {
+    "arguments": [
+      "/usr/lib64/ccache/gcc",
+      "-mcmodel=large",
+      "-fno-builtin",
+      "-m64",
+      "-fno-stack-protector",
+      "-I",
+      "./kernel",
+      "-I",
+      "./lib",
+      "-I",
+      "./device",
+      "-I",
+      "./task",
+      "-c",
+      "-o",
       "build/trap.o",
       "kernel/trap.c"
     ],
@@ -190,5 +214,29 @@
     "directory": "/home/april_zhao/coding/ToyOS",
     "file": "/home/april_zhao/coding/ToyOS/kernel/cpu.c",
     "output": "/home/april_zhao/coding/ToyOS/build/cpu.o"
+  },
+  {
+    "arguments": [
+      "/usr/lib64/ccache/gcc",
+      "-mcmodel=large",
+      "-fno-builtin",
+      "-m64",
+      "-fno-stack-protector",
+      "-I",
+      "./kernel",
+      "-I",
+      "./lib",
+      "-I",
+      "./device",
+      "-I",
+      "./task",
+      "-c",
+      "-o",
+      "build/task.o",
+      "task/task.c"
+    ],
+    "directory": "/home/april_zhao/coding/ToyOS",
+    "file": "/home/april_zhao/coding/ToyOS/task/task.c",
+    "output": "/home/april_zhao/coding/ToyOS/build/task.o"
   }
 ]

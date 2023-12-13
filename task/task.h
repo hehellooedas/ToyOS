@@ -194,26 +194,45 @@ struct tss_struct init_tss[NR_CPUS] = { [0 ... NR_CPUS-1] = INIT_TSS };
 
 
 
+#define MAX_SYSTEM_CALL_NR  128
+typedef unsigned long (*system_call_t)(struct pt_regs* regs);
+
+
+unsigned long default_system_call(struct pt_regs* regs);
+unsigned long sys_printf(struct pt_regs *regs);
+
+system_call_t system_call_table[MAX_SYSTEM_CALL_NR] = {
+    [0] = default_system_call,
+    [1] = sys_printf,
+    [2 ...(MAX_SYSTEM_CALL_NR - 1)] = default_system_call
+};
+
 
 /*  函数声明  */
 void task_init(void);
 unsigned long init(unsigned long arg);
-int kernel_thread(unsigned long (*fn)(unsigned long),unsigned long arg,unsigned long flags);unsigned long do_fork(struct pt_regs* regs,unsigned long clone_flags,unsigned long stack_start,unsigned long stack_size);
+int kernel_thread(unsigned long (*fn)(unsigned long),unsigned long arg,unsigned long flags);
+unsigned long do_fork(struct pt_regs* regs,unsigned long clone_flags,unsigned long stack_start,unsigned long stack_size);
 unsigned long do_exit(unsigned long code);
+
 extern void ret_from_intr(void);
+extern void ret_system_call(void);
+extern void system_call(void);
+
+unsigned long system_call_function(struct pt_regs* regs);
+unsigned long do_execute(struct pt_regs *regs);
+void user_level_function();
 
 
 
 /*  获取当前正在运行的进程的pcb  */
-static __attribute__((always_inline))
-struct task_struct* get_current()
-{
-    struct task_struct* current = NULL;
-    asm volatile (
-        "andq %%rsp,%0  \n\t"
-        :"=r"(current)
-        :"0"(~32767UL)
-        :"memory"
+static __attribute__((always_inline)) 
+struct task_struct *get_current() {
+    struct task_struct *current = NULL;
+    asm volatile("andq %%rsp,%0  \n\t"
+               : "=r"(current)
+               : "0"(~32767UL)
+               : "memory"
     );
     return current;
 }
@@ -226,8 +245,9 @@ struct task_struct* get_current()
 
 
 
-#define switch_to(prev,next)       \
-do{                                \
+
+#define switch_to(prev,next)        \
+do{                                 \
     asm volatile (                  \
         "pushq %%rbp    \n\t"       \
         "pushq %%rax    \n\t"       \
@@ -245,6 +265,8 @@ do{                                \
         :"memory"                   \
     );                              \
 }while(0)
+
+
 
 
 

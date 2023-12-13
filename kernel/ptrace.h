@@ -21,6 +21,8 @@ struct pt_regs{
     unsigned long ds;
     unsigned long es;
     unsigned long rax;
+    
+    /*  下面几个就不用pop了  */
     unsigned long func;
     unsigned long errcode;
     unsigned long rip;

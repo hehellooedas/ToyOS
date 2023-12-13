@@ -4,12 +4,12 @@ org 0x10000  ;loader放置在64KB的位置
 %include "./boot/fat12.inc"
 
 
-[SECTION gdt] ;临时的GDT(只需要内核代码段和数据段就好)
+;临时的GDT(只需要内核代码段和数据段就好)
+[SECTION gdt] 
 LABEL_GDT:              dd      0,0     ;NULL描述符
 LABEL_DESC_CODE32:      dd      0x0000ffff,0x00cf9a00   ;非一致性,可读,未访问
 LABEL_DESC_DATA32:      dd      0x0000ffff,0x00cf9200   ;非一致性,可读写,未访问
 ;0xcf:1100 1111   粒度为4KB 32位使用EIP 
-
 
 GdtLen      equ     $ - LABEL_GDT
 GdtPtr:     dw      GdtLen - 1
@@ -20,7 +20,8 @@ SelectorData32      equ     LABEL_DESC_DATA32 - LABEL_GDT   ;数据段选择子
 
 
 
-[SECTION gdt64]     ;临时的64位GDT
+;临时的64位GDT
+[SECTION gdt64]     
 LABEL_GDT64:        dq      0x0000000000000000  ;NULL描述符
 LABEL_DESC_CODE64:  dq      0x0020980000000000
 LABEL_DESC_DATA64:  dq      0x0000920000000000
@@ -168,7 +169,7 @@ Label_FileName_Found:
     add cx,SectorBalance
     mov eax,BaseTmpOfKernelAddr
     mov es,eax
-    mov bx,OffsetTmpOfKernelFile
+    mov bx,OffsetTmpOfKernelFile  ;kernel临时缓冲区
     mov ax,cx
 
 Label_Go_On_Kernel_File:
@@ -193,7 +194,7 @@ Label_Go_On_Kernel_File:
     push ds
     push esi
 
-    mov cx,0x200
+    mov cx,0x200        ;512字节
     mov ax,BaseOfKernelFile
     mov fs,ax
     mov edi,dword [OffsetOfKernelFileCount]
@@ -203,7 +204,7 @@ Label_Go_On_Kernel_File:
     mov esi,OffsetTmpOfKernelFile  ;kernel被临时存储的位置
 
 
-Label_Mov_Kernel:  ;把kernel从临时地址搬移到目标地址
+Label_Mov_Kernel:  ;把kernel从临时地址搬移到目标地址(每取出一个簇就搬移一次)
     mov al,byte [ds:esi]
     mov byte [fs:edi],al
 
@@ -215,7 +216,7 @@ Label_Mov_Kernel:  ;把kernel从临时地址搬移到目标地址
     mov eax,0x1000
     mov ds,eax
 
-    mov dword [OffsetOfKernelFileCount],edi   ;偏移量edi之前已经是内核数据了
+    mov dword [OffsetOfKernelFileCount],edi   ;偏移量edi前面是内核数据
 
     pop esi
     pop ds
@@ -243,6 +244,7 @@ Label_File_Loaded:
     mov ah,0xf
     mov al,'G'
     mov [gs:(80 * 0 + 39 * 2)],ax
+
 
 ;------关闭软驱马达------  ;软盘落幕
 KillMotor:
@@ -277,11 +279,11 @@ KillMotor:
 Label_Get_Mem_Struct:
     mov eax,0x0E820          ;子功能号
     mov ecx,20               ;ARDS结构的字节大小
-    mov edx,0x534D4150       ;签名标记
+    mov edx,0x534D4150       ;签名标记(固定值SMAP)
     int 0x15
     jc Label_Get_Mem_Fail    ;CF=1表示出错
     add di,20                ;缓冲区往后移动一个ARDS结构的大小
-    inc dword [MemStructNumber]
+    inc dword [MemStructNumber] ;内存结构体的数量+1
 
     cmp ebx,0                ;ebx为0意味着这是最后一个ARDS结构(不用动它)
     jne Label_Get_Mem_Struct ;查找下一个ARDS结构
@@ -303,7 +305,9 @@ Label_Get_Mem_Fail:
     int 0x10
     jmp $
 
-Label_Get_Mem_OK:
+
+
+Label_Get_Mem_OK:  ;ADRS结构体查找完毕
     mov ax,0x1301           
     mov bx,0x000f
     mov dx,0x0600
@@ -715,6 +719,8 @@ IDT_POINTER:
     dd  IDT
 
 
+
+;临时变量和字符串定义
 SVGAModeCounter:             dd      0
 RootDirSizeForLoop:          dw      RootDirSectors
 SectorNo:                    dw      0

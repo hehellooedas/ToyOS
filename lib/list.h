@@ -72,10 +72,8 @@ get_List_prev(struct List *entry)
 static struct List *__attribute__((always_inline))
 get_List_next(struct List *entry) 
 {
-  if (entry->next == NULL){
-    color_printk(RED,BLACK,"NULL is now!");
+  if (entry->next == NULL) 
     return NULL;
-  }
     
   else return entry->next;
 }

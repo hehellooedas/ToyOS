@@ -23,4 +23,17 @@
 })
 
 
+
+static __attribute__((always_inline))
+void wrmsr(unsigned long address,unsigned long value)
+{
+    asm volatile (
+        "wrmsr      \n\t"
+        :
+        :"c"(address),"d"(value >> 32),"a"(value & 0xffffffff)
+        :"memory"
+    );
+}
+
+
 #endif // !__KERNEL_LIB_H

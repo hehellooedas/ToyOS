@@ -1,5 +1,7 @@
 #include "linkage.h"
 
+
+
 .code64
 /*  各个寄存器在栈中的偏移量  */
 R15     =   0x00  #跳入函数前最后入栈的寄存器
@@ -287,3 +289,67 @@ ENTRY(virtualization_exception)
     leaq do_virtualization_exception(%rip),%rax
     xchgq %rax,(%rsp)
     jmp error_code
+
+
+
+
+
+ENTRY(system_call)
+    sti
+    subq $0x38,%rsp
+    cld;
+
+    pushq %rax
+    movq %es,%rax
+    pushq %rax
+    movq %ds,%rax
+    pushq %rax
+    xorq %rax,%rax
+    pushq %rbp
+    pushq %rdi
+    pushq %rsi
+    pushq %rdx  #保存rip
+    pushq %rcx  #保存rsp(保存这二者后在sysexit的时候能返回去)
+    pushq %rbx
+    pushq %r8
+    pushq %r9
+    pushq %r10
+    pushq %r11
+    pushq %r12
+    pushq %r13
+    pushq %r14
+    pushq %r15
+
+    movq $0x10,%rdx
+    movq %rdx,%ds
+    movq %rdx,%es
+    movq %rsp,%rdi  #regs
+
+    callq system_call_function
+    # 刚执行完用户态程序就往下执行(ret_system_call)
+
+
+ENTRY(ret_system_call)
+    movq %rax,0x80(%rsp)  #保存系统调用的返回值rax到regs->rax
+    popq %r15;
+    popq %r14;
+    popq %r13;
+    popq %r12;
+    popq %r11; 
+    popq %r10; 
+    popq %r9; 
+    popq %r8; 
+    popq %rbx; 
+    popq %rcx; #上面保存的地址信息就在这里还原了
+    popq %rdx; #
+    popq %rsi; 
+    popq %rdi; 
+    popq %rbp; 
+    popq %rax;
+    movq %rax,%ds; 
+    popq %rax; 
+    movq %rax,%es; 
+    popq %rax; 
+    addq $0x38,%rsp; 
+    .byte 0x48
+    sysexitq

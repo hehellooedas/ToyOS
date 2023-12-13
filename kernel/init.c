@@ -8,7 +8,7 @@
 
 
 void init_all(void){
-    load_TR(8);
+    load_TR(10);
     set_tss64(0xffff800000007c00,0xffff800000007c00,0xffff800000007c00,0xffff800000007c00,0xffff800000007c00,0xffff800000007c00,0xffff800000007c00,0xffff800000007c00,0xffff800000007c00,0xffff800000007c00);
     screen_init();
     sys_vector_init();

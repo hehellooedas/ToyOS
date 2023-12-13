@@ -56,4 +56,58 @@ void atomic_dec(atomic_T* atomic)
     );
 }
 
+
+
+static __attribute__((always_inline))
+void atomic_set_mask(atomic_T* atomic,long mask)
+{
+    asm volatile (
+        "lock orq %1,%0"
+        :"=m"(atomic->value)
+        :"r"(mask)
+        :"memory"
+    );
+}
+
+
+
+static __attribute__((always_inline))
+void atomic_set_mask(atomic_T* atomic,long mask)
+{
+    asm volatile (
+        "lock orq %1,%0"
+        :"=m"(atomic->value)
+        :"r"(mask)
+        :"memory"
+    );
+}
+
+
+
+static __attribute__((always_inline))
+void atomic_set_mask(atomic_T* atomic,long mask)
+{
+    asm volatile (
+        "lock orq %1,%0     \n\t"
+        :"=m"(atomic->value)
+        :"r"(mask)
+        :"memory"
+    );
+}
+
+
+
+static __attribute__((always_inline))
+void aotomic_clear_mask(atomic_T* atomic,long mask)
+{
+    asm volatile (
+        "lock andq %1,%0     \n\t"
+        :"=m"(atomic->value)
+        :"r"(mask)
+        :"memory"
+    );
+}
+
+
+
 #endif // !__TASK_ATOMIC_H
