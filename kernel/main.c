@@ -16,6 +16,6 @@ void Start_Kernel(void){
     color_printk(YELLOW,BLACK,"Hello\t\t World!\n");
     color_printk(YELLOW,BLACK,"Hello\t\t World!\n");
     color_printk(YELLOW,BLACK,"Hello\t\t World!\n");
-
+    
     while(1);
 }

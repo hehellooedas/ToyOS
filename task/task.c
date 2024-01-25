@@ -11,8 +11,8 @@ extern char _erodata;
 extern char _stack_start;
 
 void task_init(void) {
-  	struct task_struct *p = NULL;
-  	init_mm.pgd = (pml4t_t *)Get_gdt();
+  struct task_struct *p = NULL;
+  init_mm.pgd = (pml4t_t *)Get_gdt();
 	init_mm.start_code = memory_managerment_struct.start_code;
 	init_mm.end_code = memory_managerment_struct.end_code;
 	init_mm.start_data = (unsigned long)&_data;
@@ -40,7 +40,6 @@ void task_init(void) {
 	init_task_union.task.state = TASK_RUNNING;
 
 	p = container_of(get_List_next(&current->list), struct task_struct, list);
-
 	switch_to(current, p);
 }
 

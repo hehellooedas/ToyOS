@@ -1,6 +1,15 @@
 #ifndef __KERNEL_CPU_H
 #define __KERNEL_CPU_H
 
+/*
+CPUID汇编指令用于鉴别处理器信息以及支持的功能(仅使用32位)
+input:
+    EAX:主功能号
+    ECX:子功能号
+
+*/
+
+
 
 #define NR_CPUS   8
 
@@ -11,6 +20,7 @@ void get_cpuid(unsigned int Mop,unsigned int Sop,unsigned int* a,unsigned int* b
         "cpuid      \n\t"
         :"=a"(*a),"=b"(*b),"=c"(*c),"=d"(*d)
         :"0"(Mop),"2"(Sop)
+        :"memory"
     );
 }
 
