@@ -188,7 +188,7 @@ ENTRY(_stack_start)
 
 .align 8
 
-.org 0x1000
+.org 0x1000  #.quad为64位
 __PML4E:
     .quad   0x102007
     .fill   255,8,0
@@ -200,7 +200,7 @@ __PML4E:
 
 .org 0x2000
 __PDPTE:
-    .quad   0x103007
+    .quad   0x103007 #采用非1GB的小页(用户模式)(可读写)
     .fill   511,8,0
 
 
@@ -208,14 +208,14 @@ __PDPTE:
 .org 0x3000
 __PDE:
     /* 10MB */
-    .quad   0x000087
+    .quad   0x000087 #1000 0111(采用2MB大页)(用户模式)(可读写)
     .quad   0x200087
     .quad   0x400087
     .quad   0x600087
     .quad   0x800087
 
     /* 16MB */
-    .quad   0xe0000087
+    .quad   0xe0000087 #PAT打开
     .quad   0xe0200087
     .quad   0xe0400087
     .quad   0xe0600087

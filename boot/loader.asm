@@ -494,16 +494,19 @@ Go_To_TMP_Protect:  ;进入临时保护模式
 
     ;处理器支持64位
     ;初始化页表模板
-    mov dword [0x90000],0x91007 ;PGD的第一个项指向PUD的起始地址0x91000
-    mov dword [0x90004],0x00000 ;PGD的第二个项
+    ;PDPT页目录指针表
+    mov dword [0x90000],0x91007
+    mov dword [0x90004],0x00000
 	mov	dword [0x90800],0x91007
     mov dword [0x90804],0x00000 
 
-	mov	dword [0x91000],0x92007 ;PUD的第一个项指向PD的起始地址0x92000
-    mov dword [0x91004],0x00000 ;PUD的第二个项
+    ;PDT页目录项
+	mov	dword [0x91000],0x92007
+    mov dword [0x91004],0x00000
 
 
-	mov	dword [0x92000],0x000083 ;PD的第一个项
+    ;PT页表项
+	mov	dword [0x92000],0x000083
     mov dword [0x92004],0x000000
 
 	mov	dword [0x92008],0x200083
@@ -516,7 +519,7 @@ Go_To_TMP_Protect:  ;进入临时保护模式
 	mov	dword [0x92018],0x600083
     mov dword [0x9201c],0x000000
 
-	mov	dword [0x92020],0x800083 ;
+	mov	dword [0x92020],0x800083
     mov dword [0x92024],0x000000
 
 	mov	dword [0x92028],0xa00083
@@ -538,7 +541,7 @@ Go_To_TMP_Protect:  ;进入临时保护模式
 
     ;打开cr4寄存器里的PAE标志位
     mov eax,cr4
-    bts eax,5  ;三级分页
+    bts eax,5  ;三级分页(PAE)
     mov cr4,eax
 
     ;加载cr3 设置分页的物理基地址

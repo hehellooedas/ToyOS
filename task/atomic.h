@@ -7,7 +7,16 @@ typedef struct{
 } atomic_T;
 
 
-/*  lock前缀会锁住硬件平台的前端总线  */
+/*
+atomic_T为原子变量
+lock前缀会锁住硬件平台的前端总线
+*/
+
+
+#define atomic_read(atomic) ((atomic)->value)  //获取原子变量的值
+#define atomic_set(atomic,value)  ((atomic)->value = (value))  //设置原子变量的值
+
+
 
 
 static __attribute__((always_inline)) 
@@ -56,31 +65,6 @@ void atomic_dec(atomic_T* atomic)
     );
 }
 
-
-
-static __attribute__((always_inline))
-void atomic_set_mask(atomic_T* atomic,long mask)
-{
-    asm volatile (
-        "lock orq %1,%0"
-        :"=m"(atomic->value)
-        :"r"(mask)
-        :"memory"
-    );
-}
-
-
-
-static __attribute__((always_inline))
-void atomic_set_mask(atomic_T* atomic,long mask)
-{
-    asm volatile (
-        "lock orq %1,%0"
-        :"=m"(atomic->value)
-        :"r"(mask)
-        :"memory"
-    );
-}
 
 
 

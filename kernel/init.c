@@ -1,6 +1,6 @@
-#include "init.h"
-#include "memory.h"
-#include "trap.h"
+#include <init.h>
+#include <memory.h>
+#include <trap.h>
 #include <interrupt.h>
 #include <cpu.h>
 #include <gate.h>

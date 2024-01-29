@@ -13,11 +13,12 @@
 12           LengthHigh     内存长度的高32位
 16           Type           决定了本段的性质
 |----------------------------------------------------|
-Type=1意味着该段是可被利用的
+Type=1意味着该段是可被利用的(其余则不可利用)
 */
 
 
 
+/*  符合ARDS数据结构的初步结构体  */
 struct Memory_E820_Formate{
     unsigned int addr1;
     unsigned int addr2;
@@ -41,8 +42,8 @@ struct E820{
 typedef struct{
     unsigned long pml4t;
 } pml4t_t;  //page map level 4
-#define mk_pml4t(addr,attr)     ((unsigned long)addr | (unsigned long)attr)
-#define set_pml4t(pml4tptr,pml4tval) (*(pml4tptr) = (pml4tval))
+#define mk_pml4t(addr,attr) ((unsigned long)addr | (unsigned long)attr) //为pml4t项设置页属性
+#define set_pml4t(pml4tptr,pml4tval) (*(pml4tptr) = (pml4tval))  //将表项设定为指定值
 
 
 typedef struct{
@@ -63,9 +64,9 @@ typedef struct{
 /*  用一个统一的结构来描述物理内存分布情况  */
 struct Global_Memory_Descriptor{
     struct E820 e820[32];        //每个ARDS描述符的具体情况
-    unsigned long e820_length;   //用几个ARDS结构来描述
+    unsigned long e820_length;   //ARDS结构体的数量
 
-    unsigned long*  bits_map;    //物理地址空间页映射位图
+    unsigned long*  bits_map;    //物理地址空间页映射位图指针
     unsigned long   bits_size;   //页图的数量
     unsigned long   bits_length; //位图长度
 
@@ -77,17 +78,17 @@ struct Global_Memory_Descriptor{
     unsigned long   zones_size;  //zone结构的个数
     unsigned long   zones_length; //zone结构长度
 
-    unsigned long start_code,end_code,end_data,end_brk;
+    unsigned long start_code,end_code,end_data,end_brk; //链接器中设定的重要参数
 
     unsigned long end_of_struct; //内存页管理结构的结尾地址
 };
 
-extern struct Global_Memory_Descriptor memory_managerment_struct;
+extern struct Global_Memory_Descriptor memory_management_struct;  //定义在main.c里
 
 
 
 
-#define PTRS_PER_PAGE   512   //页表项个数
+#define PTRS_PER_PAGE   512   //页表项个数(每个页表项占8B)
 
 
 #define PAGE_OFFSET     ((unsigned long)0xffff800000000000)   //内核层起始线性地址
@@ -124,7 +125,7 @@ struct Page{
 
 #define PAGE_XD     (unsigned long)0x1000000000000000   //禁止执行标志位
 
-#define PAGE_Present (unsigned long) 0x001    //页是否存在(不存在/存在)
+#define PAGE_Present (unsigned long) 0x001    //页是否存在(不存在/存在)(在最末端的位置)
 #define PAGE_R_W    (unsigned long)0x0002     //页的读写属性(只读/可读可写)
 #define PAGE_U_S    (unsigned long)0x0004     //页的访问模式(超级/用户)
 #define PAGE_PWT    (unsigned long)0x0008     //页级写穿标志(回写/写穿)
@@ -155,10 +156,10 @@ struct Page{
 #define PG_Slab         (1 << 9)
 
 
-/*  一个区域中有多个页  */
+/*  一个区域中有多个页,一页可以属于某一个区域  */
 struct Zone{
      struct Page*   pages_group;    //数组指针
-     unsigned long  pages_length;   //page结构体数量 
+     unsigned long  pages_length;   //page结构体数量(有几页)
 
      unsigned long  zone_start_address;  //起始页对齐地址
      unsigned long  zone_end_address;    //结束页对齐地址
@@ -247,6 +248,9 @@ void flush_tlb(void){
 static __attribute__((always_inline))
 void flush_tlb_one(unsigned long* p)
 {
+    /*
+        Invalidate Page Table Entry 无效化页表项
+    */
     asm volatile (
         "invlpg %0  \n\t"
         :
