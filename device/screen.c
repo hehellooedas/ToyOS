@@ -21,8 +21,10 @@ void screen_init(void){
 
 /*  清屏  */
 void screen_clear(void){
+    /*  设置当前位置为左上角  */
     Pos.XPosition = 0;
     Pos.YPosition = 0;
+    /*  把数据清零  */
     unsigned int* addr = Pos.FB_addr;
     for(int i=0;i<Pos.XPosition * Pos.YPosition;i++){
         *addr = 0;

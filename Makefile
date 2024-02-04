@@ -1,6 +1,6 @@
 BUILD_DIR = ./build
 NASM = nasm
-CC = gcc
+CC = ccache gcc
 AS = as
 LD = ld
 RM = rm -rf
