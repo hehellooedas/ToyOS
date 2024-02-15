@@ -2,7 +2,7 @@
 
 .code64
 .section .text
-.global _start
+.global _start #内核程序的开始
 
 
 _start:
@@ -46,7 +46,7 @@ entry64:
     movq %rax,%es
     movq %rax,%gs
     movq %rax,%ss
-    movq _stack_start(%rip),%rsp
+    movq _stack_start(%rip),%rsp  #更新rsp为内核栈的地址
 
 
 setup_IDT:
@@ -183,7 +183,7 @@ int_msg:
     .asciz "Unknow interrupt or fault at RIP\n"
 
 ENTRY(_stack_start)
-    .quad init_task_union + 32768 #内核栈
+    .quad init_task_union + 32768 #内核栈(0x100000~0x120000)
 
 
 .align 8
@@ -263,7 +263,7 @@ IDT_BASE:   .quad   IDT_Table
 #TSS64
 .global TSS64_Table
 TSS64_Table:
-    .fill 13,8,0   #预留13个TSS槽位(每个TSS8字节)
+    .fill 13,8,0   #预留13个TSS槽位(每个TSS占据8字节)
 TSS64_END:
 
 TSS64_LIMIT:    .word   TSS64_END - TSS64_Table - 1

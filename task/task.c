@@ -10,6 +10,8 @@ extern char _rodata;
 extern char _erodata;
 extern char _stack_start;
 
+
+
 void task_init(void) {
     struct task_struct *p = NULL;
     init_mm.pgd = (pml4t_t *)Get_gdt();
@@ -34,7 +36,7 @@ void task_init(void) {
 
     init_tss[0].rsp0 = init_thread.rsp0;
 
-    list_init(&init_task_union.task.list);
+    list_init(&init_task_union.task.list);  //初始化init进程的链表结构
     kernel_thread(init, 10,
                 CLONE_FS | CLONE_FILES | CLONE_SIGNAL); // 创建init进程
     init_task_union.task.state = TASK_RUNNING;
@@ -42,6 +44,7 @@ void task_init(void) {
     p = container_of(get_List_next(&current->list), struct task_struct, list);
     switch_to(current, p);
 }
+
 
 /*  init内核线程(0x200000~0x208000)  */
 unsigned long init(unsigned long arg) {
@@ -64,6 +67,8 @@ unsigned long init(unsigned long arg) {
     return 1;
 }
 
+
+/*  刚创建的进程通过这个函数恢复现场  */
 extern void kernel_thread_func(void);
 asm("kernel_thread_func:        \n\t"
     "popq %r15              \n\t"
@@ -90,12 +95,14 @@ asm("kernel_thread_func:        \n\t"
     "movq %rdx,%rdi         \n\t" // rdx记录参数信息
     "callq *%rbx            \n\t" // rbx中记录关键地址信息
     "movq %rax,%rdi         \n\t"
-    "callq do_exit          \n\t");
+    "callq do_exit          \n\t");  //进程运行结束后用do_exit退出
+
+
 
 int kernel_thread(unsigned long (*fn)(unsigned long), unsigned long arg,
                   unsigned long flags) {
     struct pt_regs regs;
-    memset(&regs, 0, sizeof(regs));
+    memset(&regs, 0, sizeof(regs)); //没赋值的变量都为0
     regs.rbx = (unsigned long)fn;  // 记录init重要的执行函数地址信息
     regs.rdx = (unsigned long)arg; // 记录函数的参数信息
 
@@ -108,6 +115,8 @@ int kernel_thread(unsigned long (*fn)(unsigned long), unsigned long arg,
 
     return do_fork(&regs, flags, 0, 0);
 }
+
+
 
 unsigned long do_fork(struct pt_regs *regs, unsigned long clone_flags,
                       unsigned long stack_start, unsigned long stack_size) {
@@ -123,13 +132,13 @@ unsigned long do_fork(struct pt_regs *regs, unsigned long clone_flags,
     color_printk(WHITE, BLACK, "alloc_pages,bitmap:%#018x\n",
                 *memory_management_struct.bits_map);
 
-    task = (struct task_struct *)(Phy_To_Virt(p->PHY_address));
+    task = (struct task_struct *)(Phy_To_Virt(p->PHY_address));  //pcb指向新分配的空间首地址
 
     color_printk(WHITE, BLACK, "struct task_struct address:%#018x\n",
                 (unsigned long)task);
 
     memset(task, 0, sizeof(*task));
-    *task = *current;
+    *task = *current; //不同的部分后面可以修改
 
     list_init(&task->list);
 
@@ -158,14 +167,15 @@ unsigned long do_fork(struct pt_regs *regs, unsigned long clone_flags,
 }
 
 
+/*  进程切换的下半段  */
 void __attribute__((always_inline))
 __switch_to(struct task_struct *prev, struct task_struct *next) {
-    init_tss[0].rsp0 = next->thread->rsp0;
+    init_tss[0].rsp0 = next->thread->rsp0; //更新rsp0
 
     set_tss64(init_tss[0].rsp0, init_tss[0].rsp1, init_tss[0].rsp2,
             init_tss[0].ist1, init_tss[0].ist2, init_tss[0].ist3,
             init_tss[0].ist4, init_tss[0].ist5, init_tss[0].ist6,
-            init_tss[0].ist7);
+            init_tss[0].ist7);  //更新后写入到TSS
 
     /*
         asm volatile ("movq %%fs,%0 \n\t":"=a"(prev->thread->fs));
@@ -175,6 +185,7 @@ __switch_to(struct task_struct *prev, struct task_struct *next) {
         asm volatile ("movq %0,%%gs \n\t":"=a"(next->thread->gs));
     */
 
+    /*  相互保存fs和gs段寄存器  */
     asm volatile("movq %%fs,%0       \n\t"
                 "movq %%gs,%1       \n\t"
                 "movq %2,%%fs       \n\t"
@@ -186,6 +197,7 @@ __switch_to(struct task_struct *prev, struct task_struct *next) {
     color_printk(WHITE, BLACK, "prev->thread->rsp0:%#-18x\n", prev->thread->rsp0);
     color_printk(WHITE, BLACK, "next->thread->rsp0:%#-18x\n", next->thread->rsp0);
 }
+
 
 
 unsigned long do_exit(unsigned long code) {
@@ -208,14 +220,12 @@ unsigned long do_execute(struct pt_regs *regs) {
 
 void user_level_function() {
     long ret = 0;
-    // color_printk(RED,BLACK,"user_level_function task is running\n");
-    // char string[] = __FUNCTION__;
     asm volatile("leaq sysexit_return_address(%%rip),%%rdx      \n\t"
                 "movq %%rsp,%%rcx   \n\t"
                 "sysenter           \n\t"
                 "sysexit_return_address: \n\t"
                 : "=a"(ret)
-                : "0"(1), "D"(__FUNCTION__) // 1号系统调用
+                : "0"(1), "D"(__FUNCTION__) // 使用1号系统调用(打印字符串)
                 : "memory");
     // color_printk(RED,BLACK,"user_level_function task called
     // sysenter,ret:%ld\n",ret);

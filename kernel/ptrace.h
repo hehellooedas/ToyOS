@@ -22,7 +22,7 @@ struct pt_regs{
     unsigned long es;
     unsigned long rax;
     
-    /*  下面几个就不用pop了  */
+    /*  下面几个就不用pop了(会通过task_struct->thread->保存和恢复)  */
     unsigned long func;
     unsigned long errcode;
     unsigned long rip;

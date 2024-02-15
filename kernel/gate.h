@@ -59,7 +59,10 @@ do{                         \
 
 
 
-/*  设置TSS(其中reserved部分不需要赋值了)  */
+/*  
+设置TSS 直接把数据写入到TSS的第一项
+(其中reserved部分不需要赋值了)
+*/
 static __attribute__((always_inline)) 
 void set_tss64(unsigned long rsp0,unsigned long rsp1,unsigned long rsp2\
 ,unsigned long ist1,unsigned long ist2,unsigned long ist3,unsigned long ist4\
@@ -103,7 +106,9 @@ void set_system_gate(unsigned int n,unsigned char ist,void* addr)
     _set_gate(IDT_Table + n, 0xEF, ist, addr);  //1110 1111
 }
 
-
+/*
+注：若ist参数为0则使用默认堆栈，若不为0则通过索引去TSS中找堆栈指针
+*/
 
 
 

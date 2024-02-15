@@ -5,12 +5,18 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+
+/*  
+双向链表的基本结构
+只需在结构体中定义一个List变量则可加入到队列之中
+*/
 struct List{
     struct List* prev;
     struct List* next;
 };
 
 
+/*  队列初始化  */
 static void __attribute__((always_inline))
 list_init(struct List* list){
     list->prev = list;
@@ -18,6 +24,7 @@ list_init(struct List* list){
 }
 
 
+/*  插入到末尾  */
 static void __attribute__((always_inline))
 list_add_to_behind(struct List* entry,struct List* newNode)
 {
@@ -28,7 +35,7 @@ list_add_to_behind(struct List* entry,struct List* newNode)
 }
 
 
-
+/*  插入到开头  */
 static void __attribute__((always_inline))
 list_add_to_before(struct List* entry,struct List* newNode)
 {
@@ -39,7 +46,7 @@ list_add_to_before(struct List* entry,struct List* newNode)
 }
 
 
-
+/*  删除指定链  */
 static void __attribute__((always_inline))
 list_del(struct List* entry)
 {
@@ -48,7 +55,7 @@ list_del(struct List* entry)
 }
 
 
-
+/*  判断链表是否为空  */
 static bool __attribute__((always_inline))
 list_is_empty(struct List* entry)
 {
@@ -60,6 +67,7 @@ list_is_empty(struct List* entry)
 }
 
 
+/*  获取前驱节点  */
 static struct List *__attribute__((always_inline))
 get_List_prev(struct List *entry) 
 {
@@ -69,6 +77,7 @@ get_List_prev(struct List *entry)
 }
 
 
+/*  获取后继节点  */
 static struct List *__attribute__((always_inline))
 get_List_next(struct List *entry) 
 {

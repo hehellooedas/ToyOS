@@ -10,7 +10,7 @@ void cpu_init(void){
 
     /*  查看CPU品牌标志(制造商)  */
     get_cpuid(0,0,&CpuFacName[0],&CpuFacName[1],&CpuFacName[2],&CpuFacName[3]);
-    Max_Basic_Number = CpuFacName[0];  //最大基础功能号
+    Max_Basic_Number = CpuFacName[0];  //最大基础功能号(重要)
     *(unsigned int*)&FactoryName[0] = CpuFacName[1];
     *(unsigned int*)&FactoryName[4] = CpuFacName[3];
     *(unsigned int*)&FactoryName[8] = CpuFacName[2];
@@ -49,6 +49,13 @@ void cpu_init(void){
 
     /*  最大基础\拓展功能号  */
     get_cpuid(0x80000000,0,&CpuFacName[0],&CpuFacName[1],&CpuFacName[2],&CpuFacName[3]);
-    Max_Entend_Number = CpuFacName[0];
+    Max_Entend_Number = CpuFacName[0]; //最大拓展功能号(重要)
     color_printk(WHITE,BLACK,"Max_Basic_Number = %#x,Max_Entend_Number = %#x\n",Max_Basic_Number,Max_Entend_Number);
+
+
+    /*  查询CPU的其他信息  */
+    /*
+    get_cpuid(1, 0, &CpuFacName[0], &CpuFacName[1], &CpuFacName[2],
+    &CpuFacName[3]); color_printk(WHITE, BLACK, "\n%#x\n", CpuFacName[3]);
+    */
 }
