@@ -24,7 +24,7 @@ list_init(struct List* list){
 }
 
 
-/*  插入到末尾  */
+/*  插入到后面  */
 static void __attribute__((always_inline))
 list_add_to_behind(struct List* entry,struct List* newNode)
 {
@@ -35,7 +35,7 @@ list_add_to_behind(struct List* entry,struct List* newNode)
 }
 
 
-/*  插入到开头  */
+/*  插入到前面  */
 static void __attribute__((always_inline))
 list_add_to_before(struct List* entry,struct List* newNode)
 {

@@ -294,7 +294,7 @@ ENTRY(virtualization_exception)
 
 
 
-ENTRY(system_call)
+ENTRY(system_call) #执行sysenter的时候会进入到这里
     sti
     subq $0x38,%rsp
     cld;
@@ -308,7 +308,7 @@ ENTRY(system_call)
     pushq %rbp
     pushq %rdi
     pushq %rsi
-    pushq %rdx  #保存rip
+    pushq %rdx  #保存rip(sysexit_return_address)
     pushq %rcx  #保存rsp(保存这二者后在sysexit的时候能返回去)
     pushq %rbx
     pushq %r8
@@ -325,8 +325,8 @@ ENTRY(system_call)
     movq %rdx,%es
     movq %rsp,%rdi  #regs
 
-    callq system_call_function
-    # 刚执行完用户态程序就往下执行(ret_system_call)
+    callq system_call_function #执行完成后会返回
+    # 从用户态程序返回后就往下执行ret_system_call(回到内核态)
 
 
 ENTRY(ret_system_call)
@@ -341,7 +341,7 @@ ENTRY(ret_system_call)
     popq %r8; 
     popq %rbx; 
     popq %rcx; #上面保存的地址信息就在这里还原了
-    popq %rdx; #
+    popq %rdx; #在do_execute中写入的信息(这两个寄存器非常重要)
     popq %rsi; 
     popq %rdi; 
     popq %rbp; 
@@ -353,3 +353,7 @@ ENTRY(ret_system_call)
     addq $0x38,%rsp; 
     .byte 0x48
     sysexitq
+#sysexit只能ring0 -> ring3,跳转时不会进行段描述符检测,速度快
+#在使用sysexit之前必须设定好MSR寄存器和rdx,rcx
+#IA32_SYSENTER_CS(0x174)
+#rdx:被装入rip,rcx:被装入rsp

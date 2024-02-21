@@ -83,6 +83,7 @@ union task_union { // 两个变量共享一个区域(大小为stack变量的大�
 } __attribute__((aligned(8)));
 
 
+
 /*  参与进程调度所必须的信息  */
 struct thread_struct {
   unsigned long rsp0; // 内核层栈基地址(在tss里) 一直指向pcb的末尾
@@ -97,6 +98,7 @@ struct thread_struct {
   unsigned long trap_nr;    // 产生异常的异常号
   unsigned long error_code; // 异常的错误码
 };
+
 
 
 /*
@@ -134,6 +136,7 @@ struct thread_struct init_thread;
     .counter = 1, .signal = 0, .priority = 0                                   \
   }
 
+
 /*
 init进程就是以0x118000为开始(pcb)的进程
 将init_task_uniox这个全局变量绑定到一个特别的程序段内
@@ -141,9 +144,12 @@ init进程就是以0x118000为开始(pcb)的进程
 union task_union init_task_union __attribute__((
     __section__(".data.init_task"))) = {INIT_TASK(init_task_union.task)};
 
+
 struct task_struct *init_task[NR_CPUS] = {&init_task_union.task, 0};
 
+
 struct mm_struct init_mm = {0};
+
 
 struct thread_struct init_thread = {
     .rsp0 = (unsigned long)(init_task_union.stack +
@@ -155,6 +161,7 @@ struct thread_struct init_thread = {
     .cr2 = 0,
     .trap_nr = 0,
     .error_code = 0};
+
 
 /*  初始化TSS结构体(用于将TSS信息写入到TSS_Table)  */
 #define INIT_TSS                                                               \
@@ -173,6 +180,7 @@ struct thread_struct init_thread = {
     .iomapbaseaddr = 0                                                         \
   }
 
+
 struct tss_struct init_tss[NR_CPUS] = {[0 ... NR_CPUS - 1] = INIT_TSS};
 
 #define MAX_SYSTEM_CALL_NR 128
@@ -186,6 +194,8 @@ system_call_t system_call_table[MAX_SYSTEM_CALL_NR] = {
     [1] = sys_printf,
     [2 ...(MAX_SYSTEM_CALL_NR - 1)] = default_system_call
 };
+
+
 
 /*  函数声明  */
 void task_init(void);
@@ -204,6 +214,8 @@ unsigned long system_call_function(struct pt_regs *regs);
 unsigned long do_execute(struct pt_regs *regs);
 void user_level_function();
 
+
+
 /*  获取当前正在运行的进程的pcb  */
 static __attribute__((always_inline)) struct task_struct *get_current() {
   struct task_struct *current = NULL;
@@ -220,20 +232,24 @@ static __attribute__((always_inline)) struct task_struct *get_current() {
   "movq %rsp,%rbx     \n\t"                                                    \
   "andq $-32769,%rbx  \n\t"
 
+
+
+
 /*
-prev in rdi and next in rsi 会一直跟随到__switch_to
+prev in rdi and next in rsi
+保存在寄存器里的参数会一直跟随到__switch_to
 switch_to为进程切换的前半段
 */
 #define switch_to(prev, next)                                                  \
   do {                                                                         \
-    asm volatile("pushq %%rbp    \n\t"/*栈帧非常重要,必须保存*/                                         \
+    asm volatile("pushq %%rbp    \n\t"/*栈帧非常重要,必须保存*/                    \
                  "pushq %%rax    \n\t"                                         \
-                 "movq %%rsp,%0  \n\t" /*保存prev进程的栈*/                                    \
-                 "movq %2,%%rsp  \n\t" /*更新rsp为next的栈*/                                        \
+                 "movq %%rsp,%0  \n\t" /*保存prev进程的栈*/                       \
+                 "movq %2,%%rsp  \n\t" /*更新rsp为next的栈*/                      \
                  "leaq 1f(%%rip),%%rax    \n\t"                                \
-                 "movq %%rax,%1  \n\t"/*保存prev进程的rip,方便后续回到1标记的位置*/                                         \
+                 "movq %%rax,%1  \n\t"/*保存prev进程的rip,方便后续回到1标记的位置*/    \
                  "pushq %3       \n\t"                                         \
-                 "jmp __switch_to \n\t"/*这里使用jmp而不是call,__switch_to函数执行结束后会直接跳到next->thread_rip*/                                        \
+                 "jmp __switch_to \n\t"/*这里使用jmp而不是call,__switch_to函数执行结束后会直接跳到next->thread_rip*/                                            \
                  "1:              \n\t"                                        \
                  "popq %%rax     \n\t"                                         \
                  "popq %%rbp     \n\t"                                         \
@@ -242,5 +258,6 @@ switch_to为进程切换的前半段
                    "S"(next)                                                   \
                  : "memory");                                                  \
   } while (0)
+
 
 #endif // !__Task_Task_H

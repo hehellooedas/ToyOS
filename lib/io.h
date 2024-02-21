@@ -63,8 +63,8 @@ void insw(unsigned short port,void* buffer,unsigned long nr)
         "cld        \n\t"
         "rep insw   \n\t"
         "mfence     \n\t"
-        :
-        :"d"(port),"D"(buffer),"c"(nr)
+        :"+D"(buffer),"+c"(nr)
+        :"d"(port)
         :"memory"
     );
 }
@@ -78,8 +78,8 @@ void outsw(unsigned short port,void* buffer,unsigned long nr)
         "cld        \n\t"
         "rep outsw  \n\t"
         "mfence     \n\t"
-        :
-        :"d"(port),"S"(buffer),"c"(nr)
+        :"+S"(buffer),"+c"(nr)
+        :"d"(port)
         :"memory"
     );
 }

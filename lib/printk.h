@@ -1,25 +1,11 @@
 #ifndef __LIB_PRINTK_H
 #define __LIB_PRINTK_H
 
+
 #include <font.h>
 #include <stdarg.h>
+#include <screen.h>
 
-struct position{
-    /*  当前屏幕分辨率  */
-    int XResolution;
-    int YResolution;
-
-    /*  字符光标所在位置  */
-    int XPosition;
-    int YPosition;
-
-    /*  字符像素矩阵尺寸  */
-    int XCharSize;
-    int YCharSize;
-
-    unsigned int* FB_addr;   //帧缓冲区起始地址(frame buffer)
-    unsigned long FB_length; //帧缓冲区容量大小
-};
 
 
 #define ZEROPAD     1    // %0

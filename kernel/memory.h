@@ -3,6 +3,7 @@
 
 #include <list.h>
 #include <printk.h>
+#include <stdbool.h>
 
 /*
 地址范围描述符(ARDS Address Range Descriptior Sturcture)
@@ -95,6 +96,10 @@ extern struct Global_Memory_Descriptor memory_management_struct;  //定义在mai
 #define Virt_To_Phy(addr)   ((unsigned long)(addr) - PAGE_OFFSET)  //虚拟地址转换成物理地址
 #define Phy_To_Virt(addr)   ((unsigned long*)((unsigned long)(addr) + PAGE_OFFSET))
 
+#define SIZEOF_LONG_ALIGN(size) ((size + sizeof(long) -1) & ~(sizeof(long) - 1))
+#define Virt_To_2M_Page(kaddr)  (memory_management_struct.pages_struct + ((Virt_To_Phy(kaddr)) >> PAGE_2M_SHIFT))  //当前虚拟地址属于哪个Page
+#define Phy_To_2M_Page(kaddr)   (memory_management_struct.pages_struct + ((unsigned long)kaddr >> PAGE_2M_SHIFT))  //当前物理地址属于哪个Page
+
 
 #define PAGE_GDT_SHIFT  39
 #define PAGE_4K_SHIFT   12
@@ -109,6 +114,7 @@ extern struct Global_Memory_Descriptor memory_management_struct;  //定义在mai
 
 #define PAGE_4K_ALIGN(addr) (((unsigned long)(addr) + PAGE_4K_SIZE - 1) & PAGE_4K_MASK)
 #define PAGE_2M_ALIGN(addr) (((unsigned long)(addr) + PAGE_2M_SIZE - 1) & PAGE_2M_MASK)
+
 
 
 
@@ -144,14 +150,14 @@ struct Page{
 #define PAGE_USER_Dir   (PAGE_U_S| PAGE_R_W | PAGE_Present)
 #define PAGE_USER_Page  (PAGE_PS | PAGE_U_S| PAGE_R_W | PAGE_Present)
 
-#define PG_PTable_Maped	(1 << 0)
-#define PG_Kernel_Init	(1 << 1)
-#define PG_Referenced	(1 << 2)
+#define PG_PTable_Maped	(1 << 0)    //已在也表中映射
+#define PG_Kernel_Init	(1 << 1)    //内核初始化程序
+#define PG_Referenced	(1 << 2)    //
 #define PG_Dirty        (1 << 3)
 #define PG_Active       (1 << 4)
 #define PG_Up_To_Date   (1 << 5)
-#define PG_Device       (1 << 6)
-#define PG_Kernel       (1 << 7)
+#define PG_Device       (1 << 6)    //设备寄存器/内存
+#define PG_Kernel       (1 << 7)    //内核曾地址空间
 #define PG_K_Share_To_U (1 << 8)
 #define PG_Slab         (1 << 9)
 
@@ -182,9 +188,10 @@ struct Zone{
 
 
 
-
-
-/*  内存池  */
+/*
+Slab是内存管理的基本单位,Slab_cache是管理Slab的数据结构
+*/
+/*  内存池:管理具体内存对象  */
 struct Slab{
     struct List list;
     struct Page* page;
@@ -201,11 +208,51 @@ struct Slab{
 };
 
 
+/*  对内存池进行整体管理  */
+struct Slab_cache{
+    unsigned long size;
+    unsigned long total_using;
+    unsigned long total_free;
+
+    struct Slab* cache_pool;
+    struct Slab* cache_dma_pool;
+
+    void* (*constructor)(void* Vaddress,unsigned long arg);  //内存池构造函数
+    void* (*destructor)(void* Vaddress,unsigned long arg);   //内存池析构函数
+};
+
+
+
+/*  内存池数组  */
+struct Slab_cache kmalloc_cache_size[16] = {
+    {32,     0,0,NULL,NULL,NULL,NULL},
+    {64,     0,0,NULL,NULL,NULL,NULL},
+    {128,    0,0,NULL,NULL,NULL,NULL},
+    {256,    0,0,NULL,NULL,NULL,NULL},
+    {512,    0,0,NULL,NULL,NULL,NULL},
+    {1024,   0,0,NULL,NULL,NULL,NULL},
+    {2048,   0,0,NULL,NULL,NULL,NULL},
+    {4096,   0,0,NULL,NULL,NULL,NULL},
+    {8192,   0,0,NULL,NULL,NULL,NULL},
+    {16384,  0,0,NULL,NULL,NULL,NULL},
+    {32768,  0,0,NULL,NULL,NULL,NULL},
+    {65536,  0,0,NULL,NULL,NULL,NULL},
+    {131072, 0,0,NULL,NULL,NULL,NULL},
+    {262144, 0,0,NULL,NULL,NULL,NULL},
+    {524288, 0,0,NULL,NULL,NULL,NULL},
+    {1048576,0,0,NULL,NULL,NULL,NULL}  //1MB
+};
+
+
+
 
 /*  函数声明  */
 void memory_init(void);
 unsigned long page_init(struct Page* page,unsigned long flags);
 struct Page* alloc_pages(int zone_select,int number,unsigned long page_flags);
+unsigned long slab_init(void);
+
+
 
 
 /*  输出内存总管理中各结构统计的信息  */
@@ -275,6 +322,37 @@ unsigned long* Get_gdt(void)
     );
     return cr3;
 }
+
+
+
+/*  获取页属性  */
+static __attribute__((always_inline))
+unsigned long get_page_attribute(struct Page* page)
+{
+    if(page == NULL){  //页不存在则不能不能查看和设定
+        color_printk(RED,BLACK ,"get_page_attribute() ERROR:page == NULL!\n" );
+        return 0;
+    }else{
+        return page->attribute;
+    }
+}
+
+
+
+/*  设置页属性  */
+static __attribute__((always_inline))
+unsigned long set_page_attribute(struct Page* page,unsigned long flags)
+{
+    if(page == NULL){
+        color_printk(RED,BLACK ,"set_page_attribute() ERROR:page == NULL!\n" );
+        return 0;
+    }else{
+        page->attribute = flags;
+        return 1;
+    }
+}
+
+
 
 
 

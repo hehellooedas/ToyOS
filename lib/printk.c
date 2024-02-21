@@ -335,7 +335,7 @@ int color_printk(unsigned int FRcolor,unsigned int BKcolor,const char* fmt,...){
         if((unsigned char)*(buf + count) == '\n'){  //换行
             Pos.YPosition++;
             Pos.XPosition = 0;
-        }else if((unsigned char)*(buf + count) == '\b'){
+        }else if((unsigned char)*(buf + count) == '\b'){  //退格
             Pos.XPosition--;
             /*  解决连锁反应  */
             if(Pos.XPosition < 0){
@@ -364,7 +364,9 @@ int color_printk(unsigned int FRcolor,unsigned int BKcolor,const char* fmt,...){
             Pos.YPosition++;
         }
         if(Pos.YPosition >= (Pos.YResolution / Pos.YCharSize)){
-            Pos.YPosition = 0;
+            /*  整个页面写满了,滚屏  */
+            screen_roll();
+            Pos.YPosition--;
         }
     }
     return i;

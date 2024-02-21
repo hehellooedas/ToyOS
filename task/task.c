@@ -5,6 +5,7 @@
 #include <string.h>
 #include <task.h>
 
+
 extern char _data;
 extern char _rodata;
 extern char _erodata;
@@ -29,6 +30,7 @@ void task_init(void) {
     wrmsr(0x175, current->thread->rsp0);      // IA32_SYSEXTER_ESP
     wrmsr(0x176, (unsigned long)system_call); // IA32_SYSENTER_RIP
 
+
     set_tss64(init_thread.rsp0, init_tss[0].rsp1, init_tss[0].rsp2,
             init_tss[0].ist1, init_tss[0].ist2, init_tss[0].ist3,
             init_tss[0].ist4, init_tss[0].ist5, init_tss[0].ist6,
@@ -38,10 +40,12 @@ void task_init(void) {
 
     list_init(&init_task_union.task.list);  //初始化init进程的链表结构
     kernel_thread(init, 10,
-                CLONE_FS | CLONE_FILES | CLONE_SIGNAL); // 创建init进程
+                CLONE_FS | CLONE_FILES | CLONE_SIGNAL); // 创建init进程(非内核线程)
     init_task_union.task.state = TASK_RUNNING;
 
     p = container_of(get_List_next(&current->list), struct task_struct, list);
+
+
     switch_to(current, p);
 }
 
@@ -57,20 +61,23 @@ unsigned long init(unsigned long arg) {
         (unsigned long)current + STACK_SIZE - sizeof(struct pt_regs);
     regs = (struct pt_regs *)current->thread->rsp;
 
-    asm volatile("movq %[stack],%%rsp    \n\t"
-                "pushq %2               \n\t" // 确立返回地址ret_system_call
-                "jmp do_execute         \n\t"
-                :
-                : "D"(regs), [stack] "m"(current->thread->rsp),
-                    "m"(current->thread->rip)
-                : "memory");
+    asm volatile(
+        "movq %[stack],%%rsp    \n\t"
+        "pushq %2               \n\t" // 确立返回地址ret_system_call
+        "jmp do_execute         \n\t" //从do_execute函数返回的时候就会自动进入ret_system_call
+        :
+        :"D"(regs),[stack] "m"(current->thread->rsp),
+            "m"(current->thread->rip)
+        : "memory"
+    );
     return 1;
 }
 
 
 /*  刚创建的进程通过这个函数恢复现场  */
 extern void kernel_thread_func(void);
-asm("kernel_thread_func:        \n\t"
+asm(
+    "kernel_thread_func:    \n\t"
     "popq %r15              \n\t"
     "popq %r14              \n\t"
     "popq %r13              \n\t"
@@ -95,7 +102,8 @@ asm("kernel_thread_func:        \n\t"
     "movq %rdx,%rdi         \n\t" // rdx记录参数信息
     "callq *%rbx            \n\t" // rbx中记录关键地址信息
     "movq %rax,%rdi         \n\t"
-    "callq do_exit          \n\t");  //进程运行结束后用do_exit退出
+    "callq do_exit          \n\t" //进程运行结束后用do_exit退出
+);
 
 
 
@@ -158,8 +166,8 @@ unsigned long do_fork(struct pt_regs *regs, unsigned long clone_flags,
     thread->rsp = (unsigned long)task + STACK_SIZE - sizeof(struct pt_regs);
 
     if (!(task->flags & PF_KTHREAD)) {
-    /*  如果不是内核层,则设置进程运行的入口为ret_system_call,由此进入用户态  */
-    thread->rip = regs->rip = (unsigned long)ret_system_call;
+        /*  如果不是内核层,则设置进程运行的入口为ret_system_call,由此进入用户态  */
+        thread->rip = regs->rip = (unsigned long)ret_system_call;
     }
     task->state = TASK_RUNNING;
 
@@ -186,13 +194,15 @@ __switch_to(struct task_struct *prev, struct task_struct *next) {
     */
 
     /*  相互保存fs和gs段寄存器  */
-    asm volatile("movq %%fs,%0       \n\t"
-                "movq %%gs,%1       \n\t"
-                "movq %2,%%fs       \n\t"
-                "movq %3,%%gs       \n\t"
-                : "=a"(prev->thread->fs), "=b"(prev->thread->gs)
-                : "c"(next->thread->fs), "d"(next->thread->gs)
-                : "memory");
+    asm volatile(
+        "movq %%fs,%0       \n\t"
+        "movq %%gs,%1       \n\t"
+        "movq %2,%%fs       \n\t"
+        "movq %3,%%gs       \n\t"
+        : "=a"(prev->thread->fs), "=b"(prev->thread->gs)
+        : "c"(next->thread->fs), "d"(next->thread->gs)
+        : "memory"
+    );
 
     color_printk(WHITE, BLACK, "prev->thread->rsp0:%#-18x\n", prev->thread->rsp0);
     color_printk(WHITE, BLACK, "next->thread->rsp0:%#-18x\n", next->thread->rsp0);
@@ -220,13 +230,15 @@ unsigned long do_execute(struct pt_regs *regs) {
 
 void user_level_function() {
     long ret = 0;
-    asm volatile("leaq sysexit_return_address(%%rip),%%rdx      \n\t"
-                "movq %%rsp,%%rcx   \n\t"
-                "sysenter           \n\t"
-                "sysexit_return_address: \n\t"
-                : "=a"(ret)
-                : "0"(1), "D"(__FUNCTION__) // 使用1号系统调用(打印字符串)
-                : "memory");
+    asm volatile(
+        "leaq sysexit_return_address(%%rip),%%rdx      \n\t"
+        "movq %%rsp,%%rcx   \n\t"
+        "sysenter           \n\t"
+        "sysexit_return_address: \n\t"
+        : "=a"(ret)
+        : "0"(1), "D"(__FUNCTION__) // 使用1号系统调用(打印字符串)
+        : "memory"
+    );
     // color_printk(RED,BLACK,"user_level_function task called
     // sysenter,ret:%ld\n",ret);
     while (1);
@@ -236,16 +248,19 @@ void user_level_function() {
 
 
 /*  以下是system call API  */
+/*  通过这个函数进入系统调用的实际函数,rax存储系统调用号  */
 unsigned long system_call_function(struct pt_regs *regs) {
     return system_call_table[regs->rax](regs);
 }
 
+/*  0号系统调用:默认(打印固定字符串)  */
 unsigned long default_system_call(struct pt_regs *regs) {
     color_printk(RED, BLACK, "default system call is calling,NR:%#04x\n",
             regs->rax);
     return -1;
 }
 
+/*  1号系统调用:打印指定字符串  */
 unsigned long sys_printf(struct pt_regs *regs) {
     color_printk(BLACK, WHITE, (char *)(regs->rdi));
     return 1;

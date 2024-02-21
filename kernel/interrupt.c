@@ -1,7 +1,6 @@
-#include "gate.h"
-#include "io.h"
-#include "lib.h"
-#include "printk.h"
+#include <gate.h>
+#include <io.h>
+#include <printk.h>
 #include <interrupt.h>
 #include <8259A.h>
 
@@ -109,7 +108,8 @@ void (*interrupt[24])(void) = {
 
 
 
-void interrupt_init(void){
+void interrupt_init(void)
+{
     for(int i=32;i<56;i++){
         set_intr_gate(i,2,interrupt[i - 32]);
     }

@@ -18,6 +18,7 @@ extern unsigned int TSS64_Table[26];
 
 
 
+/*  设置门描述符,attr决定了这是什么门  */
 #define _set_gate(gate_selector_addr,attr,ist,code_addr)            \
 do{ unsigned long __d0,__d1;                                        \
     asm volatile("movw %%dx,%%ax     \n\t"                          \

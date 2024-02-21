@@ -1,8 +1,10 @@
+#include "list.h"
 #include <iso646.h>
 #include <memory.h>
 #include <lib.h>
 #include <stddef.h>
 #include <printk.h>
+#include <stdio.h>
 
 
 
@@ -271,5 +273,174 @@ struct Page* alloc_pages(int zone_select,int number,unsigned long page_flags){
 find_free_pages:    
     return (struct Page*)(memory_management_struct.pages_struct + page);
 }
+
+
+
+/*  初始化内存池数组  */
+unsigned long slab_init(void)
+{
+    struct Page* page = NULL;
+    unsigned long* virtual = NULL;
+    unsigned long i,j;
+    unsigned long tmp_address = memory_management_struct.end_of_struct;
+
+    for(i=0;i<16;i++){
+        kmalloc_cache_size[i].cache_pool = (struct Slab*)memory_management_struct.end_of_struct;  //slab放置到末尾
+        /* 保留一段内存间隙防止出意外  */
+        memory_management_struct.end_of_struct += (sizeof(struct Slab) + sizeof(long) * 10);
+
+        list_init(&kmalloc_cache_size[i].cache_pool->list);
+
+
+        kmalloc_cache_size[i].cache_pool->using_count = 0;
+        kmalloc_cache_size[i].cache_pool->free_count = PAGE_2M_SIZE / kmalloc_cache_size[i].size;  //一页能分成几份
+        kmalloc_cache_size[i].cache_pool->color_length = ((PAGE_2M_SIZE / kmalloc_cache_size[i].size + sizeof(unsigned long) * 8 - 1) >> 6) << 3;
+        kmalloc_cache_size[i].cache_pool->color_count = kmalloc_cache_size[i].cache_pool->free_count;
+
+        kmalloc_cache_size[i].cache_pool->color_map = (unsigned long*)memory_management_struct.end_of_struct;
+
+        memory_management_struct.end_of_struct += (kmalloc_cache_size[i].cache_pool->color_length + sizeof(long) * 10) & (~(sizeof(long) - 1));
+
+        memset(kmalloc_cache_size[i].cache_pool->color_map,0xff,kmalloc_cache_size[i].cache_pool->color_length);
+
+        for(j=0;j<kmalloc_cache_size[i].cache_pool->color_count;j++){
+            *(kmalloc_cache_size[i].cache_pool->color_map + (j >> 6)) ^= (1UL << j % 64);
+        }
+
+        kmalloc_cache_size[i].total_free = kmalloc_cache_size[i].cache_pool->color_count;
+        kmalloc_cache_size[i].total_using = 0;
+    }
+
+    i = Virt_To_Phy(memory_management_struct.end_of_struct) >>PAGE_2M_SHIFT;
+    for(j=PAGE_2M_ALIGN(Virt_To_Phy(tmp_address));j <= i;j++){
+        page = memory_management_struct.pages_struct + j;
+        *(memory_management_struct.bits_map + ((page->PHY_address >> PAGE_2M_SHIFT) >> 6)) |= 1UL << (page->PHY_address >>PAGE_2M_SHIFT) %64;
+        page->zone_struct->page_using_count++;
+        page->zone_struct->page_free_count--;
+        page_init(page,PG_PTable_Maped | PG_Kernel_Init | PG_Kernel );
+    }
+
+    color_printk(ORANGE,BLACK ,"" );
+    for(i=0;i<16;i++){
+        virtual = (unsigned long*)((memory_management_struct.end_of_struct + PAGE_2M_SIZE * i + PAGE_2M_SIZE - 1) & PAGE_2M_MASK);
+        page = Virt_To_2M_Page(virtual);
+
+        kmalloc_cache_size[i].cache_pool->page = page;
+        kmalloc_cache_size[i].cache_pool->Vaddress = virtual;
+    }
+
+    return 1;
+}
+
+
+
+
+/*  内核层内存分配  */
+void* kmalloc(unsigned long size,unsigned long gfp_flages)
+{
+    int i,j;
+    struct Slab* slab = NULL;
+    if(size > 1048576){  //1MB(slab内存池数组最大支持1MB)
+        color_printk(RED,BLACK ,"kmalloc() ERROR:kmalloc size too long:%d\n",size );
+        return NULL;
+    }
+    for(i=0;i<16;i++){
+        if(kmalloc_cache_size[i].size >= size){
+            break;
+        }
+    }
+    slab = kmalloc_cache_size[i].cache_pool;
+    if(kmalloc_cache_size[i].total_free != 0){
+        do{
+            if(slab->free_count == 0){  //当前Slab没有空闲了
+                slab = container_of(get_List_next(&slab->list),struct Slab ,list ); //去找下一个Slab
+            }else{
+                break;
+            }
+        }while(slab != kmalloc_cache_size[i].cache_pool);
+    }else{
+        //slab = kmalloc_create(kmalloc_cache_size[i].size);
+        if(slab == NULL){
+            color_printk(BLUE,BLACK ,"kmalloc()->kmalloc_create=>slab == NULL\n" );
+            return NULL;
+        }
+        kmalloc_cache_size[i].total_free += slab->color_count;
+    }
+
+    color_printk(RED,BLACK,"kmalloc() ERROR:no memory can alloc\n" );
+    color_printk(BLUE,BLACK ,"kmalloc()->kmalloc_create()<=size:%#010x\n",kmalloc_cache_size[i].size );
+    list_add_to_before(&kmalloc_cache_size[i].cache_pool->list,&slab->list );
+
+    for(j=0;j<slab->color_count;j++){
+
+    }
+
+    color_printk(BLUE,BLACK ,"kmalloc() ERROR:no memory can alloc\n" );
+    return NULL;
+}
+
+
+
+
+struct Slab* kmalloc_create(unsigned long size)
+{
+    return NULL;
+}
+
+
+
+
+/*  创建Slab内存池  */
+struct Slab_cache* slab_create(unsigned long size,void*(*constructor)(void* Vaddress,unsigned long arg),void*(*destructor)(void* Vaddress,unsigned long arg))
+{
+    struct Slab_cache* slab_cache = NULL;
+    //slab_cache = (struct Slab_cache*)kmalloc(sizeof(struct Slab_cache),0); //从内核空间分配
+    if(slab_cache == NULL){ //如果分配失败
+        color_printk(RED,BLACK ,"slab_cache内存分配失败!" );
+        return NULL;
+    }
+    memset(slab_cache,0 ,sizeof(struct Slab_cache));
+
+    slab_cache->size = SIZEOF_LONG_ALIGN(size);
+
+    return slab_cache;
+}
+
+
+
+
+/*  销毁slab内存池  */
+unsigned long slab_destroy(struct Slab_cache* slab_cache)
+{
+    struct Slab* slab_p = slab_cache->cache_pool;
+    struct Slab* tmp_slab = NULL;
+    if(slab_cache->total_using != 0){
+        color_printk(RED,BLACK ,"slab_cache->total->using != 0!\n" );
+        return 0;
+    }
+    while(!list_is_empty(&slab_p->list)){
+        tmp_slab = slab_p;
+
+    }
+    return 1;
+}
+
+
+
+/*  分配Slab内存池中的内存对象  */
+void* slab_malloc(struct Slab_cache* slab_cache,unsigned long arg)
+{
+    return NULL;
+}
+
+
+
+
+/*  内存对象归还给内存池  */
+unsigned long slab_free(struct Slab_cache* slab_cache)
+{
+    return 0;
+}
+
 
 

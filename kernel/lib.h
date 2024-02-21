@@ -1,6 +1,13 @@
 #ifndef __KERNEL_LIB_H
 #define __KERNEL_LIB_H
 
+
+/*
+lib.h为通用库文件
+内核程序都可以引入lib.h
+*/
+
+
 #include <string.h>
 #include <stddef.h>
 #include <stdarg.h>
@@ -24,6 +31,11 @@
 
 
 
+/*
+wrmsr指令的封装
+    ecx:MSR寄存器的地址
+    [edx:eax]:要往里面写入的值
+*/
 static __attribute__((always_inline))
 void wrmsr(unsigned long address,unsigned long value)
 {
@@ -34,6 +46,28 @@ void wrmsr(unsigned long address,unsigned long value)
         :"memory"
     );
 }
+
+
+
+/*
+rdmsr指令的封装
+    ecx:MSR寄存器的地址
+    [edx:eax]:获取到的值放入两个寄存器中
+*/
+static __attribute__((always_inline))
+unsigned long rdmsr(unsigned long address)
+{
+    unsigned int edx=0;
+    unsigned int eax=0;
+    asm volatile (
+        "rdmsr  \n\t"
+        :"=d"(edx),"=a"(eax)
+        :"c"(address)
+        :"memory"
+        );
+    return (unsigned long)(((unsigned long)edx << 32) | (eax));
+}
+
 
 
 #endif // !__KERNEL_LIB_H
