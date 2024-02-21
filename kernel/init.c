@@ -14,6 +14,7 @@ void init_all(void){
     sys_vector_init();
     cpu_init();
     memory_init();
+    slab_init();
     interrupt_init();
     task_init();
 }

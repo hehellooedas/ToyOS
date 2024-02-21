@@ -1,4 +1,4 @@
-#include "list.h"
+#include <list.h>
 #include <iso646.h>
 #include <memory.h>
 #include <lib.h>
@@ -212,6 +212,7 @@ unsigned long page_init(struct Page* page,unsigned long flags){
 }
 
 
+
 /*  页申请函数(一次性最多申请64页)  */
 struct Page* alloc_pages(int zone_select,int number,unsigned long page_flags){
     unsigned long page = 0;
@@ -276,24 +277,48 @@ find_free_pages:
 
 
 
+/*  页释放函数  */
+void free_pages(struct Page* page,int number)
+{
+    if(page == NULL){  //页不存在,无需释放
+        color_printk(RED,BLACK ,"free_pages() ERROR:page is invalid\n" );
+        return;
+    }
+    if(number >= 64 || number < 0){ //要释放的页数不合理
+        color_printk(RED,BLACK ,"free_pages() ERROR:number is invalid\n" );
+        return;
+    }
+    for(int i=0;i<number;i++,page++){
+        *(memory_management_struct.bits_map + ((page->PHY_address >>PAGE_2M_SHIFT) >> 6)) &= ~(1UL << (page->PHY_address >> PAGE_2M_SHIFT) % 64);
+        page->zone_struct->page_free_count++;
+        page->zone_struct->page_using_count--;
+        page->attribute = 0;
+    }
+}
+
+
+
+
 /*  初始化内存池数组  */
 unsigned long slab_init(void)
 {
     struct Page* page = NULL;
     unsigned long* virtual = NULL;
     unsigned long i,j;
-    unsigned long tmp_address = memory_management_struct.end_of_struct;
+    unsigned long tmp_address = memory_management_struct.end_of_struct;  //记录Slab初始化前的末尾
 
     for(i=0;i<16;i++){
+        /*  确定cache_pool的位置  */
         kmalloc_cache_size[i].cache_pool = (struct Slab*)memory_management_struct.end_of_struct;  //slab放置到末尾
         /* 保留一段内存间隙防止出意外  */
         memory_management_struct.end_of_struct += (sizeof(struct Slab) + sizeof(long) * 10);
 
         list_init(&kmalloc_cache_size[i].cache_pool->list);
 
-
+        /*  设置cache_pool的基础信息  */
         kmalloc_cache_size[i].cache_pool->using_count = 0;
         kmalloc_cache_size[i].cache_pool->free_count = PAGE_2M_SIZE / kmalloc_cache_size[i].size;  //一页能分成几份
+
         kmalloc_cache_size[i].cache_pool->color_length = ((PAGE_2M_SIZE / kmalloc_cache_size[i].size + sizeof(unsigned long) * 8 - 1) >> 6) << 3;
         kmalloc_cache_size[i].cache_pool->color_count = kmalloc_cache_size[i].cache_pool->free_count;
 
@@ -311,7 +336,7 @@ unsigned long slab_init(void)
         kmalloc_cache_size[i].total_using = 0;
     }
 
-    i = Virt_To_Phy(memory_management_struct.end_of_struct) >>PAGE_2M_SHIFT;
+    i = Virt_To_Phy(memory_management_struct.end_of_struct) >> PAGE_2M_SHIFT;
     for(j=PAGE_2M_ALIGN(Virt_To_Phy(tmp_address));j <= i;j++){
         page = memory_management_struct.pages_struct + j;
         *(memory_management_struct.bits_map + ((page->PHY_address >> PAGE_2M_SHIFT) >> 6)) |= 1UL << (page->PHY_address >>PAGE_2M_SHIFT) %64;
@@ -320,15 +345,24 @@ unsigned long slab_init(void)
         page_init(page,PG_PTable_Maped | PG_Kernel_Init | PG_Kernel );
     }
 
-    color_printk(ORANGE,BLACK ,"" );
+    color_printk(ORANGE,BLACK ,"2.memory_management_struct.bitmap:%x\tzone_struct->page_using_count:%d\tzone_struct->page_free_count:%d\n",*memory_management_struct.bits_map,memory_management_struct.zones_struct->page_using_count,memory_management_struct.zones_struct->page_free_count );
+
     for(i=0;i<16;i++){
         virtual = (unsigned long*)((memory_management_struct.end_of_struct + PAGE_2M_SIZE * i + PAGE_2M_SIZE - 1) & PAGE_2M_MASK);
         page = Virt_To_2M_Page(virtual);
+
+
+        page->zone_struct->page_using_count++;
+        page->zone_struct->page_free_count--;
+        page_init(page,PG_PTable_Maped | PG_Kernel_Init | PG_Kernel );
 
         kmalloc_cache_size[i].cache_pool->page = page;
         kmalloc_cache_size[i].cache_pool->Vaddress = virtual;
     }
 
+    color_printk(ORANGE,BLACK ,"" );
+
+    color_printk(ORANGE,BLACK ,"start_code:%x,end_code:%x,end_data:%x,end_brk:%x,end_of_struct:%x\n",memory_management_struct.start_code,memory_management_struct.end_code,memory_management_struct.end_data,memory_management_struct.end_brk,memory_management_struct.end_of_struct );
     return 1;
 }
 
@@ -384,14 +418,58 @@ void* kmalloc(unsigned long size,unsigned long gfp_flages)
 
 struct Slab* kmalloc_create(unsigned long size)
 {
-    return NULL;
+    int i;
+    struct Slab* slab = NULL;
+    struct Page* page = NULL;
+    unsigned long* Vaddress = NULL;
+    long structsize = 0;
+
+    page = alloc_pages(ZONE_NORMAL,1 ,0 );
+    if(page == NULL){  //内存分配失败
+        color_printk(RED,BLACK ,"kmalloc_create()->alloc_pages()=>page == NULL\n" );
+        return NULL;
+    }
+    page_init(page,PG_Kernel );
+
+    switch(size){
+        case 32:
+        case 64:
+        case 128:
+        case 256:
+        case 512:
+            break;
+
+
+        case 1024:
+        case 2048:
+        case 4096:
+        case 8192:
+        case 16384:
+
+        case 32768:
+        case 65536:
+        case 131072:
+        case 262144:
+        case 524288:
+        case 1048576:
+            break;
+
+
+        default:
+            color_printk(RED,BLACK ,"" );
+            free_pages(page,1);
+            return NULL;
+    }
+
 }
 
 
 
 
 /*  创建Slab内存池  */
-struct Slab_cache* slab_create(unsigned long size,void*(*constructor)(void* Vaddress,unsigned long arg),void*(*destructor)(void* Vaddress,unsigned long arg))
+struct Slab_cache* slab_create(unsigned long size,\
+void*(*constructor)(void* Vaddress,unsigned long arg),\
+void*(*destructor)(void* Vaddress,unsigned long arg))
 {
     struct Slab_cache* slab_cache = NULL;
     //slab_cache = (struct Slab_cache*)kmalloc(sizeof(struct Slab_cache),0); //从内核空间分配
