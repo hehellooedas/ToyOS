@@ -72,10 +72,6 @@ Label_Start:
     int 0x10
 
 
-;------复位软盘驱动器 ------
-    xor ah,ah  ;功能号
-    xor dl,dl  ;第一个软盘(从0开始计数)
-    int 0x13   ;复位主要是把磁头移动到初始位置
     
 
 ;------寻找loader.bin------
@@ -205,54 +201,70 @@ LoaderFileName:    db 'LOADER  BIN',0
 
 
 
-;--------软盘读取函数(0x13中断)--------
+;--------硬盘读取函数--------
 ;input:    @AX:待读取的磁盘起始扇区号
 ;          @CL:读入的扇区数量
 ;          @(ES:BX):目标缓冲区起始地址
 ;no output
 Func_ReadOneSector:
-    push bp
-    mov bp,sp
-    sub esp,2  ;在栈中定义变量
-    mov byte [bp - 2],cl
-    push bx
-    mov bl,[BPB_SecPerTrk] ;每磁道18个扇区
-    div bl     ;LBA扇区号 / 每磁道扇区数
+;保护bx寄存器
+push bx
+;第一步:设置要读取的扇区数
+    push ax
+    mov dx,0x1f2
+    mov al,cl
+    out dx,al
+    pop ax
 
-    ;先处理余数
-    inc ah     ;计算出起始扇区号
-    mov cl,ah  ;保存在CL中
+;第二步:设置读取的起始扇区
+    ;LBA地址7～0位写入端口0x1f3
+    mov dx,0x1f3
+    out dx,al
 
-    ;再处理商
-    mov dh,al
-    shr al,1   ;柱面号
-    mov ch,al  ;保存在CH中
+    ;LBA地址15～8位写入端口0x1f4
+    shr ax,8
+    mov dx,0x1f4
+    out dx,al
 
-    and dh,1   ;磁头号(0/1)
-    pop bx     ;归还bx寄存器
-    mov dl,[BS_DrvNum]  ;驱动器号
-    mov byte [Count],0
+    ;LBA地址23~16位写入端口0x1f5
+    mov ax,0
+    mov dx,0x1f5
+    out dx,al
 
-Label_Go_ON_Reading:
-    mov ah,2    ;子功能号:读取软盘
-    mov al, byte [bp - 2] ;读入扇区数从cl转到了al
-    int 0x13
-    jc Label_Reading_Fail
+    ;设置7~4位为1110,表示LBA模式
+    or al,0xe0
+    mov dx,0x1f6
+    out dx,al
 
-    add esp,2  ;回收变量
-    pop bp
-    ret
+    ;向0x1f7端口写入读命令,0x20
+    mov dx,0x1f7
+    mov al,0x20
+    out dx,al
 
+.not_ready:
+    nop
+    in al,dx     ;获取硬盘当前状态
+    and al,0x88  ;(10001000)
+    cmp al,0x08  ;(00001000)
+    jnz .not_ready ;没准备好就继续检测
 
-Label_Reading_Fail:
-    inc byte [Count]
-    cmp byte [Count],5    ;给软盘5次机会
-    jb Label_Go_ON_Reading
-    mov al,ah
-    mov ah,0x0e
-    mov bl,0x0f
-    int 0x10
-    jmp $
+    ;从0x1f0端口读取数据
+    mov ch,0
+    mov ax,cx
+    mov dx,256
+    mul dx
+    mov cx,ax  ;从硬盘控制器读取的次数(循环次数)
+
+    mov dx,0x1f0  ;读数据的端口
+
+.go_on_read:
+    in ax,dx
+    mov [es:bx],ax
+    add bx,2
+    loop .go_on_read
+pop bx
+ret
+
 
 
 

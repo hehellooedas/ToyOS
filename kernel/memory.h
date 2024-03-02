@@ -359,6 +359,18 @@ unsigned long set_page_attribute(struct Page* page,unsigned long flags)
 
 
 
+static __attribute__((always_inline))
+unsigned long page_clean(struct Page* page)
+{
+    page->reference_count--;
+    page->zone_struct->total_page_link--;
+    if(!(page->reference_count)){
+        page->attribute &= PG_PTable_Maped;
+    }
+    return 1;
+}
+
+
 
 
 #endif // !__KERNEL_MEMORY_H

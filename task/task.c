@@ -4,6 +4,7 @@
 #include <gate.h>
 #include <string.h>
 #include <task.h>
+#include <control.h>
 
 
 extern char _data;
@@ -44,7 +45,6 @@ void task_init(void) {
     init_task_union.task.state = TASK_RUNNING;
 
     p = container_of(get_List_next(&current->list), struct task_struct, list);
-
 
     switch_to(current, p);
 }
@@ -241,6 +241,7 @@ void user_level_function() {
     );
     // color_printk(RED,BLACK,"user_level_function task called
     // sysenter,ret:%ld\n",ret);
+    //print_cr0_info();无法在用户态执行该函数
     while (1);
 }
 

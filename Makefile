@@ -1,8 +1,10 @@
 BUILD_DIR = ./build
+MAKE = make
 NASM = nasm
 CC = ccache gcc
 AS = as
 LD = ld
+AR = ar
 RM = rm -rf
 
 LIB      = -I ./kernel -I ./lib -I ./device -I ./task
@@ -77,10 +79,10 @@ $(BUILD_DIR)/string.o:lib/string.c lib/string.h
 
 
 clean:
-	$(RM) $(RMFLAGS) $(BUILD_DIR)/* kernel/head.s tools/boot.img
+	$(RM) $(RMFLAGS) $OBJS kernel/head.s tools/boot.img
 
 disk: copy $(BUILD_DIR)/loader.bin $(BUILD_DIR)/boot.bin
-	cp ./a.img tools/boot.img
+	cp ./hard.img tools/boot.img
 	dd if=$(BUILD_DIR)/boot.bin of=tools/boot.img bs=512 count=1 conv=notrunc
 	sudo mount tools/boot.img /media/tf -t vfat -o loop
 	sudo cp $(BUILD_DIR)/loader.bin /media/tf
@@ -88,13 +90,14 @@ disk: copy $(BUILD_DIR)/loader.bin $(BUILD_DIR)/boot.bin
 	sudo sync
 	sudo umount /media/tf
 
-bochs: clean compile link disk
+bochs:clean compile link disk
+	@echo "请问您是否继续?"
 	./bochs/bin/bochs -f tools/bochsrc
 
 qemu: clean compile link disk
 	qemu-system-x86_64 \
 	-m 2048 \
-	-drive file=./tools/boot.img,format=raw,if=floppy \
+	-drive file=./tools/boot.img,readonly=off  \
 	-cpu core2duo \
 	-enable-kvm \
 	-smp 1 \
@@ -103,7 +106,7 @@ qemu: clean compile link disk
 	-serial stdio \
 	-parallel none \
 	-net none \
-	-display gtk \
+	-display gtk,gl=off \
 	-device VGA,vgamem_mb=64 \
 	-name "QemuKernelDebug"
 

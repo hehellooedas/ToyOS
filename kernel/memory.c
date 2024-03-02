@@ -466,21 +466,70 @@ struct Slab* kmalloc_create(unsigned long size)
 
 
 
+unsigned long kfree(void* address)
+{
+    return 0;
+}
+
+
+
 /*  创建Slab内存池  */
-struct Slab_cache* slab_create(unsigned long size,\
-void*(*constructor)(void* Vaddress,unsigned long arg),\
-void*(*destructor)(void* Vaddress,unsigned long arg))
+struct Slab_cache* slab_create(
+    unsigned long size,\
+    void*(*constructor)(void* Vaddress,unsigned long arg),\
+    void*(*destructor)(void* Vaddress,unsigned long arg)    \
+)
 {
     struct Slab_cache* slab_cache = NULL;
-    //slab_cache = (struct Slab_cache*)kmalloc(sizeof(struct Slab_cache),0); //从内核空间分配
+    slab_cache = (struct Slab_cache*)kmalloc(sizeof(struct Slab_cache),0); //从内核空间分配
     if(slab_cache == NULL){ //如果分配失败
-        color_printk(RED,BLACK ,"slab_cache内存分配失败!" );
+        color_printk(RED,BLACK ,"slab_create()->kmalloc()->slab_cache == NULL\n" );
         return NULL;
     }
     memset(slab_cache,0 ,sizeof(struct Slab_cache));
 
     slab_cache->size = SIZEOF_LONG_ALIGN(size);
+    slab_cache->total_free = 0;
+    slab_cache->total_free = 0;
+    slab_cache->cache_pool = (struct Slab*)kmalloc(sizeof(struct Slab),0);
+    if(slab_cache->cache_pool == NULL){
+        color_printk(RED,BLACK ,"slab_create()->kmalloc()->slab_cache == NULL\n" );
+        kfree(slab_cache);
+        return NULL;
+    }
+    memset(slab_cache->cache_pool,0,sizeof(struct Slab));
 
+    slab_cache->cache_dma_pool = NULL;
+    slab_cache->constructor = constructor;
+    slab_cache->destructor = destructor;
+    list_init(&slab_cache->cache_pool->list);
+
+    slab_cache->cache_pool->page = (struct Page*)alloc_pages(ZONE_NORMAL,1 ,0 );
+    if(slab_cache->cache_pool->page == NULL){
+        color_printk(RED,BLACK ,"slab_create()->alloc_pages()->slab_cache=>cache_pool=>page == NULL\n" );
+        kfree(slab_cache->cache_pool);
+        kfree(slab_cache);
+        return NULL;
+    }
+    page_init(slab_cache->cache_pool->page,PG_Kernel );
+
+    slab_cache->cache_pool->using_count = 0;
+    slab_cache->cache_pool->free_count = PAGE_2M_SIZE / slab_cache->size;
+    slab_cache->total_free = slab_cache->cache_pool->free_count;
+    slab_cache->cache_pool->Vaddress = Phy_To_Virt(slab_cache->cache_pool->page->PHY_address);
+    slab_cache->cache_pool->color_count = slab_cache->cache_pool->free_count;
+    slab_cache->cache_pool->color_length = ((slab_cache->cache_pool->color_count + sizeof(unsigned long) * 8 - 1) >> 6) << 3;
+
+    slab_cache->cache_pool->color_map = (unsigned long*)kmalloc(sizeof(slab_cache->cache_pool->color_length),0);
+    if(slab_cache->cache_pool->color_map == NULL){
+        color_printk(RED,BLACK ,"slab_create()->kmalloc()=>slab_cache->cache_pool->color_map == NULL\n" );
+        free_pages(slab_cache->cache_pool->page,1 );
+        kfree(slab_cache->cache_pool);
+        kfree(slab_cache);
+        return NULL;
+    }
+
+    memset(slab_cache->cache_pool->color_map,0,slab_cache->cache_pool->color_length);
     return slab_cache;
 }
 
@@ -500,6 +549,11 @@ unsigned long slab_destroy(struct Slab_cache* slab_cache)
         tmp_slab = slab_p;
 
     }
+    kfree(slab_p->color_map);
+    page_clean(slab_p->page);
+    free_pages(slab_p->page,1 );
+    kfree(slab_p);
+    kfree(slab_cache);
     return 1;
 }
 

@@ -90,10 +90,6 @@ Label_Start:
     sti
 
 
-;------复位软盘驱动器 ------
-    xor ah,ah
-    xor dl,dl
-    int 0x13
 
 
 ;--------搜索kernel.bin---------
@@ -634,36 +630,61 @@ Label_DispAL:
 
 
 
-;--------软盘读取函数(0x13中断)--------
+;------硬盘读取函数------
 ;input:    @AX:待读取的磁盘起始扇区号
 ;          @CL:读入的扇区数量
 ;          @(ES:BX):目标缓冲区起始地址
 ;no output
 Func_ReadOneSector:
-    push bp
-    mov bp,sp
-    sub esp,2
-    mov byte [bp - 2],cl
-    push bx
-    mov bl,BPB_SecPerTrk
-    div bl     ;LBA扇区号 / 每磁道扇区数
-    inc ah     ;扇区号
-    mov cl,ah
-    mov dh,al
-    shr al,1   ;柱面号
-    mov ch,al
-    and dh,1   ;磁头号(0/1)
-    pop bx
-    mov dl,BS_DrvNum  ;驱动器号
+push bx
+    push ax
+    mov dx,0x1f2
+    mov al,cl
+    out dx,al
+    pop ax
 
-Label_Go_ON_Reading:
-    mov ah,2
-    mov al, byte [bp - 2] ;读入扇区数从cl转到了al
-    int 0x13
-    jc Label_Go_ON_Reading
-    add esp,2
-    pop bp
-    ret
+    mov dx,0x1f3
+    out dx,al
+
+    shr ax,8
+    mov dx,0x1f4
+    out dx,al
+
+    mov ax,0
+    mov dx,0x1f5
+    out dx,al
+
+    or al,0xe0
+    mov dx,0x1f6
+    out dx,al
+
+    mov dx,0x1f7
+    mov al,0x20
+    out dx,al
+
+.not_ready:
+    nop
+    in al,dx
+    and al,0x88
+    cmp al,0x08
+    jnz .not_ready
+
+
+    mov ch,0
+    mov ax,cx
+    mov dx,256
+    mul dx
+    mov cx,ax
+
+    mov dx,0x1f0
+
+.go_on_read:
+    in ax,dx
+    mov [es:bx],ax
+    add bx,2
+    loop .go_on_read
+pop bx
+ret
 
 
 
