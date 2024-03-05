@@ -5,7 +5,7 @@
 #include <string.h>
 #include <task.h>
 #include <control.h>
-
+#include "random.h"
 
 extern char _data;
 extern char _rodata;
@@ -45,7 +45,7 @@ void task_init(void) {
     init_task_union.task.state = TASK_RUNNING;
 
     p = container_of(get_List_next(&current->list), struct task_struct, list);
-
+    color_printk(BLUE,BLACK,"random number is %d\n",get_random_number());
     switch_to(current, p);
 }
 
@@ -164,13 +164,14 @@ unsigned long do_fork(struct pt_regs *regs, unsigned long clone_flags,
     thread->rsp0 = (unsigned long)task + STACK_SIZE;
     thread->rip = regs->rip;
     thread->rsp = (unsigned long)task + STACK_SIZE - sizeof(struct pt_regs);
+    thread->fs = KERNEL_DS;
+    thread->gs = KERNEL_DS;
 
     if (!(task->flags & PF_KTHREAD)) {
         /*  如果不是内核层,则设置进程运行的入口为ret_system_call,由此进入用户态  */
         thread->rip = regs->rip = (unsigned long)ret_system_call;
     }
     task->state = TASK_RUNNING;
-
     return 0;
 }
 

@@ -1,3 +1,4 @@
+SHELL = /bin/sh
 BUILD_DIR = ./build
 MAKE = make
 NASM = nasm
@@ -91,8 +92,14 @@ disk: copy $(BUILD_DIR)/loader.bin $(BUILD_DIR)/boot.bin
 	sudo umount /media/tf
 
 bochs:clean compile link disk
-	@echo "请问您是否继续?"
-	./bochs/bin/bochs -f tools/bochsrc
+	@read -p "请输入平台类型(Intel/AMD): " platform; \
+	case "$$platform" in \
+	 "AMD"|"amd"|"a" ) echo "Hello,AMD"; \
+	         ./bochs/bin/bochs -f ./tools/bochsrc_AMD;; \
+	 "Intel"|"intel"|"i" ) echo "Hello,Intel"; \
+	           ./bochs/bin/bochs -f ./tools/bochsrc;; \
+	 * ) echo "无效的输入";; \
+	esac
 
 qemu: clean compile link disk
 	qemu-system-x86_64 \
@@ -110,4 +117,6 @@ qemu: clean compile link disk
 	-device VGA,vgamem_mb=64 \
 	-name "QemuKernelDebug"
 
-default: compile link 
+default: compile link
+	@echo "构建成功"
+	@echo $(MAKE_VERSION)

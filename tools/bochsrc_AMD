@@ -12,16 +12,12 @@ display_library:x
 romimage:file="bochs/share/bochs/BIOS-bochs-latest"
 vgaromimage:file="bochs/share/bochs/VGABIOS-lgpl-latest"
 
+#设置硬盘启动
+boot:disk
+ata0:enabled=1,ioaddr1=0x1f0,irq=14
+ata0-master:type=disk,path="./tools/boot.img",mode="flat",cylinders=121,heads=16,spt=63  #主盘
+#ata0-slave:type=disk,path="./tools/hd80M.img",mode="flat",cylinders=162,heads=16,spt=63   #从盘
 
-#设置软盘启动
-boot:floppy
-floppy_bootsig_check:disabled=0
-floppya:type=1_44,1_44="./tools/boot.img",status=inserted,write_protected=0
-
-
-ata0:enabled=1,ioaddr1=0x1f0,ioaddr2=0x3f0,irq=14
-ata0-master:type=none
-ata0-slave:type=none
 
 ata1:enabled=1,ioaddr1=0x170,ioaddr2=0x370,irq=15
 ata1-master:type=none
@@ -37,7 +33,7 @@ vga:extension=vbe,update_freq=5
 cpu: count=1:1:1, ips=4000000, quantum=16, model=ryzen, reset_on_triple_fault=1, cpuid_limit_winnt=0, ignore_bad_msrs=1, mwait_is_nop=0, msrs="msrs.def"
 
 cpuid: x86_64=1,level=6, mmx=1, sep=1, simd=avx512, aes=1, movbe=1, xsave=1,apic=x2apic,sha=1,movbe=1,adx=1,xsaveopt=1,avx_f16c=1,avx_fma=1,bmi=bmi2,1g_pages=1,pcid=1,fsgsbase=1,smep=1,smap=1,mwait=1,vmx=1
-cpuid: family=6, model=0x1a, stepping=5, vendor_string="GenuineIntel", brand_string="AMD Ryzen 7 1700"
+cpuid: family=6, model=0x1a, stepping=5, vendor_string="AuthenticAMD", brand_string="AMD Ryzen 7 1700"
 
 
 print_timestamps: enabled=0

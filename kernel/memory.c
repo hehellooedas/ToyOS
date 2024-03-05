@@ -36,8 +36,8 @@ void memory_init(void){
         if(p->type == 1){  //type为1才是有效的
             TotalMem += p->length;
         }
-        memory_management_struct.e820[i].address += p->address;
-        memory_management_struct.e820[i].length += p->length;
+        memory_management_struct.e820[i].address = p->address;
+        memory_management_struct.e820[i].length = p->length;
         memory_management_struct.e820[i].type = p->type;
         memory_management_struct.e820_length = i;
 

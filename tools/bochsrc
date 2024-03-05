@@ -8,6 +8,7 @@ plugin_ctrl:unmapped=1,biosdev=1,speaker=1,extfpuirq=1,parallel=1,serial=1,iodeb
 config_interface:textconfig
 display_library:x
 
+
 #设置ROM模拟
 romimage:file="bochs/share/bochs/BIOS-bochs-latest"
 vgaromimage:file="bochs/share/bochs/VGABIOS-lgpl-latest"

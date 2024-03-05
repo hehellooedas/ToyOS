@@ -185,7 +185,6 @@ Label_Go_On_Kernel_File:
 
     push cx
     push eax
-    push fs
     push edi
     push ds
     push esi
@@ -217,7 +216,6 @@ Label_Mov_Kernel:  ;把kernel从临时地址搬移到目标地址(每取出一�
     pop esi
     pop ds
     pop edi
-    pop fs
     pop eax
     pop cx
 
