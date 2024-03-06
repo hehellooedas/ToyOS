@@ -219,10 +219,12 @@ void user_level_function();
 /*  获取当前正在运行的进程的pcb  */
 static __attribute__((always_inline)) struct task_struct *get_current() {
   struct task_struct *current = NULL;
-  asm volatile("andq %%rsp,%0  \n\t"
-               : "=r"(current)
-               : "0"(~32767UL)
-               : "memory");
+  asm volatile(
+    "andq %%rsp,%0  \n\t"
+    : "=r"(current)
+    : "0"(~32767UL)
+    : "memory"
+  );
   return current;
 }
 #define running_threaed() get_current()

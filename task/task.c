@@ -5,7 +5,7 @@
 #include <string.h>
 #include <task.h>
 #include <control.h>
-#include "random.h"
+#include <random.h>
 
 extern char _data;
 extern char _rodata;
@@ -45,7 +45,6 @@ void task_init(void) {
     init_task_union.task.state = TASK_RUNNING;
 
     p = container_of(get_List_next(&current->list), struct task_struct, list);
-    color_printk(BLUE,BLACK,"random number is %d\n",get_random_number());
     switch_to(current, p);
 }
 

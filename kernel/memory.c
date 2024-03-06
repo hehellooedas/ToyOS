@@ -520,7 +520,8 @@ struct Slab_cache* slab_create(
     slab_cache->cache_pool->color_count = slab_cache->cache_pool->free_count;
     slab_cache->cache_pool->color_length = ((slab_cache->cache_pool->color_count + sizeof(unsigned long) * 8 - 1) >> 6) << 3;
 
-    slab_cache->cache_pool->color_map = (unsigned long*)kmalloc(sizeof(slab_cache->cache_pool->color_length),0);
+    slab_cache->cache_pool->color_map = (unsigned long*)kmalloc(slab_cache->cache_pool->color_length,0);
+
     if(slab_cache->cache_pool->color_map == NULL){
         color_printk(RED,BLACK ,"slab_create()->kmalloc()=>slab_cache->cache_pool->color_map == NULL\n" );
         free_pages(slab_cache->cache_pool->page,1 );
@@ -541,13 +542,18 @@ unsigned long slab_destroy(struct Slab_cache* slab_cache)
 {
     struct Slab* slab_p = slab_cache->cache_pool;
     struct Slab* tmp_slab = NULL;
-    if(slab_cache->total_using != 0){
+    if(slab_cache->total_using != 0){ //要想释放内存池,则池中的内存对象必须全部空闲
         color_printk(RED,BLACK ,"slab_cache->total->using != 0!\n" );
         return 0;
     }
     while(!list_is_empty(&slab_p->list)){
         tmp_slab = slab_p;
-
+        slab_p = container_of(get_List_next(&slab_p->list),struct Slab ,list );
+        list_del(&tmp_slab->list);
+        kfree(&tmp_slab->color_map);
+        page_clean(tmp_slab->page);
+        free_pages(tmp_slab->page,1 );
+        kfree(tmp_slab);
     }
     kfree(slab_p->color_map);
     page_clean(slab_p->page);
@@ -559,16 +565,71 @@ unsigned long slab_destroy(struct Slab_cache* slab_cache)
 
 
 
-/*  分配Slab内存池中的内存对象  */
+/*  分配Slab内存池中的内存对象(构造)  */
 void* slab_malloc(struct Slab_cache* slab_cache,unsigned long arg)
 {
+    struct Slab* slab_p = slab_cache->cache_pool;
+    struct Slab* tmp_slab = NULL;
+
+    if(slab_cache->total_free == 0){ //如果当前内存池中一个内存对象都没了,则该内存池需要扩容
+        tmp_slab = (struct Slab*)kmalloc(sizeof(struct Slab),0);
+        if(tmp_slab == NULL){
+            color_printk(RED,BLACK ,"slab_malloc()->kmalloc()=>tmp_slab == NULL\n" );
+            return NULL;
+        }
+        memset(tmp_slab,0,sizeof(struct Slab));
+        list_init(&tmp_slab->list);
+        tmp_slab->page = alloc_pages(ZONE_NORMAL,1 ,0 );
+        if(tmp_slab->page == NULL){
+            color_printk(RED,BLACK ,"slab_malloc()->alloc_pages()=>tmp_slab->page == NULL\n" );
+            kfree(tmp_slab);
+            return NULL;
+        }
+        page_init(tmp_slab->page,PG_Kernel );
+
+        tmp_slab->using_count = 0;
+        tmp_slab->free_count = PAGE_2M_SIZE / slab_cache->size;
+        tmp_slab->Vaddress = Phy_To_Virt(tmp_slab->page);
+        tmp_slab->color_count = tmp_slab->free_count;
+        tmp_slab->color_length = ((slab_cache->cache_pool->color_count + sizeof(unsigned long) * 8 - 1) >> 6) << 3;
+        tmp_slab->color_map = (unsigned long*)kmalloc(tmp_slab->color_length,0 );
+        if(tmp_slab->color_map == NULL){
+            color_printk(BLUE,BLACK ,"slab_malloc()->kmalloc()=>tmp_cache->color_map == NULL\n" );
+            kfree(tmp_slab);
+            return NULL;
+        }
+        memset(tmp_slab->color_map,0,tmp_slab->color_length);
+        list_add_to_behind(&slab_cache->cache_pool->list,&tmp_slab->list );
+        slab_cache->total_free += tmp_slab->free_count;
+        /*  内存池扩容后继续分配内存对象  */
+        for(unsigned int j=0;j<tmp_slab->color_count;j++){
+
+        }
+    }else{ //遍历内存对象找空闲的
+        do{
+            if(slab_p->free_count == 0){  //如果没有空闲的内存对象,则找链上的下一个对象
+                slab_p = container_of(&slab_p->list,struct Slab ,list );
+                continue;
+            }
+        }while(slab_p != slab_cache->cache_pool);
+    }
+
+    /*  分配失败  */
+    color_printk(RED,BLACK ,"slab_malloc():Error:can't alloc\n" );
+    if(tmp_slab != NULL){
+        list_del(&tmp_slab->list);
+        kfree(tmp_slab->color_map);
+        page_clean(tmp_slab->page);
+        free_pages(tmp_slab->page,1 );
+        kfree(tmp_slab);
+    }
     return NULL;
 }
 
 
 
 
-/*  内存对象归还给内存池  */
+/*  内存对象归还给内存池(析构)  */
 unsigned long slab_free(struct Slab_cache* slab_cache)
 {
     return 0;

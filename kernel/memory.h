@@ -192,7 +192,6 @@ struct Zone{
 Slab是内存管理的基本单位,Slab_cache是管理Slab的数据结构
 */
 /*
- *
 内存池:管理具体内存对象
 管理每个以物理页为单位的内存空间
 每个物理页包含了若干个待分配的内存对象
@@ -206,6 +205,7 @@ struct Slab{
 
     void* Vaddress;
 
+    /*  颜色位图  */
     unsigned long color_length;
     unsigned long color_count;
 
@@ -222,8 +222,8 @@ struct Slab_cache{
     struct Slab* cache_pool;
     struct Slab* cache_dma_pool;  //用于索引DMA内存池存储空间结构
 
-    void* (*constructor)(void* Vaddress,unsigned long arg);  //内存池构造函数
-    void* (*destructor)(void* Vaddress,unsigned long arg);   //内存池析构函数
+    void* (*constructor)(void* Vaddress,unsigned long arg);  //内存池构造函数(分配内存块时初始化内存块的内容)
+    void* (*destructor)(void* Vaddress,unsigned long arg);   //内存池析构(对象生命周期结束时的清理过程)函数(释放内存块时清理内存块的内容)
 };
 
 
