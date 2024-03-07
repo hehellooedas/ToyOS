@@ -4,6 +4,11 @@
 
 
 
+void frame_buffer_init(void){
+    flush_tlb();
+}
+
+
 void screen_init(void){
     int* addr = (int*)0xffff800003000000;
     Pos.XResolution = 1440;

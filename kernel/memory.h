@@ -1,6 +1,7 @@
 #ifndef __KERNEL_MEMORY_H
 #define __KERNEL_MEMORY_H
 
+
 #include <list.h>
 #include <printk.h>
 #include <stdbool.h>
@@ -150,16 +151,12 @@ struct Page{
 #define PAGE_USER_Dir   (PAGE_U_S| PAGE_R_W | PAGE_Present)
 #define PAGE_USER_Page  (PAGE_PS | PAGE_U_S| PAGE_R_W | PAGE_Present)
 
-#define PG_PTable_Maped	(1 << 0)    //已在也表中映射
+#define PG_PTable_Maped	(1 << 0)    //已在页表中映射
 #define PG_Kernel_Init	(1 << 1)    //内核初始化程序
-#define PG_Referenced	(1 << 2)    //
-#define PG_Dirty        (1 << 3)
-#define PG_Active       (1 << 4)
-#define PG_Up_To_Date   (1 << 5)
-#define PG_Device       (1 << 6)    //设备寄存器/内存
-#define PG_Kernel       (1 << 7)    //内核曾地址空间
-#define PG_K_Share_To_U (1 << 8)
-#define PG_Slab         (1 << 9)
+#define PG_Device	     (1 << 2)   //设备内存
+#define PG_Kernel       (1 << 3)    //内核层空间
+#define PG_Shared       (1 << 4)    //已被共享的内存页
+
 
 
 /*  一个区域中有多个页,一页可以属于某一个区域  */
@@ -205,7 +202,7 @@ struct Slab{
 
     void* Vaddress;
 
-    /*  颜色位图  */
+    /*  颜色位图bitmap  */
     unsigned long color_length;
     unsigned long color_count;
 
@@ -215,7 +212,7 @@ struct Slab{
 
 /*  对内存池进行整体管理  */
 struct Slab_cache{
-    unsigned long size;
+    unsigned long size;        //当前内存池所管理的内存对象代表的尺寸
     unsigned long total_using;
     unsigned long total_free;  //还有几个size尺寸的内存空间可以分配
 
@@ -253,9 +250,8 @@ struct Slab_cache kmalloc_cache_size[16] = {
 
 /*  函数声明  */
 void memory_init(void);
-unsigned long page_init(struct Page* page,unsigned long flags);
 struct Page* alloc_pages(int zone_select,int number,unsigned long page_flags);
-unsigned long slab_init(void);
+bool slab_init(void);
 
 
 
@@ -344,33 +340,47 @@ unsigned long get_page_attribute(struct Page* page)
 
 
 
+/*  初始化页  */
+static __attribute__((always_inline))
+bool page_init(struct Page* page,unsigned long flags)
+{
+    page->attribute |= flags;
+    if(!(page->reference_count ) || (page->attribute & PG_Shared)){
+        page->reference_count++;
+        page->zone_struct->total_page_link++;
+    }
+    return true;
+}
+
+
+
 /*  设置页属性  */
 static __attribute__((always_inline))
-unsigned long set_page_attribute(struct Page* page,unsigned long flags)
+bool set_page_attribute(struct Page* page,unsigned long flags)
 {
     if(page == NULL){
         color_printk(RED,BLACK ,"set_page_attribute() ERROR:page == NULL!\n" );
-        return 0;
+        return false;
     }else{
         page->attribute = flags;
-        return 1;
+        return true;
     }
 }
 
 
 
 static __attribute__((always_inline))
-unsigned long page_clean(struct Page* page)
+bool page_clean(struct Page* page)
 {
     page->reference_count--;
     page->zone_struct->total_page_link--;
     if(!(page->reference_count)){
         page->attribute &= PG_PTable_Maped;
     }
-    return 1;
+    return true;
 }
 
-
+struct Slab* kmalloc_create(unsigned long size);
 
 
 #endif // !__KERNEL_MEMORY_H

@@ -134,7 +134,7 @@ unsigned long do_fork(struct pt_regs *regs, unsigned long clone_flags,
     color_printk(WHITE, BLACK, "alloc_pages,bitmap:%#018x\n",
                 *memory_management_struct.bits_map);
 
-    p = alloc_pages(ZONE_NORMAL, 1, PG_PTable_Maped | PG_Active | PG_Kernel);
+    p = alloc_pages(ZONE_NORMAL, 1, PG_PTable_Maped | PG_Kernel);
 
     color_printk(WHITE, BLACK, "alloc_pages,bitmap:%#018x\n",
                 *memory_management_struct.bits_map);

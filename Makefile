@@ -80,7 +80,7 @@ $(BUILD_DIR)/string.o:lib/string.c lib/string.h
 
 
 clean:
-	$(RM) $(RMFLAGS) $OBJS kernel/head.s tools/boot.img
+	$(RM) $(RMFLAGS) kernel/head.s tools/boot.img build/*
 
 disk: copy $(BUILD_DIR)/loader.bin $(BUILD_DIR)/boot.bin
 	cp ./hard.img tools/boot.img

@@ -21,8 +21,8 @@ OffsetOfLoader    equ      0x00      ;loader的偏移地址
     BPB_RsvdSecCnt      dw       1             ;保留扇区数(第一个扇区)
     BPB_NumFATs         db       2             ;FAT表的份数
     BPB_RootEntCnt      dw       224           ;根目录可容纳的目录项数(14*512/32)
-    BPB_TotSec16        dw       2880          ;总扇区数(刚好是3.5英寸软盘的容量)
-    BPB_Media           db       0xf0          ;介质描述符(代表这是3.5英寸的软盘)
+    BPB_TotSec16        dw       4096          ;总扇区数
+    BPB_Media           db       0xf8          ;介质描述符(代表这是一个硬盘)
     BPB_FATSz16         dw       9             ;每个FAT表占用的扇区数
     BPB_SecPerTrk       dw       18            ;每磁道扇区数
     BPB_NumHeads        dw       2             ;磁头数
