@@ -248,12 +248,6 @@ struct Slab_cache kmalloc_cache_size[16] = {
 
 
 
-/*  函数声明  */
-void memory_init(void);
-struct Page* alloc_pages(int zone_select,int number,unsigned long page_flags);
-bool slab_init(void);
-
-
 
 
 /*  输出内存总管理中各结构统计的信息  */
@@ -380,6 +374,16 @@ bool page_clean(struct Page* page)
     return true;
 }
 
+/*  函数声明  */
+void memory_init(void);
+void pagetable_init(void);
+struct Page* alloc_pages(int zone_select,int number,unsigned long page_flags);
+void free_pages(struct Page* page,int number);
+bool slab_init(void);
+void* slab_malloc(struct Slab_cache* slab_cache,unsigned long arg);
+bool slab_free(struct Slab_cache* slab_cache,void* address,unsigned long arg);
+void* kmalloc(unsigned long size,unsigned long gfp_flages);
+bool kfree(void* address);
 struct Slab* kmalloc_create(unsigned long size);
 
 

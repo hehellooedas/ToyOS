@@ -26,6 +26,7 @@ extern struct position Pos;
 
 
 void screen_init(void);
+void frame_buffer_init(void);
 void screen_clear(void);
 void screen_roll(void);
 

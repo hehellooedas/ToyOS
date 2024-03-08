@@ -1,3 +1,4 @@
+#include "screen.h"
 #include <init.h>
 #include <memory.h>
 #include <trap.h>
@@ -15,6 +16,8 @@ void init_all(void){
     cpu_init();
     memory_init();
     slab_init();
+    frame_buffer_init();
+    pagetable_init();
     interrupt_init();
-    task_init();
+    //task_init();
 }

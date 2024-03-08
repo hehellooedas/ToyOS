@@ -156,6 +156,7 @@ void memory_init(void){
 
     ZONE_DMA_INDEX = 0;
     ZONE_NORMAL_INDEX = 0;
+    ZONE_UNMAPED_INDEX = 0;
 
     int i;
     for(i=0;i<memory_management_struct.zones_size;i++){
@@ -163,7 +164,7 @@ void memory_init(void){
         color_printk(ORANGE,BLACK,\
         "zone_start_address:%#018x,zone_end_address:%#018x,zone_length:%#018x,pages_group:%#018x,pages_length:%#018x\n",\
         z->zone_start_address,z->zone_end_address,z->zone_length,z->pages_group,z->pages_length);
-        if(z->zone_start_address == 0x100000000){
+        if(z->zone_start_address == 0x100000000 && !ZONE_UNMAPED_INDEX){
             ZONE_UNMAPED_INDEX = i;  //未映射区域
         }
     }
@@ -175,27 +176,54 @@ void memory_init(void){
     i = Virt_To_Phy(memory_management_struct.end_of_struct) >> PAGE_2M_SHIFT;
     for(int j = 0;j<=i;j++){
         /*memory_management_struct实际上在0~2MB内*/
-        page_init(memory_management_struct.pages_struct + j,PG_PTable_Maped | PG_Kernel_Init |  PG_Kernel);
+        struct Page* tmp_page = memory_management_struct.pages_struct + j;
+        page_init(tmp_page,PG_PTable_Maped | PG_Kernel_Init |  PG_Kernel);
+        *(memory_management_struct.bits_map + ((tmp_page->PHY_address >> PAGE_2M_SHIFT) >> 6)) |= 1UL << (tmp_page->PHY_address >>PAGE_2M_SHIFT) % 64;
+        tmp_page->zone_struct->page_free_count--;
+        tmp_page->zone_struct->page_using_count++;
     }
     Global_CR3 = Get_gdt();
     color_printk(INDIGO,BLACK,"Global_CR3\t:%#018x\n",Global_CR3);
     color_printk(INDIGO,BLACK,"*Global_CR3\t:%#018x\n",*Phy_To_Virt(Global_CR3) & (~0xff));
     color_printk(INDIGO,BLACK,"**Global_CR3\t:%#018x\n",*Phy_To_Virt(*Phy_To_Virt(Global_CR3) & (~0xff)) &(~0xff));
-    //for(i = 0;i<10;i++){
-        //*(Phy_To_Virt(Global_CR3) + i) = 0UL;
-    //}
+    for(i = 0;i<10;i++){
+        *(Phy_To_Virt(Global_CR3) + i) = 0UL;
+    }
     flush_tlb();
 }
 
 
 
+/*  页表初始化函数  */
+void pagetable_init(void)
+{
+    unsigned long i,j;
+    unsigned long* tmp;
+    Global_CR3 = Get_gdt();
+    tmp = (unsigned long*)((unsigned long)(Phy_To_Virt(((unsigned long)Global_CR3) & (~ 0xfffUL))) + 8 * 256);
+    color_printk(YELLOW,BLACK ,"1.%#018x,%#018x\n",tmp,*tmp );
+    tmp = Phy_To_Virt(*tmp & (~ 0xfffUL));
+    color_printk(YELLOW,BLACK ,"2.%#018x,%#018x\n",tmp,*tmp );
+    tmp = Phy_To_Virt(*tmp & (~ 0xfffUL));
+    color_printk(YELLOW,BLACK ,"3.%#018x,%#018x\n",tmp,*tmp );
 
 
-/*  页申请函数(一次性最多申请64页)  */
+    flush_tlb();
+}
+
+
+
+/*  页申请函数(能申请的页数1~63)  */
 struct Page* alloc_pages(int zone_select,int number,unsigned long page_flags){
+    if(number >= 64 || number <= 0){
+        color_printk(RED,BLACK ,"alloc_pages() Error:number is invalid\n" );
+        return NULL;
+    }
+
     unsigned long page = 0;
     int zone_start = 0;
     int zone_end = 0;
+
     /*  通过内存区域类型判断去哪些内存区域找  */
     switch (zone_select){
         case ZONE_DMA:  //DMA区域空间(DMA操作可以访问的内存空间)
@@ -236,12 +264,16 @@ struct Page* alloc_pages(int zone_select,int number,unsigned long page_flags){
         for(int j=start;j<=end;j += j % 64 ? tmp:64){
             unsigned long* p = memory_management_struct.bits_map + (j >> 6);
             unsigned long shift = j % 64;
-            for(unsigned long k = shift;k < 64 - shift;k++){
-                if(!(((*p >> k) | (*(p+1) << (64-k))) & (number == 64 ? 0xffffffffffffffffUL:((1UL << number)-1)))){
-                    page = j + k - 1;
+            unsigned long num = (1UL << number) - 1;
+            for(unsigned long k = shift;k < 64;k++){
+                if(!((k? ((*p >= k) | (*(p + 1) << (64 - k))):*p) &(num))){
+                    page = j + k - shift;
                     for(unsigned long l=0;l<number;l++){
-                        struct Page* x = memory_management_struct.pages_struct + page + l;
-                        page_init(x,page_flags);
+                        struct Page* pageptr = memory_management_struct.pages_struct + page + l;
+                        *(memory_management_struct.bits_map + ((pageptr->PHY_address >> PAGE_2M_SHIFT) >> 6)) |= 1UL << (pageptr->PHY_address >>PAGE_2M_SHIFT) % 64;
+                        z->page_free_count--;
+                        z->page_using_count++;
+                        pageptr->attribute = page_flags;
                     }
                     goto find_free_pages;
                 }
@@ -267,7 +299,7 @@ void free_pages(struct Page* page,int number)
         return;
     }
     for(int i=0;i<number;i++,page++){
-        *(memory_management_struct.bits_map + ((page->PHY_address >>PAGE_2M_SHIFT) >> 6)) &= ~(1UL << (page->PHY_address >> PAGE_2M_SHIFT) % 64);
+        *(memory_management_struct.bits_map + ((page->PHY_address >> PAGE_2M_SHIFT) >> 6)) &= ~(1UL << (page->PHY_address >> PAGE_2M_SHIFT) % 64);
         page->zone_struct->page_free_count++;
         page->zone_struct->page_using_count--;
         page->attribute = 0;
@@ -315,9 +347,9 @@ bool slab_init(void)
     }
 
     i = Virt_To_Phy(memory_management_struct.end_of_struct) >> PAGE_2M_SHIFT;
-    for(j=PAGE_2M_ALIGN(Virt_To_Phy(tmp_address));j <= i;j++){
+    for(j=PAGE_2M_ALIGN(Virt_To_Phy(tmp_address)) >> PAGE_2M_SHIFT;j <= i;j++){
         page = memory_management_struct.pages_struct + j;
-        *(memory_management_struct.bits_map + ((page->PHY_address >> PAGE_2M_SHIFT) >> 6)) |= 1UL << (page->PHY_address >>PAGE_2M_SHIFT) %64;
+        *(memory_management_struct.bits_map + ((page->PHY_address >> PAGE_2M_SHIFT) >> 6)) |= 1UL << (page->PHY_address >>PAGE_2M_SHIFT) % 64;
         page->zone_struct->page_using_count++;
         page->zone_struct->page_free_count--;
         page_init(page,PG_PTable_Maped | PG_Kernel_Init | PG_Kernel );
@@ -329,6 +361,7 @@ bool slab_init(void)
         virtual = (unsigned long*)((memory_management_struct.end_of_struct + PAGE_2M_SIZE * i + PAGE_2M_SIZE - 1) & PAGE_2M_MASK);
         page = Virt_To_2M_Page(virtual);
 
+        *(memory_management_struct.bits_map + ((page->PHY_address >>PAGE_2M_SHIFT) >> 6)) |= 1UL << (page->PHY_address >>PAGE_2M_SHIFT) % 64;
 
         page->zone_struct->page_using_count++;
         page->zone_struct->page_free_count--;
@@ -378,11 +411,10 @@ void* kmalloc(unsigned long size,unsigned long gfp_flages)
             return NULL;
         }
         kmalloc_cache_size[i].total_free += slab->color_count;
+        color_printk(BLUE,BLACK ,"kmalloc()->kmalloc_create()<=size:%#010x\n",kmalloc_cache_size[i].size );
+        list_add_to_before(&kmalloc_cache_size[i].cache_pool->list,&slab->list );
     }
 
-    color_printk(RED,BLACK,"kmalloc() ERROR:no memory can alloc\n" );
-    color_printk(BLUE,BLACK ,"kmalloc()->kmalloc_create()<=size:%#010x\n",kmalloc_cache_size[i].size );
-    list_add_to_before(&kmalloc_cache_size[i].cache_pool->list,&slab->list );
 
     for(j=0;j<slab->color_count;j++){
         if(*(slab->color_map + (j >> 6)) == 0xffffffffffffffffUL){
@@ -396,7 +428,7 @@ void* kmalloc(unsigned long size,unsigned long gfp_flages)
 
             kmalloc_cache_size[i].total_free--;
             kmalloc_cache_size[i].total_using++;
-            return (void*)(slab->Vaddress + (kmalloc_cache_size[i].size * j));
+            return (void*)((char *)slab->Vaddress + (kmalloc_cache_size[i].size * j));
         }
     }
 
@@ -453,23 +485,7 @@ struct Slab* kmalloc_create(unsigned long size)
         case 4096:
         case 8192:
         case 16384:
-            vaddress = Phy_To_Virt(page->PHY_address);
-            /*  把Slab内存对象放到页的末尾(小尺寸的情况下color_map占用太多空间)  */
-            structsize = sizeof(struct Slab) + PAGE_2M_SIZE / size / 8;
-            slab = (struct Slab*)((unsigned char*)vaddress + PAGE_2M_SIZE - structsize);
-            slab->color_map = (unsigned long*)((unsigned char*)slab + sizeof(struct Slab));
-            slab->free_count = (PAGE_2M_SIZE - (PAGE_2M_SIZE / size / 8) - sizeof(struct Slab)) / size;
-            slab->using_count = 0;
-            slab->color_count = slab->free_count;
-            slab->Vaddress = vaddress;
-            slab->page = page;
-            list_init(&slab->list);
-            slab->color_length = ((slab->color_count + sizeof(unsigned long) * 8 -1) >> 6) << 3;
-            memset(slab->color_map,0xff,slab->color_length);
-            for(i=0;i<slab->color_count;i++){
-                *(slab->color_map + (i << 6)) ^= 1UL << (i % 64);
-            }
-            break;
+            /*  中等尺寸对象  */
 
 
             /*  大尺寸内存对象  */
@@ -506,9 +522,53 @@ struct Slab* kmalloc_create(unsigned long size)
 
 
 
-unsigned long kfree(void* address)
+bool kfree(void* address)
 {
-    return 0;
+    int index; //待释放的内存对象的索引
+    struct Slab* slab = NULL;
+    void* page_base_address = (void*)((unsigned long)address & PAGE_2M_MASK);
+    for(int i=0;i<16;i++){
+        slab = kmalloc_cache_size[i].cache_pool;
+        do {
+            if(slab->Vaddress == page_base_address){
+                index = (address - slab->Vaddress) / kmalloc_cache_size[i].size;
+                *(slab->color_map + (index >> 6)) ^= 1UL << (index % 64);
+                slab->using_count--;
+                slab->free_count++;
+                kmalloc_cache_size[i].total_using--;
+                kmalloc_cache_size[i].total_free++;
+            if((slab->using_count == 0) && (kmalloc_cache_size[i].total_free >= slab->color_count * 3 / 2) && (kmalloc_cache_size[i].cache_pool != slab)){
+                switch (kmalloc_cache_size[i].size) {
+                    case 32:
+                    case 64:
+                    case 128:
+                    case 256:
+                    case 512:
+                        list_del(&slab->list);
+                        kmalloc_cache_size[i].total_free -= slab->free_count;
+                        page_clean(slab->page);
+                        free_pages(slab->page,1 );
+                        break;
+
+                    default:
+                        list_del(&slab->list);
+                        kmalloc_cache_size[i].total_free -= slab->free_count;
+                        kfree(slab->color_map);
+                        page_clean(slab->page);
+                        free_pages(slab->page,1 );
+                        kfree(slab);
+                        break;
+                }
+            }
+                return true;
+            }else{
+                slab = container_of(get_List_next(&slab->list),struct Slab ,list );
+            }
+        }while(slab != kmalloc_cache_size[i].cache_pool);
+
+    }
+    color_printk(RED,BLACK ,"kfree() Error:can't free memory" );
+    return false;
 }
 
 
