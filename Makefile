@@ -9,13 +9,15 @@ AR = ar
 RM = rm -rf
 
 LIB      = -I ./kernel -I ./lib -I ./device -I ./task
-CFLAGS   = -mcmodel=large -fno-builtin -m64 -fno-stack-protector $(LIB)
+CFLAGS   = -mcmodel=large -fno-builtin -m64 -fno-stack-protector -g $(LIB)
 LDFLAGS  = -b elf64-x86-64 -z muldefs -T kernel/kernel.lds
 OBJS     =  $(BUILD_DIR)/head.o $(BUILD_DIR)/main.o $(BUILD_DIR)/printk.o \
 	   		$(BUILD_DIR)/init.o $(BUILD_DIR)/screen.o $(BUILD_DIR)/string.o \
 			$(BUILD_DIR)/trap.o $(BUILD_DIR)/entry.o $(BUILD_DIR)/memory.o \
-			$(BUILD_DIR)/interrupt.o $(BUILD_DIR)/cpu.o $(BUILD_DIR)/task.o 
+			$(BUILD_DIR)/interrupt.o $(BUILD_DIR)/cpu.o $(BUILD_DIR)/task.o \
+			$(BUILD_DIR)/APIC.o
 
+PIC := PIC_APIC
 
 .PHONY: clean build disk bochs qemu default
 
@@ -55,7 +57,7 @@ $(BUILD_DIR)/screen.o: device/screen.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/init.o:kernel/init.c
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@ -D$(PIC)
 
 $(BUILD_DIR)/trap.o:kernel/trap.c kernel/trap.h
 	$(CC) $(CFLAGS) -c $< -o $@
@@ -75,6 +77,8 @@ $(BUILD_DIR)/task.o:task/task.c task/task.h
 $(BUILD_DIR)/string.o:lib/string.c lib/string.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
+$(BUILD_DIR)/APIC.o:device/APIC.c device/APIC.h
+	$(CC) $(CFLAGS) -c $< -o $@
 
 
 
@@ -85,17 +89,17 @@ clean:
 disk: copy $(BUILD_DIR)/loader.bin $(BUILD_DIR)/boot.bin
 	cp ./hard.img tools/boot.img
 	dd if=$(BUILD_DIR)/boot.bin of=tools/boot.img bs=512 count=1 conv=notrunc
-	sudo mount tools/boot.img /media/tf -t vfat -o loop
-	sudo cp $(BUILD_DIR)/loader.bin /media/tf
-	sudo cp $(BUILD_DIR)/kernel.bin /media/tf
+	sudo mount tools/boot.img ./disk -t vfat -o loop
+	sudo cp $(BUILD_DIR)/loader.bin ./disk
+	sudo cp $(BUILD_DIR)/kernel.bin ./disk
 	sudo sync
-	sudo umount /media/tf
+	sudo umount ./disk
 
 bochs:clean compile link disk
 	@read -p "请输入平台类型(Intel/AMD): " platform; \
 	case "$$platform" in \
 	 "AMD"|"amd"|"a" ) echo "Hello,AMD"; \
-	         ./bochs/bin/bochs -f ./tools/bochsrc_AMD;; \
+	           ./bochs/bin/bochs -f ./tools/bochsrc_AMD;; \
 	 "Intel"|"intel"|"i" ) echo "Hello,Intel"; \
 	           ./bochs/bin/bochs -f ./tools/bochsrc;; \
 	 * ) echo "无效的输入";; \
@@ -103,19 +107,18 @@ bochs:clean compile link disk
 
 qemu: clean compile link disk
 	qemu-system-x86_64 \
-	-m 2048 \
-	-drive file=./tools/boot.img,readonly=off  \
-	-cpu core2duo \
-	-enable-kvm \
-	-smp 1 \
+	-m 4G \
+	-rtc base=localtime \
+	-boot c \
+	-drive file=./tools/boot.img,readonly=off,format=raw  \
+	-cpu Haswell -smp cores=1,threads=2 \
 	-machine acpi=off \
 	-vga std \
 	-serial stdio \
-	-parallel none \
 	-net none \
-	-display gtk,gl=off \
-	-device VGA,vgamem_mb=64 \
-	-name "QemuKernelDebug"
+	-d int \
+	-display gtk,gl=on \
+	-name "ToyOS Development Platform for x86_64"
 
 default: compile link
 	@echo "构建成功"

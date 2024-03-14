@@ -64,7 +64,7 @@ unsigned long rdmsr(unsigned long address)
         :"=d"(edx),"=a"(eax)
         :"c"(address)
         :"memory"
-        );
+    );
     return (unsigned long)(((unsigned long)edx << 32) | (eax));
 }
 

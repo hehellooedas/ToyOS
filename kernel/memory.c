@@ -19,7 +19,6 @@ unsigned int ZONE_DMA_INDEX = 0;
 unsigned int ZONE_NORMAL_INDEX = 0;
 unsigned int ZONE_UNMAPED_INDEX = 0;
 
-unsigned long* Global_CR3 = NULL;
 
 
 
@@ -32,8 +31,8 @@ void memory_init(void){
     p = (struct E820*)(0xffff800000007e00); //ARDS缓存地址
 
     for(int i=0;i<32;i++){  //遍历ARDS寻找所有可用内存
-        //color_printk(ORANGE, BLACK,\
-        "Address:%#018x\tLength:%#018x\tType:%#010x\n",p->address,p->length,p->type);
+        color_printk(ORANGE, BLACK,\
+        "Address:%#lx\tLength:%#lx\tType:%#lx\n",p->address,p->length,p->type);
         if(p->type == 1){  //type为1才是有效的
             TotalMem += p->length;
         }
@@ -45,7 +44,7 @@ void memory_init(void){
         p++; //指向下一个ARDS结构(如果下一个结构出现以下条件则直接退出)
         if(p->type > 4 || p->length == 0 || p->type < 1) break;
     }
-    color_printk(ORANGE,BLACK,"OS can used Total Ram:%#018x\n",TotalMem);
+    color_printk(ORANGE,BLACK,"OS can used Total Ram:%#lx\n",TotalMem);
     TotalMem = 0;
     for(int i=0;i<=memory_management_struct.e820_length;i++){
         unsigned long start,end;
@@ -61,7 +60,7 @@ void memory_init(void){
         
         TotalMem += (end - start) >> PAGE_2M_SHIFT;  //该段内存能提供几个页
     }
-    color_printk(ORANGE,BLACK,"OS can used Total 2M Pages:%#010x=%010d\n",TotalMem,TotalMem);
+    color_printk(ORANGE,BLACK,"OS can used Total 2M Pages:%#lx=%ld\n",TotalMem,TotalMem);
     
     memory_management_struct.start_code = (unsigned long)&_text;
     memory_management_struct.end_code = (unsigned long)&_etext;
@@ -73,8 +72,9 @@ void memory_init(void){
 
     TotalMem = memory_management_struct.e820[memory_management_struct.e820_length-2].address + \
     memory_management_struct.e820[memory_management_struct.e820_length-2].length;  //总共能使用的内存大小
-    color_printk(ORANGE,BLACK,"TotalMem = %#018x\n",TotalMem);  //象征性打印一下
+    color_printk(ORANGE,BLACK,"TotalMem = %#lx\n",TotalMem);  //象征性打印一下
 
+    /*--------------------------------------------------------------------*/
 
     /*  初始化bitmap(跟在内核程序后面)  */
     memory_management_struct.bits_map = (unsigned long*)((memory_management_struct.end_brk + PAGE_4K_SIZE - 1) & PAGE_4K_MASK);
@@ -162,7 +162,7 @@ void memory_init(void){
     for(i=0;i<memory_management_struct.zones_size;i++){
         struct Zone* z = memory_management_struct.zones_struct + i;
         color_printk(ORANGE,BLACK,\
-        "zone_start_address:%#018x,zone_end_address:%#018x,zone_length:%#018x,pages_group:%#018x,pages_length:%#018x\n",\
+        "zone_start_address:%#lx,zone_end_address:%#lx,zone_length:%#lx,pages_group:%#lx,pages_length:%#lx\n",\
         z->zone_start_address,z->zone_end_address,z->zone_length,z->pages_group,z->pages_length);
         if(z->zone_start_address == 0x100000000 && !ZONE_UNMAPED_INDEX){
             ZONE_UNMAPED_INDEX = i;  //未映射区域
@@ -171,7 +171,7 @@ void memory_init(void){
     memory_management_struct.end_of_struct = (unsigned long)((unsigned long)memory_management_struct.zones_struct + memory_management_struct.zones_length + sizeof(long) * 32) & (~(sizeof(long) - 1));
 
     color_printk(ORANGE,BLACK,\
-    "end_of_struct:%#018x\n",memory_management_struct.end_of_struct);
+    "end_of_struct:%#lx\n",memory_management_struct.end_of_struct);
 
     i = Virt_To_Phy(memory_management_struct.end_of_struct) >> PAGE_2M_SHIFT;
     for(int j = 0;j<=i;j++){
@@ -182,10 +182,11 @@ void memory_init(void){
         tmp_page->zone_struct->page_free_count--;
         tmp_page->zone_struct->page_using_count++;
     }
+
     Global_CR3 = Get_gdt();
-    color_printk(INDIGO,BLACK,"Global_CR3\t:%#018x\n",Global_CR3);
-    color_printk(INDIGO,BLACK,"*Global_CR3\t:%#018x\n",*Phy_To_Virt(Global_CR3) & (~0xff));
-    color_printk(INDIGO,BLACK,"**Global_CR3\t:%#018x\n",*Phy_To_Virt(*Phy_To_Virt(Global_CR3) & (~0xff)) &(~0xff));
+    color_printk(INDIGO,BLACK,"Global_CR3\t:%#lx\n",Global_CR3);
+    color_printk(INDIGO,BLACK,"*Global_CR3\t:%#lx\n",*Phy_To_Virt(Global_CR3) & (~0xff));
+    color_printk(INDIGO,BLACK,"**Global_CR3\t:%#lx\n",*Phy_To_Virt(*Phy_To_Virt(Global_CR3) & (~0xff)) &(~0xff));
     for(i = 0;i<10;i++){
         *(Phy_To_Virt(Global_CR3) + i) = 0UL;
     }
@@ -194,22 +195,49 @@ void memory_init(void){
 
 
 
+
 /*  页表初始化函数  */
 void pagetable_init(void)
 {
-    unsigned long i,j;
+
     unsigned long* tmp;
     Global_CR3 = Get_gdt();
     tmp = (unsigned long*)((unsigned long)(Phy_To_Virt(((unsigned long)Global_CR3) & (~ 0xfffUL))) + 8 * 256);
-    color_printk(YELLOW,BLACK ,"1.%#018x,%#018x\n",tmp,*tmp );
+    color_printk(YELLOW,BLACK ,"1.%#lx,%#lx\n",tmp,*tmp );
     tmp = Phy_To_Virt(*tmp & (~ 0xfffUL));
-    color_printk(YELLOW,BLACK ,"2.%#018x,%#018x\n",tmp,*tmp );
+    color_printk(YELLOW,BLACK ,"2.%#lx,%#lx\n",tmp,*tmp );
     tmp = Phy_To_Virt(*tmp & (~ 0xfffUL));
-    color_printk(YELLOW,BLACK ,"3.%#018x,%#018x\n",tmp,*tmp );
+    color_printk(YELLOW,BLACK ,"3.%#lx,%#lx\n",tmp,*tmp );
+
+    for(unsigned long i=0;i<memory_management_struct.zones_size;i++){
+        struct Zone* z = memory_management_struct.zones_struct + i;
+        struct Page* p = z->pages_group;
+        if(ZONE_UNMAPED_INDEX && i == ZONE_UNMAPED_INDEX){
+            break;
+        }
+        for(unsigned long j=0;j<z->pages_length;j++,p++){
+            tmp = (unsigned long*)(((unsigned long)Phy_To_Virt((unsigned long)Global_CR3 & (~ 0xfffUL))) + (((unsigned long)Phy_To_Virt(p->PHY_address) >> PAGE_GDT_SHIFT) & (0x1ff)) * 8);
+            if(*tmp == 0){
+                unsigned long* virtual = kmalloc(PAGE_4K_SIZE,0);
+                set_pml4t(tmp,mk_pml4t(Virt_To_Phy(virtual),PAGE_KERNEL_GDT ) );
+            }
 
 
+            tmp = (unsigned long*)((unsigned long)Phy_To_Virt(*tmp & (~ 0xfffUL))  + (((unsigned long)Phy_To_Virt(p->PHY_address) >> PAGE_1G_SHIFT) & (0x1ff)) * 8);
+            if(*tmp == 0){
+                unsigned long* virtual = kmalloc(PAGE_4K_SIZE,0);
+                set_pdpt(tmp,mk_pdpt(Virt_To_Phy(virtual),PAGE_KERNEL_Dir ) );
+            }
+
+
+            tmp = (unsigned long*)((unsigned long)Phy_To_Virt(*tmp & (~ 0xfffUL))  + (((unsigned long)Phy_To_Virt(p->PHY_address) >> PAGE_2M_SHIFT) & (0x1ff)) * 8);
+
+            set_pdt(tmp,mk_pdt(p->PHY_address,PAGE_KERNEL_Page ) );
+        }
+    }
     flush_tlb();
 }
+
 
 
 
@@ -284,6 +312,7 @@ struct Page* alloc_pages(int zone_select,int number,unsigned long page_flags){
 find_free_pages:    
     return (struct Page*)(memory_management_struct.pages_struct + page);
 }
+
 
 
 
@@ -371,9 +400,9 @@ bool slab_init(void)
         kmalloc_cache_size[i].cache_pool->Vaddress = virtual;
     }
 
-    color_printk(ORANGE,BLACK ,"3.memory_management_struct.bitmap:%x\tzone_struct->page_using_count:%d\tzone_struct->page_free_count:%d\n",*memory_management_struct.bits_map,memory_management_struct.zones_struct->page_using_count,memory_management_struct.zones_struct->page_free_count );
+    color_printk(ORANGE,BLACK ,"3.memory_management_struct.bitmap:%lx\tzone_struct->page_using_count:%ld\tzone_struct->page_free_count:%ld\n",*memory_management_struct.bits_map,memory_management_struct.zones_struct->page_using_count,memory_management_struct.zones_struct->page_free_count );
 
-    color_printk(ORANGE,BLACK ,"start_code:%x,end_code:%x,end_data:%x,end_brk:%x,end_of_struct:%x\n",memory_management_struct.start_code,memory_management_struct.end_code,memory_management_struct.end_data,memory_management_struct.end_brk,memory_management_struct.end_of_struct );
+    color_printk(ORANGE,BLACK ,"start_code:%lx,end_code:%lx,end_data:%lx,end_brk:%lx,end_of_struct:%lx\n",memory_management_struct.start_code,memory_management_struct.end_code,memory_management_struct.end_data,memory_management_struct.end_brk,memory_management_struct.end_of_struct );
 
     return true;
 }
@@ -381,7 +410,7 @@ bool slab_init(void)
 
 
 
-/*  内核层内存分配  */
+/*  内核层内存分配(从Slab分配内存)  */
 void* kmalloc(unsigned long size,unsigned long gfp_flages)
 {
     int i,j;
@@ -391,7 +420,7 @@ void* kmalloc(unsigned long size,unsigned long gfp_flages)
         return NULL;
     }
     for(i=0;i<16;i++){
-        if(kmalloc_cache_size[i].size >= size){ //找到内存池中尺寸刚好大于size的池
+        if(kmalloc_cache_size[i].size >= size){ //找到内存池中尺寸刚好大于或等于size的池
             break;
         }
     }
@@ -415,14 +444,14 @@ void* kmalloc(unsigned long size,unsigned long gfp_flages)
         list_add_to_before(&kmalloc_cache_size[i].cache_pool->list,&slab->list );
     }
 
-
+    /*  当前Slab还有空闲  */
     for(j=0;j<slab->color_count;j++){
         if(*(slab->color_map + (j >> 6)) == 0xffffffffffffffffUL){
             j += 63;
             continue;
         }
         if((*(slab->color_map + (j >> 6)) & (1UL << (j % 64))) == 0){
-            *(slab->color_map + (j >> 6)) |= 1UL << (j % 64);
+            *(slab->color_map + (j >> 6)) |= 1UL << (j % 64); //标记为使用
             slab->free_count--;
             slab->using_count++;
 
@@ -439,6 +468,7 @@ void* kmalloc(unsigned long size,unsigned long gfp_flages)
 
 
 
+/*  分配页内存给Slab  */
 struct Slab* kmalloc_create(unsigned long size)
 {
     int i;

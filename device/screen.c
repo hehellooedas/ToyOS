@@ -1,10 +1,34 @@
 #include <screen.h>
 #include <memory.h>
 #include <string.h>
-
+#include <printk.h>
 
 
 void frame_buffer_init(void){
+    unsigned long *tmp,*tmp1;
+    unsigned int* FB_addr = (unsigned int*)(Phy_To_Virt(0xe0000000));
+    Global_CR3 = Get_gdt();
+
+    tmp = Phy_To_Virt((unsigned long*)((unsigned long)Global_CR3 & (~ 0xfffUL)) + (((unsigned long)FB_addr >> PAGE_GDT_SHIFT) & 0x1ff));
+
+    if(*tmp == 0){
+        unsigned long* virtual = kmalloc(PAGE_4K_SIZE,0 );
+        set_pml4t(tmp,mk_pml4t(Virt_To_Phy(virtual),PAGE_KERNEL_GDT ) );
+    }
+
+    tmp = Phy_To_Virt((unsigned long*)(*tmp & (~ 0xfffUL)) + (((unsigned long)FB_addr >> PAGE_1G_SHIFT) & (0x1ff)));
+    if(*tmp == 0){
+        unsigned long* virtual = kmalloc(PAGE_4K_SIZE,0 );
+        set_pdpt(tmp,mk_pdpt(Virt_To_Phy(virtual),PAGE_KERNEL_Dir ) );
+    }
+
+    for(unsigned long i=0;i<Pos.FB_length;i+=PAGE_2M_SIZE){
+        tmp1 = Phy_To_Virt(((unsigned long*)(*tmp & (~ 0xfffUL))) + (((unsigned long)((unsigned long)FB_addr + i) >>PAGE_2M_SHIFT) & (0x1ff)));
+        unsigned long phy = 0xe0000000 + i;
+        set_pdt(tmp1,mk_pdt(phy,PAGE_KERNEL_Page | PAGE_PWT | PAGE_PCD ) );
+    }
+
+    Pos.FB_addr = (unsigned int*)Phy_To_Virt(0xe0000000);
     flush_tlb();
 }
 
@@ -21,7 +45,7 @@ void screen_init(void){
     Pos.YCharSize = 16;
 
     Pos.FB_addr = (unsigned int*)addr;
-    Pos.FB_length = ((Pos.XResolution * Pos.YResolution) * 4 + PAGE_4K_SIZE - 1) & PAGE_4K_MASK;
+    Pos.FB_length = ((Pos.XResolution * Pos.YResolution) * 4 + PAGE_4K_SIZE - 1) & PAGE_4K_MASK; //当前分辨率情况下需要的总页数
 }
 
 

@@ -78,6 +78,6 @@ OffsetOfLoader    equ      0x00      ;偏移地址
 BaseOfKernelFile        equ      0x00
 OffsetOfKernelFile      equ      0x100000 ;1MB
 BaseTmpOfKernelFile     equ      0x00
-OffsetTmpOfKernelFile   equ      0x7e00   ;临时地址
-BaseTmpOfKernelAddr     equ      0x00
+OffsetTmpOfKernelFile   equ      0x0000   ;临时地址
+BaseTmpOfKernelAddr     equ      0x9000
 MemoryStructBufferAddr  equ      0x7e00   ;ARDS缓冲区地址

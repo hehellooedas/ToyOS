@@ -251,7 +251,7 @@ int vsprintf(char* buf,const char* fmt,va_list args){
                     if(qualifier == 'l'){
                         str = number(str, va_arg(args,unsigned long), 16, field_width, precision, flags);
                     }else{
-                        str = number(str, va_arg(args,int), 16, field_width, precision, flags);
+                        str = number(str, va_arg(args,unsigned int), 16, field_width, precision, flags);
                     }
                     break;
 

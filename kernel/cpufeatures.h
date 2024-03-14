@@ -1,0 +1,5 @@
+#ifndef __KERNEL_CPUFEATURES_H
+#define __KERNEL_CPUFEATURES_H
+
+
+#endif

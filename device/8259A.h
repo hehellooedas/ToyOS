@@ -93,4 +93,18 @@ void pic_disable_interrupt(struct IC_8259A pic,unsigned char x)
 }
 
 
+
+static __attribute__((always_inline))
+void IC_8259A_init(void)
+{
+    struct IC_8259A master_8259A = create_8259A(0);  //主芯片
+    struct IC_8259A slave_8259A = create_8259A(1);   //从芯片
+
+    pic_init(master_8259A);
+    pic_init(slave_8259A);
+
+    pic_enable_interrupt(master_8259A,master_keyboard);
+}
+
+
 #endif // !__DEVICE_8259A_H

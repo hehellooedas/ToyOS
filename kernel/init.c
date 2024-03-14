@@ -1,4 +1,4 @@
-#include "screen.h"
+#include <screen.h>
 #include <init.h>
 #include <memory.h>
 #include <trap.h>
@@ -6,6 +6,14 @@
 #include <cpu.h>
 #include <gate.h>
 #include <task.h>
+
+
+#if PIC_APIC
+#include <APIC.h>
+#else
+#include <8259A.h>
+#endif
+
 
 
 void init_all(void){
@@ -18,6 +26,15 @@ void init_all(void){
     slab_init();
     frame_buffer_init();
     pagetable_init();
-    interrupt_init();
+#if PIC_APIC
+    color_printk(RED,BLACK,"current PIC is APIC\n",APIC);
+    APIC_IOAPIC_init();
+#else
+    color_printk(RED,BLACK,"current PIC is 8259A\n");
+    IC_8259A_init();
+#endif
+
+    //interrupt_init();
+
     //task_init();
 }

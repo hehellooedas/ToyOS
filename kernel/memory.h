@@ -16,6 +16,9 @@
 16           Type           决定了本段的性质
 |----------------------------------------------------|
 Type=1意味着该段是可被利用的(其余则不可利用)
+Type=2 保留值(ROM映射区)
+Type=3 ACPI的回收内存(可以在必要时向固件请求回收这部分内存)
+Type=4 ACPINVS内存
 */
 
 
@@ -41,6 +44,12 @@ struct E820{
 
 
 
+/*
+ * 四级分页机制
+ * |  Sign(17)  |   PML4(9)   |   PDPT(9)   |   PDT(9)   |   PT(9)   |   页内偏移(12)   |
+ * 63         48 47         39 38         30 29        21 20       12 11               0
+ *    0xFFFF8
+*/
 typedef struct{
     unsigned long pml4t;
 } pml4t_t;  //page map level 4
@@ -82,7 +91,7 @@ struct Global_Memory_Descriptor{
 
     unsigned long start_code,end_code,end_data,end_brk; //链接器中设定的重要参数
 
-    unsigned long end_of_struct; //内存页管理结构的结尾地址
+    unsigned long end_of_struct; //内存页管理结构的结尾地址(重要位置)
 };
 
 extern struct Global_Memory_Descriptor memory_management_struct;  //定义在main.c里
@@ -91,7 +100,7 @@ extern struct Global_Memory_Descriptor memory_management_struct;  //定义在mai
 
 
 #define PTRS_PER_PAGE   512   //页表项个数(每个页表项占8B)
-
+unsigned long* Global_CR3 = NULL;
 
 #define PAGE_OFFSET     ((unsigned long)0xffff800000000000)   //内核层起始线性地址
 #define Virt_To_Phy(addr)   ((unsigned long)(addr) - PAGE_OFFSET)  //虚拟地址转换成物理地址
@@ -214,7 +223,7 @@ struct Slab{
 struct Slab_cache{
     unsigned long size;        //当前内存池所管理的内存对象代表的尺寸
     unsigned long total_using;
-    unsigned long total_free;  //还有几个size尺寸的内存空间可以分配
+    unsigned long total_free;  //还有几个size尺寸的内存空间可以分配(所有size尺寸的Slab的free_count之和)
 
     struct Slab* cache_pool;
     struct Slab* cache_dma_pool;  //用于索引DMA内存池存储空间结构

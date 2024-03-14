@@ -184,7 +184,6 @@ Label_File_Loaded:
 
 
 
-
 ;临时变量
 RootDirSizeForLoop: dw RootDirSectors
 SectorNo:           dw 0              ;当前正在查找的扇区

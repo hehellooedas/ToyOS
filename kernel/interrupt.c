@@ -113,15 +113,7 @@ void interrupt_init(void)
     for(int i=32;i<56;i++){
         set_intr_gate(i,2,interrupt[i - 32]);
     }
-    struct IC_8259A master_8259A = create_8259A(0);  //主芯片
-    struct IC_8259A slave_8259A = create_8259A(1);   //从芯片
 
-    pic_init(master_8259A);
-    pic_init(slave_8259A);
-
-    pic_enable_interrupt(master_8259A,master_keyboard);
-
-    sti();
 }
 
 

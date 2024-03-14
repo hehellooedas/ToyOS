@@ -47,6 +47,8 @@ Label_Start:
     mov ss,ax
     mov sp,0x7c00
 
+
+
 ;------打印loader引导标记------
     mov ax,0x1301
     mov bx,0x000f
@@ -58,9 +60,8 @@ Label_Start:
     mov es,ax
     pop ax
 
-    mov bp,StartLoaderMessage
+    mov bp,StartLoaderMessage ;es:bp为字符串的地址
     int 0x10
-    
 
 
 ;------打开A20地址线------
@@ -238,15 +239,6 @@ Label_File_Loaded:
     mov ah,0xf
     mov al,'G'
     mov [gs:(80 * 0 + 39 * 2)],ax
-
-
-;------关闭软驱马达------  ;软盘落幕
-KillMotor:
-    push dx
-    mov dx,0x3f2
-    mov al,0
-    out dx,al
-    pop dx
 
 
 
@@ -441,6 +433,7 @@ Label_SVGA_Mode_Info_Finish:
 
     mov bp,GetSVGAModeInfoMessage
     int 0x10
+
 
 
 
@@ -746,7 +739,7 @@ IDT_POINTER:
 SVGAModeCounter:             dd      0
 RootDirSizeForLoop:          dw      RootDirSectors
 SectorNo:                    dw      0
-Odd:                         dw      0 
+Odd:                         dw      0
 DisplayPosition:             dd      0
 OffsetOfKernelFileCount:     dd      OffsetOfKernelFile
 StartLoaderMessage:          db      "Start Loader"
@@ -762,4 +755,4 @@ StartGetSVGAVBEInfoMessage:  db      'Start Get SVGA VBE Info'
 GetSVGAModeFail:             db      'Get SVGA Mode Fail!'
 GetSVGAModeInfoMessage:      db      'Get SVGA Mode Successfully!'
 
-;times (0x1000 - ($ - $$)) db 0
+times (0x1000 - ($ - $$)) db 0
