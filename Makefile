@@ -9,7 +9,7 @@ AR = ar
 RM = rm -rf
 
 LIB      = -I ./kernel -I ./lib -I ./device -I ./task
-CFLAGS   = -mcmodel=large -fno-builtin -m64 -fno-stack-protector -g $(LIB)
+CFLAGS   = -O0 -mcmodel=large -fno-builtin -m64 -fno-stack-protector -g $(LIB)
 LDFLAGS  = -b elf64-x86-64 -z muldefs -T kernel/kernel.lds
 OBJS     =  $(BUILD_DIR)/head.o $(BUILD_DIR)/main.o $(BUILD_DIR)/printk.o \
 	   		$(BUILD_DIR)/init.o $(BUILD_DIR)/screen.o $(BUILD_DIR)/string.o \
@@ -66,7 +66,7 @@ $(BUILD_DIR)/memory.o:kernel/memory.c kernel/memory.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/interrupt.o:kernel/interrupt.c kernel/interrupt.h
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@ -D$(PIC)
 
 $(BUILD_DIR)/cpu.o:kernel/cpu.c kernel/cpu.h
 	$(CC) $(CFLAGS) -c $< -o $@
@@ -118,6 +118,7 @@ qemu: clean compile link disk
 	-net none \
 	-d int \
 	-display gtk,gl=on \
+	-s -S \
 	-name "ToyOS Development Platform for x86_64"
 
 default: compile link

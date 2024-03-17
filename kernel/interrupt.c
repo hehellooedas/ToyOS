@@ -3,6 +3,23 @@
 #include <printk.h>
 #include <interrupt.h>
 #include <8259A.h>
+#include <lib.h>
+
+#if PIC_APIC
+void do_IRQ(struct pt_regs* regs,unsigned long nr){
+    unsigned char x = in8(0x60);
+    color_printk(BLUE,BLACK ,"(IRQ:#x)\tthe code:%#x\n",nr,x );
+    wrmsr(0x80b,0 );
+}
+#else
+void do_IRQ(unsigned long regs,unsigned long nr){
+    unsigned char x;
+    color_printk(RED,BLACK,"do_IRQ:%#08x\t",nr);
+    x = in8(0x60);
+    color_printk(RED,BLACK,"key code:%#08x\n",x);
+    out8(0x20,0x20);
+}
+#endif
 
 
 
@@ -113,15 +130,5 @@ void interrupt_init(void)
     for(int i=32;i<56;i++){
         set_intr_gate(i,2,interrupt[i - 32]);
     }
-
 }
 
-
-
-void do_IRQ(unsigned long regs,unsigned long nr){
-    unsigned char x;
-    color_printk(RED,BLACK,"do_IRQ:%#08x\t",nr);
-    x = in8(0x60);
-    color_printk(RED,BLACK,"key code:%#08x\n",x);
-    out8(0x20,0x20);
-}

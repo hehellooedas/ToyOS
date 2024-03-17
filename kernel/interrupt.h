@@ -7,7 +7,6 @@
 
 
 void interrupt_init(void);
-void do_IRQ(unsigned long regs,unsigned long nr);
 
 
 static __attribute__((always_inline))

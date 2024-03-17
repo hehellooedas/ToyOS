@@ -17,6 +17,19 @@ lib.h为通用库文件
 #define stop()  asm volatile("jmp . \n\t")
 
 
+
+
+/*  多核处理器有乱序执行机制(先写入内存的指令不一定真的先执行)  */
+
+/*  最全面、保守的屏障,可以阻止读写指令和写读指令间的重排序  */
+#define mfence()    asm volatile("mfence    \n\t":::"memory")
+/*  保证加载操作 不会重新排序到lfence之前的存储操作之前(load保护)  */
+#define lfence()    asm volatile("lfence    \n\t":::"memory")
+/*  保证存储操作 不会重新排序到sfence之后的加载操作之前(store保护)  */
+#define sfence()    asm volatile("sfence    \n\t":::"memory")
+
+
+
 /*  
 根据成员找结构体变量
 @ptr:成员变量的地址

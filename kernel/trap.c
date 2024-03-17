@@ -6,7 +6,10 @@
 
 
 void sys_vector_init(void) {
-  /*  设置系统异常(陷进)中断  */
+  /*
+   * 设置系统异常(陷进)中断
+   * 0~0x1f中断为CPU内部中断
+  */
   set_trap_gate(0, 1, divide_error);
   set_trap_gate(1, 1, debug);
   set_intr_gate(2, 1, nmi);

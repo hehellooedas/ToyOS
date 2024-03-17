@@ -33,8 +33,7 @@ void init_all(void){
     color_printk(RED,BLACK,"current PIC is 8259A\n");
     IC_8259A_init();
 #endif
-
-    //interrupt_init();
-
+    interrupt_init();
+    sti();
     //task_init();
 }

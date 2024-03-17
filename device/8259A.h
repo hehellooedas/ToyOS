@@ -2,7 +2,7 @@
 #define __DEVICE_8259A_H
 
 #include <io.h>
-
+#include <printk.h>
 
 struct IC_8259A{
     unsigned char ctrl_port;  //控制端口
@@ -105,6 +105,8 @@ void IC_8259A_init(void)
 
     pic_enable_interrupt(master_8259A,master_keyboard);
 }
+
+
 
 
 #endif // !__DEVICE_8259A_H
