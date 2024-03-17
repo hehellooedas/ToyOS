@@ -33,5 +33,17 @@ void cli(void)
 }
 
 
+#define NR_IRQS 24
+
+/*  记录处理中断时所必须的信息  */
+typedef struct{
+
+    char* irq_name;
+    unsigned long parameter;
+
+    unsigned long flags;
+} irq_desc_T;
+
+
 
 #endif // !__KERNEL_INTERRUPT_H

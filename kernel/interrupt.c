@@ -23,6 +23,7 @@ void do_IRQ(unsigned long regs,unsigned long nr){
 
 
 
+
 /*  发生中断时保存寄存器信息  */
 #define SAVE_ALL            \
     "cld;            \n\t"   \

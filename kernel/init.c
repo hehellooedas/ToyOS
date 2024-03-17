@@ -1,3 +1,4 @@
+#include "printk.h"
 #include <screen.h>
 #include <init.h>
 #include <memory.h>
@@ -9,6 +10,7 @@
 
 
 #if PIC_APIC
+#include <8259A.h>
 #include <APIC.h>
 #else
 #include <8259A.h>
@@ -27,6 +29,7 @@ void init_all(void){
     frame_buffer_init();
     pagetable_init();
 #if PIC_APIC
+    IC_8259A_init();
     color_printk(RED,BLACK,"current PIC is APIC\n",APIC);
     APIC_IOAPIC_init();
 #else
@@ -34,6 +37,8 @@ void init_all(void){
     IC_8259A_init();
 #endif
     interrupt_init();
+    color_printk(GREEN,BLACK,"bochs will run sti!\n");
+    asm volatile ("nop  \n\t");
     sti();
     //task_init();
 }

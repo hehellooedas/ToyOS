@@ -4,6 +4,7 @@
 #include <init.h>
 #include <memory.h>
 #include <flags.h>
+#include <interrupt.h>
 
 struct Global_Memory_Descriptor memory_management_struct = {{0},0};
 
@@ -24,5 +25,6 @@ void Start_Kernel(void){
         kfree(tmp);
         color_printk(RED,BLACK ,"color_map(after):%#x\n",*kmalloc_cache_size[i].cache_pool->color_map );
     }
+
     while(1);
 }

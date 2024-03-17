@@ -38,8 +38,8 @@ void cpu_init(void)
     /*  查看CPU类型、家族、型号等信息和特性(重要)  */
     get_cpuid(1, 0, &CpuFacName[0], &CpuFacName[1], &CpuFacName[2],
         &CpuFacName[3]);
-    color_printk(YELLOW, BLACK, "Family Code:%#010x,Extended Family:%#010x,\
-Model Number:%#010x,Entended Model:%#010x,Processer Type:%#010x,Stepping ID:%#010x\n",
+    color_printk(YELLOW, BLACK, "Family Code:%#lx,Extended Family:%#lx,\
+Model Number:%#lx,Entended Model:%#lx,Processer Type:%#lx,Stepping ID:%#lx\n",
         (CpuFacName[0] >> 8 & 0xf), (CpuFacName[0] >> 20 & 0xff),
         (CpuFacName[0] >> 4 & 0xf), (CpuFacName[0] >> 16 & 0xf),
         (CpuFacName[0] >> 12 & 0x3), (CpuFacName[0] & 0xf));

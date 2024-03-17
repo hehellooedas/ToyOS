@@ -67,12 +67,12 @@ void Local_APIC_init(void)
 
     /*  屏蔽LVT的所有中断投递功能  */
     //wrmsr(LVT_CMCI_MSR,0x10000 ); //bochs不支持CMCI 支持的最大LVT是6个
-    //wrmsr(LVT_TIMER_MSR,0x10000 );
-    //wrmsr(LVT_THERMAL_MSR,0x10000 );
-    //wrmsr(LVT_PERFORMANCE_MSR,0x10000 );
-    //wrmsr(LVT_LINT0_MSR,0x10000 );
-    //wrmsr(LVT_LINT1_MSR,0x10000 );
-    //wrmsr(LVT_ERROR_MSR,0x10000 );
+    wrmsr(LVT_TIMER_MSR,0x10000 );
+    wrmsr(LVT_THERMAL_MSR,0x10000 );
+    wrmsr(LVT_PERFORMANCE_MSR,0x10000 );
+    wrmsr(LVT_LINT0_MSR,0x10000 );
+    wrmsr(LVT_LINT1_MSR,0x10000 );
+    wrmsr(LVT_ERROR_MSR,0x10000 );
 
 
     unsigned int TPR,PPR;
@@ -112,7 +112,7 @@ void IOAPIC_pagetable_remap(void)
         unsigned long* virtual = kmalloc(PAGE_4K_SIZE,0 );
         set_pdpt(tmp,mk_pdpt(Virt_To_Phy(virtual),PAGE_KERNEL_Dir ) );
     }
-    tmp = Phy_To_Virt((unsigned long*)(*tmp & (~0xfffUL)) + (((unsigned long)IOAPIC_addr >>PAGE_2M_SHIFT) & 0x1ff));
+    tmp = Phy_To_Virt((unsigned long*)(*tmp & (~0xfffUL)) + (((unsigned long)IOAPIC_addr >> PAGE_2M_SHIFT) & 0x1ff));
     set_pdt(tmp,mk_pdt(ioapic_map.physical_address,PAGE_KERNEL_Page | PAGE_PWT | PAGE_PCD ) );
 
     flush_tlb();
