@@ -142,6 +142,9 @@ void IOAPIC_init(void)
 
 void APIC_IOAPIC_init(void)
 {
+    out8(0x20,0x11);
+    out8(0x21,0x22 ); //让intr针脚不悬空
+
     IOAPIC_pagetable_remap();
 
     /*  屏蔽8259A中断控制器  */

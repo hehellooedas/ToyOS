@@ -29,7 +29,6 @@ void init_all(void){
     frame_buffer_init();
     pagetable_init();
 #if PIC_APIC
-    IC_8259A_init();
     color_printk(RED,BLACK,"current PIC is APIC\n",APIC);
     APIC_IOAPIC_init();
 #else
