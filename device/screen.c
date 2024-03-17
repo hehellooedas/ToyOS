@@ -45,7 +45,7 @@ void screen_init(void){
     Pos.YCharSize = 16;
 
     Pos.FB_addr = (unsigned int*)addr;
-    Pos.FB_length = ((Pos.XResolution * Pos.YResolution) * 4 + PAGE_4K_SIZE - 1) & PAGE_4K_MASK; //当前分辨率情况下需要的总页数
+    Pos.FB_length = ((Pos.XResolution * Pos.YResolution) * 4 + PAGE_4K_SIZE - 1) & PAGE_4K_MASK; //当前分辨率情况下需要的总字节数
 }
 
 
