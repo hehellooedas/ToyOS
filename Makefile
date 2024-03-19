@@ -15,7 +15,7 @@ OBJS     =  $(BUILD_DIR)/head.o $(BUILD_DIR)/main.o $(BUILD_DIR)/printk.o \
 	   		$(BUILD_DIR)/init.o $(BUILD_DIR)/screen.o $(BUILD_DIR)/string.o \
 			$(BUILD_DIR)/trap.o $(BUILD_DIR)/entry.o $(BUILD_DIR)/memory.o \
 			$(BUILD_DIR)/interrupt.o $(BUILD_DIR)/cpu.o $(BUILD_DIR)/task.o \
-			$(BUILD_DIR)/APIC.o
+			$(BUILD_DIR)/APIC.o $(BUILD_DIR)/keyboard.o $(BUILD_DIR)/mouse.o
 
 PIC := PIC_APIC
 
@@ -80,6 +80,11 @@ $(BUILD_DIR)/string.o:lib/string.c lib/string.h
 $(BUILD_DIR)/APIC.o:device/APIC.c device/APIC.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
+$(BUILD_DIR)/keyboard.o:device/keyboard.c device/keyboard.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/mouse.o:device/mouse.c device/mouse.h
+	$(CC) $(CFLAGS) -c $< -o $@
 
 
 

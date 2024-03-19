@@ -1,7 +1,7 @@
 #ifndef __DEVICE_APIC_H
 #define __DEVICE_APIC_H
 
-#include "task.h"
+
 #include <lib.h>
 #include <ptrace.h>
 #include <interrupt.h>
@@ -12,6 +12,45 @@
  *
  *
 */
+
+
+/*  LVT结构(只有定时器有timer_mode)  */
+struct APIC_LVT{
+    unsigned int vector:8,
+                 deliver_mode:3,
+                 res_1:1,
+                 deliver_status:1,
+                 polarity:1,
+                 irr:1,
+                 trigger_mode:1,
+                 mask:1,
+                 timer_mode:2,
+                 res_2:13;
+}__attribute__((packed));
+
+/*  APIC的投递模式表(deliver_mode)  */
+#define APIC_LVT_DELIVER_MODE_FIXED     0b000   //由LVT寄存器的向量号区域指定中断向量号
+#define APIC_LVT_DELIVER_MODE_SMI       0b010   //通过处理器的SMI信号线向处理器投递SMI(向量号区域必须为0)
+#define APIC_LVT_DELIVER_MODE_NMI       0b100   //向处理器投递NMI请求(忽略向量号)
+#define APIC_LVT_DELIVER_MODE_INT       0b101
+#define APIC_LVT_DELIVER_MODE_ExtINT    0b111   //接受类8259A的中断请求
+
+/*  APIC的投递状态(deliver_status)  */
+#define APIC_LVT_DELIVER_STATUS_IDLE    0       //目前中断源没有或投递给处理器后已受理
+
+
+
+
+
+
+
+
+
+struct IO_APIC_RET_ENTRY{
+
+}__attribute__((packed));
+
+
 
 
 

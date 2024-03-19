@@ -4,11 +4,21 @@
 #include <interrupt.h>
 #include <8259A.h>
 #include <lib.h>
+#include <stdbool.h>
 
 #if PIC_APIC
 void do_IRQ(struct pt_regs* regs,unsigned long nr){
     unsigned char x = in8(0x60);
+    irq_desc_T* irq = &interrupt_desc[nr - 32];
     color_printk(BLUE,BLACK ,"(IRQ:#x)\tthe code:%#x\n",nr,x );
+
+    if(irq->handler != NULL){
+        irq->handler(nr,irq->parameter,regs);
+    }
+    if(irq->controler != NULL && irq->controlerb->ack != NULL){
+        irq->controler->ack(nr);  //向中断控制器发送应答消息
+    }
+
     wrmsr(0x80b,0 );
 }
 #else
@@ -131,5 +141,40 @@ void interrupt_init(void)
     for(int i=32;i<56;i++){
         set_intr_gate(i,2,interrupt[i - 32]);
     }
+}
+
+
+
+bool register_irq(
+    unsigned long irq,
+    void* arg,
+    void (*handler)(unsigned long nr,unsigned long parameter,struct pt_regs* regs),
+    unsigned long parameter,
+    hw_int_controler* controler,
+    char* irq_name
+){
+    irq_desc_T* p = &interrupt_desc[irq - 32];
+    p->controler = controler;
+    p->parameter = parameter;
+    p->irq_name = irq_name;
+    p->flags = 0;
+    p->handler = handler;
+    p->controler->installer(irq,arg);
+    p->controler->enable(irq);
+    return true;
+}
+
+
+
+bool unregister_irq(unsigned long irq){
+    irq_desc_T* p = &interrupt_desc[irq - 32];
+    p->controler->disable(irq);
+    p->controler->uninstaller(irq);
+    p->controler = NULL;
+    p->flags = 0;
+    p->irq_name = NULL;
+    p->handler = NULL;
+    p->parameter = 0;
+    return true;
 }
 

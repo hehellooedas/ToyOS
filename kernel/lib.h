@@ -3,14 +3,15 @@
 
 
 /*
-lib.h为通用库文件
-内核程序都可以引入lib.h
+* lib.h为内核通用库文件
+* 内核程序都可以引入lib.h
 */
 
 
 #include <string.h>
 #include <stddef.h>
 #include <stdarg.h>
+#include <stdbool.h>
 
 
 #define nop()   asm volatile("nop   \n\t")

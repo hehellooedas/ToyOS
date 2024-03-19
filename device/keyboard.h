@@ -29,7 +29,9 @@ struct keyboard_inputbuffer{
 #define KBCMD_READ_CMD  0x20    //读取键盘的配置值
 #define KB_INIT_MODE    0x47    //发往键盘的配置值
 
-
 void keyboard_init(void);
+
+
+
 
 #endif // !__DEVICE_KEYBOARD_H

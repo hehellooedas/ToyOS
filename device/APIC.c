@@ -4,7 +4,7 @@
 #include <cpu.h>
 #include <memory.h>
 #include <lib.h>
-
+#include <interrupt.h>
 
 
 #define IA32_APIC_BASE_MSR          0x1B
@@ -142,8 +142,6 @@ void IOAPIC_init(void)
 
 void APIC_IOAPIC_init(void)
 {
-    out8(0x20,0x11);
-    out8(0x21,0x22 ); //让intr针脚不悬空
 
     IOAPIC_pagetable_remap();
 
@@ -158,6 +156,8 @@ void APIC_IOAPIC_init(void)
 
     Local_APIC_init();
     IOAPIC_init();
+
+    memset(interrupt_desc,0,sizeof(irq_desc_T) *NR_IRQS);
 }
 
 
