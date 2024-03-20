@@ -5,6 +5,7 @@
 #include <memory.h>
 #include <lib.h>
 #include <interrupt.h>
+#include <stdbool.h>
 
 
 #define IA32_APIC_BASE_MSR          0x1B
@@ -149,7 +150,6 @@ void APIC_IOAPIC_init(void)
     out8(0x21,0xff);
     out8(0xa1,0xff);
 
-
     /*  CPU只接收APIC的中断请求信号  */
     out8(0x22,0x70 );
     out8(0x23,0x01 );
@@ -162,3 +162,49 @@ void APIC_IOAPIC_init(void)
 
 
 
+void IOAPIC_enbale(unsigned long irq)
+{
+    /*  irq号中断对应的I/O中断投递寄存器(绕过前0x10)  */
+    unsigned long value = ioapic_rte_read((irq - 0x20) * 2 + 0x10);
+    value &= (~0x10000UL);  //解除屏蔽
+    ioapic_rte_write((irq - 0x20) * 2 + 0x10,value );
+}
+
+
+
+void IOAPIC_disable(unsigned long irq)
+{
+    unsigned long value = ioapic_rte_read((irq - 0x20) * 2 + 0x10);
+    value |= (~0x10000UL);  //屏蔽
+    ioapic_rte_write((irq - 0x20) * 2 + 0x10,value );
+}
+
+
+
+bool IOAPIC_install(unsigned long irq,void* arg)
+{
+    struct IO_APIC_RET_ENTRY* entry = (struct IO_APIC_RET_ENTRY*)arg;
+    /*  把RTE结构体变成一个单独的数放入RTE寄存器  */
+    ioapic_rte_write((irq - 0x20) * 2 + 0x10,*(unsigned long*)arg );
+    return true;
+}
+
+
+void IOAPIC_uninstall(unsigned long irq)
+{
+    /*  卸载驱动:变回初始化时候的样子  */
+    ioapic_rte_write((irq - 0x20) * 2 + 0x10,0x10000);
+}
+
+
+
+void IOAPIC_level_ack(unsigned long irq)
+{
+    wrmsr(0x80b,0 );
+}
+
+
+void IOAPIC_edge_ack(unsigned long irq)
+{
+    wrmsr(0x80b,0 );
+}

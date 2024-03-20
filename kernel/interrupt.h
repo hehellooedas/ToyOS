@@ -42,7 +42,7 @@ void cli(void)
 typedef struct hw_int_type{
     void (*enable)(unsigned long irq);      //使能中断操作接口
     void (*disable)(unsigned long irq);     //关闭
-    unsigned long (*installer)(unsigned long irq,void* arg);
+    bool (*installer)(unsigned long irq,void* arg);
     void (*uninstaller)(unsigned long irq);
     void (*ack)(unsigned long nr);          //应答
 } hw_int_controler;

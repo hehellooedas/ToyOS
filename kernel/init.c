@@ -8,6 +8,9 @@
 #include <gate.h>
 #include <task.h>
 #include <8259A.h>
+#include <keyboard.h>
+#include <mouse.h>
+#include <disk.h>
 
 
 #if PIC_APIC
@@ -36,7 +39,9 @@ void init_all(void){
 #endif
     interrupt_init();
     color_printk(GREEN,BLACK,"bochs will run sti!\n");
-    asm volatile ("nop  \n\t");
     sti();
+    keyboard_init();
+    mouse_init();
+
     //task_init();
 }

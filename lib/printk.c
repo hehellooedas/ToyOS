@@ -258,7 +258,14 @@ int vsprintf(char* buf,const char* fmt,va_list args){
                 case 'd':
                 case 'i':
                     flags |= SIGN;
+                    if(qualifier == 'l'){
+                        str = number(str, va_arg(args,long), 10, field_width, precision, flags);
+                    }else{
+                        str = number(str, va_arg(args,int), 10, field_width, precision, flags);
+                    }
+                    break;
                 case 'u':
+                    flags |= SIGN;
                     if(qualifier == 'l'){
                         str = number(str, va_arg(args,unsigned long), 10, field_width, precision, flags);
                     }else{

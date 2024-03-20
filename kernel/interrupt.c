@@ -8,18 +8,14 @@
 
 #if PIC_APIC
 void do_IRQ(struct pt_regs* regs,unsigned long nr){
-    unsigned char x = in8(0x60);
     irq_desc_T* irq = &interrupt_desc[nr - 32];
-    color_printk(BLUE,BLACK ,"(IRQ:#x)\tthe code:%#x\n",nr,x );
 
     if(irq->handler != NULL){
         irq->handler(nr,irq->parameter,regs);
     }
-    if(irq->controler != NULL && irq->controlerb->ack != NULL){
+    if(irq->controler != NULL && irq->controler->ack != NULL){
         irq->controler->ack(nr);  //向中断控制器发送应答消息
     }
-
-    wrmsr(0x80b,0 );
 }
 #else
 void do_IRQ(unsigned long regs,unsigned long nr){
