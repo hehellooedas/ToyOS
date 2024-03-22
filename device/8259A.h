@@ -76,6 +76,7 @@ void pic_init(struct IC_8259A pic)
 #define slave_slave_disk    0x80    //从硬盘
 
 
+
 static __attribute__((always_inline))
 void pic_enable_interrupt(struct IC_8259A pic,unsigned char x)
 {

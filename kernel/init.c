@@ -42,6 +42,7 @@ void init_all(void){
     sti();
     keyboard_init();
     mouse_init();
+    disk_init();
 
     //task_init();
 }

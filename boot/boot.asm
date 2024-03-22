@@ -230,7 +230,7 @@ push bx
     mov dx,0x1f5
     out dx,al
 
-    ;设置7~4位为1110,表示LBA模式
+    ;设置7~4位为1110,表示LBA(28)模式
     or al,0xe0
     mov dx,0x1f6
     out dx,al

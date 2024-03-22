@@ -47,8 +47,8 @@ list_add_to_before(struct List* entry,struct List* newNode)
 
 
 /*  删除指定链  */
-static void __attribute__((always_inline))
-list_del(struct List* entry)
+static __attribute__((always_inline))
+void list_del(struct List* entry)
 {
     entry->prev->next = entry->next;
     entry->next->prev = entry->prev;
@@ -56,8 +56,8 @@ list_del(struct List* entry)
 
 
 /*  判断链表是否为空  */
-static bool __attribute__((always_inline))
-list_is_empty(struct List* entry)
+static __attribute__((always_inline))
+bool list_is_empty(struct List* entry)
 {
     if(entry->prev == entry && entry->next == entry){
         return true;
@@ -68,8 +68,8 @@ list_is_empty(struct List* entry)
 
 
 /*  获取前驱节点  */
-static struct List *__attribute__((always_inline))
-get_List_prev(struct List *entry) 
+static __attribute__((always_inline))
+struct List *get_List_prev(struct List *entry)
 {
   if (entry->prev == NULL)
     return NULL;
@@ -78,12 +78,11 @@ get_List_prev(struct List *entry)
 
 
 /*  获取后继节点  */
-static struct List *__attribute__((always_inline))
-get_List_next(struct List *entry) 
+static __attribute__((always_inline))
+struct List *get_List_next(struct List *entry)
 {
   if (entry->next == NULL) 
     return NULL;
-    
   else return entry->next;
 }
 

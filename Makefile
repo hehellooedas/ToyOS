@@ -15,7 +15,8 @@ OBJS     =  $(BUILD_DIR)/head.o $(BUILD_DIR)/main.o $(BUILD_DIR)/printk.o \
 	   		$(BUILD_DIR)/init.o $(BUILD_DIR)/screen.o $(BUILD_DIR)/string.o \
 			$(BUILD_DIR)/trap.o $(BUILD_DIR)/entry.o $(BUILD_DIR)/memory.o \
 			$(BUILD_DIR)/interrupt.o $(BUILD_DIR)/cpu.o $(BUILD_DIR)/task.o \
-			$(BUILD_DIR)/APIC.o $(BUILD_DIR)/keyboard.o $(BUILD_DIR)/mouse.o
+			$(BUILD_DIR)/APIC.o $(BUILD_DIR)/keyboard.o $(BUILD_DIR)/mouse.o \
+			$(BUILD_DIR)/disk.o
 
 PIC := PIC_APIC
 
@@ -86,13 +87,16 @@ $(BUILD_DIR)/keyboard.o:device/keyboard.c device/keyboard.h
 $(BUILD_DIR)/mouse.o:device/mouse.c device/mouse.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
+$(BUILD_DIR)/disk.o:device/disk.c device/disk.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
 
 
 clean:
 	$(RM) $(RMFLAGS) kernel/head.s tools/boot.img build/*
 
 disk: copy $(BUILD_DIR)/loader.bin $(BUILD_DIR)/boot.bin
-	cp ./hard.img tools/boot.img
+	cp ./disk/hard.img tools/boot.img
 	dd if=$(BUILD_DIR)/boot.bin of=tools/boot.img bs=512 count=1 conv=notrunc
 	sudo mount tools/boot.img ./disk -t vfat -o loop
 	sudo cp $(BUILD_DIR)/loader.bin ./disk
