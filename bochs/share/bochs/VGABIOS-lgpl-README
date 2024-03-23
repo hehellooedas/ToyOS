@@ -1,11 +1,16 @@
-Plex86/Bochs VGABios
---------------------
+Bochs VGABios
+-------------
 
-The goal of this project is to have a LGPL'd Video Bios in plex86,
-Bochs and qemu.
+The goal of this project is to have a LGPL'd Video Bios in Bochs and QEMU.
 This VGA Bios is very specific to the emulated VGA card.
 It is NOT meant to drive a physical vga card.
 
+
+Bochs VBE extension
+---------------------
+
+The Bochs VBE extension and it's Bochs device backend has been written by
+Jeroen Janssen (japj). It implements support for VBE version 2.0.
 
 Cirrus SVGA extension
 ---------------------
@@ -15,30 +20,40 @@ qemu. The initial patch for the Cirrus extension has been written by Makoto
 Suzuki (suzu).
 
 
+Voodoo Banshee PCI extension
+----------------------------
+
+The Voodoo Banshee PCI extension is designed for the Banshee emulation in Bochs.
+Some parts of the initial version are based on the Cirrus extension code.
+
+
 Install
 -------
-To compile the VGA Bios you will need :
-- gcc
-- bcc
-- as86
-- ld86
+To compile the VGA Bios you will need the following packages:
+- make
+- gcc (for 'biossums', 'vbetables-gen' and VGABIOS preprocessing)
+- dev86 (bcc, as86)
 
-Untar the archive, and type make. You should get a "VGABIOS-lgpl-latest.bin"
-file. Alternatively, you can use the binary file "VGABIOS-lgpl-latest.bin",
-i have compiled for you.
+Untar the archive, and type 'make'. You should get this set of binary files:
+"VGABIOS-lgpl-latest.bin", "VGABIOS-lgpl-latest-debug.bin",
+"VGABIOS-lgpl-latest-cirrus.bin", "VGABIOS-lgpl-latest-cirrus-debug.bin" and
+"VGABIOS-lgpl-latest-banshee.bin".
+Alternatively, you can use one of the precompiled binary files present in
+the archive.
 
-Edit your plex86/bochs conf file, and modify the load-rom command in the
-VGA BIOS section, to point to the new vgabios image file.
+Edit your bochs config file, and modify the 'vgaromimage' directive to point
+it to the VGABIOS image you want to use.
 
 
 Debugging
 ---------
-You can get a very basic debugging system: messages printed by the vgabios.
-You have to register the "unmapped" device driver in plex86 or bochs, and make
-sure it grabs port 0xfff0.
+You can get a very basic debugging system: the VGABIOS sends messages to a
+usually unused ISA i/o port. The emulator prints the received characters to
+log file or console. In Bochs the "unmapped" device plugin must be loaded.
+It registers the VGABIOS info port 0x500.
 
-Comment the #undef DEBUG at the beginning of vgabios.c.
-You can then use the "printf" function in the bios.
+VGABIOS images compiled with the DEBUG symbol set, will use the "printf"
+function to write the messages to the info port.
 
 
 Testing
@@ -50,7 +65,7 @@ your needs.
 
 Copyright and License
 ---------------------
-This program has been written by Christophe Bothamy
+The original version of this program has been written by Christophe Bothamy.
 It is protected by the GNU Lesser Public License, which you should
 have received a copy of along with this package.
 
@@ -83,19 +98,55 @@ The source code is based on information taken from :
 Feedback
 --------
 Please report any bugs, comments, patches for this VGA Bios
-on savannah pages at: http://savannah.nongnu.org/projects/vgabios/
-You can find the latest release at : http://www.nongnu.org/vgabios/
-For any information on bochs, visit the website http://bochs.sourceforge.net/
+on Github at: https://github.com/bochs-emu/VGABIOS
+You can find the latest release at https://github.com/bochs-emu/VGABIOS/releases
+For any information on this VGABIOS, see https://www.nongnu.org/vgabios/
+For any information on bochs, visit the website https://bochs.sourceforge.io/
 For any information on Qemu, visit the website http://wiki.qemu.org/
 
 
 History
 -------
-vgabios-CVS : Jul 08 2014
+vgabios-0.9a : Mar 03 2024
   - Volker
+    - Implemented AH=12h / BL=36h (video refresh control)
+    - Banshee: Added support for VBE function get/set palette format
+    - Fixed video mode detection for TTY functions
+    - Fixed Cirrus vertical timing parameters for 800x600 modes
+    - Added protected mode interface for the Banshee and Cirrus version
+  - Vort
+    - Cirrus: Added support for 1152x864x8 video mode
+
+vgabios-0.8c : Jan 07 2024
+  - Volker
+    - added VBE set palette data support to protected mode interface
+    - some more VBE code rewritten in assembler
+
+vgabios-0.8b : Dec 28 2023
+  - Volker
+    - added VBE get/set palette data support for Banshee and Cirrus versions
+    - fixed order of colors in VBE function get/set palette data
+    - VESA BIOS function 0x4f00 now stores strings in OemData (for VBE 2.0)
+    - some VBE functions rewritten in assembler including bugfixes
+
+vgabios-0.8a : Jun 03 2021
+  - Volker
+    - added initial version of the VGABIOS for Voodoo Banshee PCI
+    - added 'write character' support for non-VGA 8-bpp modes (Bochs VBE /
+      Cirrus / Banshee) - Cirrus code uses bitblt engine
+    - fixes in Bochs VBE functions set/get VBE mode and save/restore VBE state
+    - fixed text output in VGA graphics modes (using INT 0x43 vector as expected)
+    - fixed general 'scroll down' bug in graphics modes
+    - some functions rewritten in assembler and some other code optimizations
+
+vgabios-0.7b : Jan 03 2020
+  - Volker
+    - added VESA BIOS function 0x4f09 (set/get palette data) to the Bochs VBE
+      version
+    - added VESA BIOS function 0x4f15 (get EDID) to both the Bochs VBE and
+      the Cirrus version
     - fixed building VBE modes list (check maximum y resolution)
     - ensure PCIR is aligned to 4 bytes (patch by David Woodhouse)
-    - README: update feedback address and Qemu link
 
 vgabios-0.7a : Oct 30 2011
   - Volker

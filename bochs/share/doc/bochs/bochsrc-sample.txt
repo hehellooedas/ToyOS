@@ -24,12 +24,12 @@
 # allows you to change all the settings that control Bochs's behavior.
 # Depending on the platform there are up to 3 choices of configuration
 # interface: a text mode version called "textconfig" and two graphical versions
-# called "win32config" and "wx".  The text mode version uses stdin/stdout and
-# is always compiled in, unless Bochs is compiled for wx only. The choice
-# "win32config" is only available on win32 and it is the default there.
-# The choice "wx" is only available when you use "--with-wx" on the configure
-# command.  If you do not write a config_interface line, Bochs will
-# choose a default for you.
+# called "win32config" and "wx".  The text mode version uses stdin/stdout or
+# gui console (if available / runtime config) and is always compiled in, unless
+# Bochs is compiled for wx only. The choice "win32config" is only available on
+# win32/win64 and it is the default on these platforms. The choice "wx" is only
+# available when Bochs is compiled with wxWidgets support.  If you do not write
+# a config_interface line, Bochs will choose a default for you.
 #
 # NOTE: if you use the "wx" configuration interface, you must also use
 # the "wx" display library.
@@ -41,14 +41,14 @@
 #=======================================================================
 # DISPLAY_LIBRARY
 #
-# The display library is the code that displays the Bochs VGA screen.  Bochs 
-# has a selection of about 10 different display library implementations for 
-# different platforms.  If you run configure with multiple --with-* options, 
+# The display library is the code that displays the Bochs VGA screen.  Bochs
+# has a selection of about 10 different display library implementations for
+# different platforms.  If you run configure with multiple --with-* options,
 # the display_library command lets you choose which one you want to run with.
 # If you do not write a display_library line, Bochs will choose a default for
 # you.
 #
-# The choices are: 
+# The choices are:
 #   x              use X windows interface, cross platform
 #   win32          use native win32 libraries
 #   carbon         use Carbon library (for MacOS X)
@@ -56,7 +56,6 @@
 #   amigaos        use native AmigaOS libraries
 #   sdl            use SDL 1.2.x library, cross platform
 #   sdl2           use SDL 2.x library, cross platform
-#   svga           use SVGALIB library for Linux, allows graphics without X11
 #   term           text only, uses curses/ncurses library, cross platform
 #   rfb            provides an interface to AT&T's VNC viewer, cross platform
 #   vncsrv         use LibVNCServer for extended RFB(VNC) support
@@ -70,25 +69,36 @@
 # Some display libraries now support specific options to control their
 # behaviour. These options are supported by more than one display library:
 #
+# "cmdmode"     - call a headerbar button handler after pressing F7 (sdl, sdl2,
+#                 win32, x)
+# "fullscreen"  - startup in fullscreen mode (sdl, sdl2)
 # "gui_debug"   - use GTK debugger gui (sdl, sdl2, x) / Win32 debugger gui (sdl,
 #                 sdl2, win32)
-# "hideIPS"     - disable IPS output in status bar (rfb, sdl, sdl2, vncsrv,
+# "hideIPS"     - disable IPS output in status bar (rfb, sdl, sdl2, term, vncsrv,
 #                 win32, wx, x)
 # "nokeyrepeat" - turn off host keyboard repeat (sdl, sdl2, win32, x)
+# "no_gui_console" - use system console instead of builtin gui console
+#                    (rfb, sdl, sdl2, vncsrv, x)
 # "timeout"     - time (in seconds) to wait for client (rfb, vncsrv)
 #
 # See the examples below for other currently supported options.
+# Setting up options without specifying display library is also supported.
 #=======================================================================
 #display_library: amigaos
 #display_library: carbon
 #display_library: macintosh
 #display_library: nogui
 #display_library: rfb
-#display_library: sdl, options="fullscreen" # startup in fullscreen mode
-#display_library: sdl2, options="fullscreen" # startup in fullscreen mode
+#display_library: sdl
+#display_library: sdl2
 #display_library: term
 #display_library: vncsrv
-#display_library: win32
+# "traphotkeys" - system hotkeys not handled by host OS, but sent to guest
+#                 (win32 in mouse capture and fullscreen mode: alt-tab, win,
+#                 alt-space, alt-esc, ctrl-esc)
+# "autoscale"   - scale small simulation window by factor 2, 4 or 8 depending
+#                 on desktop window size
+#display_library: win32, options="traphotkeys, autoscale"
 #display_library: wx
 #display_library: x
 
@@ -127,6 +137,10 @@
 #  corei7_ivy_bridge_3770k    Intel(R) Core(TM) i7-3770K CPU (Ivy Bridge)
 #  corei7_haswell_4770        Intel(R) Core(TM) i7-4770 CPU (Haswell)
 #  broadwell_ult              Intel(R) Processor 5Y70 CPU (Broadwell)
+#  corei7_skylake_x           Intel(R) Core(TM) i7-7800X CPU (Skylake)
+#  corei3_cnl                 Intel(R) Core(TM) i3-8121U CPU (Cannonlake)
+#  corei7_icelake_u           QuadCore Intel Core i7-1065G7 (IceLake)
+#  tigerlake                  11th Gen Intel(R) Core(TM) i5-1135G7 (TigerLake)
 #
 #  COUNT:
 #    Set the number of processors:cores per processor:threads per core when
@@ -137,12 +151,12 @@
 #
 #  QUANTUM:
 #    Maximum amount of instructions allowed to execute by processor before
-#    returning control to another cpu. This option exists only in Bochs 
+#    returning control to another cpu. This option exists only in Bochs
 #    binary compiled with SMP support.
 #
 #  RESET_ON_TRIPLE_FAULT:
 #    Reset the CPU when triple fault occur (highly recommended) rather than
-#    PANIC. Remember that if you trying to continue after triple fault the 
+#    PANIC. Remember that if you trying to continue after triple fault the
 #    simulation will be completely bogus !
 #
 #  CPUID_LIMIT_WINNT:
@@ -156,7 +170,7 @@
 #  IGNORE_BAD_MSRS:
 #    Ignore MSR references that Bochs does not understand; print a warning
 #    message instead of generating #GP exception. This option is enabled
-#    by default but will not be avaiable if configurable MSRs are enabled.
+#    by default but will not be available if configurable MSRs are enabled.
 #
 #  MWAIT_IS_NOP:
 #    When this option is enabled MWAIT will not put the CPU into a sleep state.
@@ -169,7 +183,7 @@
 #    Measured IPS value will then be logged into your log file or shown
 #    in the status bar (if supported by the gui).
 #
-#    IPS is used to calibrate many time-dependent events within the bochs 
+#    IPS is used to calibrate many time-dependent events within the bochs
 #    simulation.  For example, changing IPS affects the frequency of VGA
 #    updates, the duration of time before a key starts to autorepeat, and
 #    the measurement of BogoMips and other benchmarks.
@@ -307,11 +321,11 @@ cpu: cpuid_limit_winnt=0
 #
 #  VENDOR_STRING:
 #    Set the CPUID vendor string returned by CPUID(0x0). This should be a
-#    twelve-character ASCII string.  
+#    twelve-character ASCII string.
 #
 #  BRAND_STRING:
-#    Set the CPUID vendor string returned by CPUID(0x80000002 .. 0x80000004).  
-#    This should be at most a forty-eight-character ASCII string.  
+#    Set the CPUID vendor string returned by CPUID(0x80000002 .. 0x80000004).
+#    This should be at most a forty-eight-character ASCII string.
 #
 #  LEVEL:
 #    Set emulated CPU level information returned by CPUID. Default value is
@@ -348,8 +362,14 @@ cpu: cpuid_limit_winnt=0
 # memory pool. You will be warned (by FATAL PANIC) in case guest already
 # used all allocated host memory and wants more.
 #
+# BLOCK_SIZE:
+# Memory block size select granularity of host memory allocation. Very
+# large memory configurations might requre larger memory blocks which
+# configurations with small memory might want memory block smaller.
+# Default memory block size is 128K.
+#
 #=======================================================================
-memory: guest=512, host=256
+memory: guest=512, host=256, block_size=512
 
 #=======================================================================
 # ROMIMAGE:
@@ -359,33 +379,53 @@ memory: guest=512, host=256
 # starting at address 0xfffe0000, and it is exactly 128k long. The legacy
 # version of the Bochs BIOS is usually loaded starting at address 0xffff0000,
 # and it is exactly 64k long.
-# You can use the environment variable $BXSHARE to specify the location
-# of the BIOS.
 # The usage of external large BIOS images (up to 512k) at memory top is
 # now supported, but we still recommend to use the BIOS distributed with Bochs.
-# The start address is optional, since it can be calculated from image size.
-# The Bochs BIOS currently supports only the option "fastboot" to skip the
-# boot menu delay.
+#
+#  FILE
+#    Name of the BIOS image file. You can use the environment variable $BXSHARE
+#    to specify the location of the BIOS.
+#
+#  ADDRESS
+#    The start address is optional, since it can be calculated from image size.
+#
+#  OPTIONS
+#    The Bochs BIOS currently only supports the option "fastboot" to skip the
+#    boot menu delay.
+#
+#  FLASH_DATA
+#    This parameter defines the file name for the flash BIOS config space loaded
+#    at startup if existing and saved on exit if modified. The Bochs BIOS doesn't
+#    use this feature yet.
+#
+# Please note that if you use the BIOS-bochs-legacy romimage BIOS option,
+# you cannot use a PCI enabled VGA ROM BIOS.
 #=======================================================================
 romimage: file=$BXSHARE/BIOS-bochs-latest, options=fastboot
-#romimage: file=$BXSHARE/bios.bin-1.7.5 # http://www.seabios.org/SeaBIOS
+#romimage: file=$BXSHARE/BIOS-bochs-legacy
+#romimage: file=$BXSHARE/bios.bin-1.13.0 # http://www.seabios.org/SeaBIOS
+#romimage: file=asus_p6np5.bin, flash_data=escd.bin
 #romimage: file=mybios.bin, address=0xfff80000 # 512k at memory top
 
 #=======================================================================
 # VGAROMIMAGE
 # You now need to load a VGA ROM BIOS into C0000.
+# Please note that if you use the BIOS-bochs-legacy romimage BIOS option,
+# you cannot use a PCI enabled VGA ROM BIOS option such as the cirrus
+# option shown below.
 #=======================================================================
-#vgaromimage: file=bios/VGABIOS-elpin-2.40
 vgaromimage: file=$BXSHARE/VGABIOS-lgpl-latest
 #vgaromimage: file=bios/VGABIOS-lgpl-latest-cirrus
+#vgaromimage: file=$BXSHARE/vgabios-cirrus.bin-1.13.0 # http://www.seabios.org/SeaVGABIOS
+#vgaromimage: file=bios/VGABIOS-elpin-2.40
 
 #=======================================================================
 # OPTROMIMAGE[1-4]:
-# You may now load up to 4 optional ROM images. Be sure to use a 
+# You may now load up to 4 optional ROM images. Be sure to use a
 # read-only area, typically between C8000 and EFFFF. These optional
 # ROM images should not overwrite the rombios (located at
 # F0000-FFFFF) and the videobios (located at C0000-C7FFF).
-# Those ROM images will be initialized by the bios if they contain 
+# Those ROM images will be initialized by the bios if they contain
 # the right signature (0x55AA) and a valid checksum.
 # It can also be a convenient way to upload some arbitrary code/data
 # in the simulation, that can be retrieved by the boot loader
@@ -407,33 +447,46 @@ vgaromimage: file=$BXSHARE/VGABIOS-lgpl-latest
 #   EXTENSION
 #     Here you can specify the display extension to be used. With the value
 #     'none' you can use standard VGA with no extension. Other supported
-#     values are 'vbe' for Bochs VBE and 'cirrus' for Cirrus SVGA support.
+#     values are 'vbe' for Bochs VBE, 'cirrus' for Cirrus SVGA support and
+#     'voodoo' for Voodoo Graphics support (see 'voodoo' option).
 #
 #   UPDATE_FREQ
 #     This parameter specifies the number of display updates per second.
-#     The VGA update timer now uses the realtime engine and the default
-#     value is 5. This parameter can be changed at runtime.
+#     The VGA update timer by default uses the realtime engine with a value
+#     of 10 (valid: 1 to 75). This parameter can be changed at runtime.
+#     The special value 0 enables support for using the frame rate of the
+#     emulated graphics device.
 #
 #   REALTIME
-#     If set to 1, the VGA timer is based on realtime, otherwise it is based
-#     on the ips setting. If the host is slow (low ips, update_freq) and the
-#     guest uses HLT appropriately, setting this to 0 and "clock: sync=none"
-#     may improve the responsiveness of the guest GUI when the guest is
-#     otherwise idle. The default value is 1.
+#     If set to 1 (default), the VGA timer is based on realtime, otherwise it
+#     is driven by the cpu and depends on the ips setting. If the host is slow
+#     (low ips, update_freq) and the guest uses HLT appropriately, setting this
+#     to 0 and "clock: sync=none" may improve the responsiveness of the guest
+#     GUI when the guest is otherwise idle.
 #
+#   DDC
+#     This parameter defines the behaviour of the DDC emulation that returns
+#     the monitor EDID data. By default the 'builtin' values for 'Bochs Screen'
+#     are used. Other choices are 'disabled' (no DDC emulation) and 'file'
+#     (read monitor EDID from file / path name separated with a colon).
 # Examples:
-#   vga: extension=cirrus, update_freq=10
+#   vga: extension=cirrus, update_freq=10, ddc=builtin
 #=======================================================================
-#vga: extension=vbe, update_freq=5, realtime=1
+#vga: extension=vbe, update_freq=5, realtime=1, ddc=file:monitor.bin
 
 #=======================================================================
 # VOODOO:
 # This defines the Voodoo Graphics emulation (experimental). Currently
-# supported models are 'voodoo1' and 'voodoo2'. The Voodoo2 support is
-# not yet complete.
+# supported models are 'voodoo1', 'voodoo2', 'banshee' and 'voodoo3'. The
+# Voodoo2 support is not yet complete, but almost usable. The Banshee and
+# Voodoo3 support is under construction, but basically usable. The 2D/3D cards
+# require an external VGA BIOS the vga extension option to be set to 'voodoo'.
+# If the i440BX PCI chipset is selected, they can be assigned to AGP (slot #5).
+# The gui screen update timing for all models is controlled by the related 'vga'
+# options.
 #
 # Examples:
-#   voodoo: enabled=1, model=voodoo1
+#   voodoo: enabled=1, model=voodoo2
 #=======================================================================
 #voodoo: enabled=1, model=voodoo1
 
@@ -456,7 +509,7 @@ vgaromimage: file=$BXSHARE/VGABIOS-lgpl-latest
 #     characters to the keyboard controller. This leaves time for the
 #     guest os to deal with the flow of characters.  The ideal setting
 #     depends on how your operating system processes characters.  The
-#     default of 100000 usec (.1 seconds) was chosen because it works 
+#     default of 100000 usec (.1 seconds) was chosen because it works
 #     consistently in Windows.
 #     If your OS is losing characters during a paste, increase the paste
 #     delay until it stops losing characters.
@@ -480,7 +533,7 @@ vgaromimage: file=$BXSHARE/VGABIOS-lgpl-latest
 #   keyboard: keymap=gui/keymaps/x11-pc-de.map
 #   keyboard: user_shortcut=ctrl-alt-del
 #=======================================================================
-#keyboard: type=mf, serial_delay=250
+#keyboard: type=mf, serial_delay=150
 
 #=======================================================================
 # MOUSE:
@@ -518,16 +571,36 @@ mouse: enabled=0
 
 #=======================================================================
 # PCI:
-# This option controls the presence of a PCI chipset in Bochs. Currently it only
-# supports the i430FX and i440FX chipsets. You can also specify the devices
-# connected to PCI slots. Up to 5 slots are available. For these combined PCI/ISA
-# devices assigning to slot is mandatory if you want to emulate the PCI model:
-# cirrus, ne2k and pcivga. These PCI-only devices are also supported, but they
-# are auto-assigned if you don't use the slot configuration: e1000, es1370,
-# pcidev, pcipnic, usb_ehci, usb_ohci, usb_xhci and voodoo.
+# This defines the parameters to set up the Bochs PCI emulation:
+#
+#  ENABLED:
+#  If Bochs is compiled with PCI support, it is enabled by default.
+#
+#  CHIPSET:
+#  Currently the chipsets i430FX, i440FX and i440BX (limited) are supported and
+#  the default is i440FX.
+#
+#  SLOTx:
+#  It is possible to specify the devices connected to PCI slots. Up to 5 slots
+#  are available. For combined PCI/ISA devices assigning to slot is mandatory
+#  if the PCI model should be emulated (cirrus, ne2k and pcivga). Setting up
+#  slot for PCI-only devices is also supported, but they are auto-assigned if
+#  not specified (e1000, es1370, pcidev, pcipnic, usb_ehci, usb_ohci, usb_xhci,
+#  voodoo). All device models except the network devices ne2k and e1000 can be
+#  used only once in the slot configuration. In case of the i440BX chipset, the
+#  slot #5 is the AGP slot. Currently only the 'voodoo' device can be assigned
+#  to AGP.
+#
+#  ADVOPTS:
+#  With the advanced PCI options it is possible to control the behaviour of the
+#  PCI chipset. These options can be specified as comma-separated values.
+#  By default the "Bochs i440FX" chipset enables the ACPI and HPET devices, but
+#  original i440FX doesn't support them. The options 'noacpi' and 'nohpet' make
+#  it possible to disable them. The option 'noagp' disables the incomplete AGP
+#  subsystem of the i440BX chipset.
 #
 # Example:
-#   pci: enabled=1, chipset=i440fx, slot1=pcivga, slot2=ne2k
+#   pci: enabled=1, chipset=i440fx, slot1=pcivga, slot2=ne2k, advopts=noacpi
 #=======================================================================
 pci: enabled=1, chipset=i440fx
 
@@ -647,10 +720,10 @@ floppya: 1_44=/dev/fd0, status=inserted
 # ATA controller for hard disks and cdroms
 #
 # ata[0-3]: enabled=[0|1], ioaddr1=addr, ioaddr2=addr, irq=number
-# 
+#
 # These options enables up to 4 ata channels. For each channel
 # the two base io addresses and the irq must be specified.
-# 
+#
 # ata0 and ata1 are enabled by default with the values shown below
 #
 # Examples:
@@ -668,10 +741,9 @@ ata3: enabled=0, ioaddr1=0x168, ioaddr2=0x360, irq=9
 # ATA[0-3]-MASTER, ATA[0-3]-SLAVE
 #
 # This defines the type and characteristics of all attached ata devices:
-#   type=       type of attached device [disk|cdrom] 
-#   mode=       only valid for disks [flat|concat|external|dll|sparse|vmware3]
-#                                    [vmware4|undoable|growing|volatile|vpc]
-#                                    [vbox|vvfat]
+#   type=       type of attached device [disk|cdrom]
+#   mode=       only valid for disks [flat|concat|dll|sparse|vmware3|vmware4]
+#                                    [undoable|growing|volatile|vpc|vbox|vvfat]
 #   path=       path of the image / directory
 #   cylinders=  only valid for disks
 #   heads=      only valid for disks
@@ -686,11 +758,11 @@ ata3: enabled=0, ioaddr1=0x168, ioaddr2=0x360, irq=9
 # device.  To create a hard disk image, try running bximage.  It will help you
 # choose the size and then suggest a line that works with it.
 #
-# In UNIX it may be possible to use a raw device as a Bochs hard disk, 
+# In UNIX it may be possible to use a raw device as a Bochs hard disk,
 # but WE DON'T RECOMMEND IT.  In Windows there is no easy way.
 #
 # In windows, the drive letter + colon notation should be used for cdroms.
-# Depending on versions of windows and drivers, you may only be able to 
+# Depending on versions of windows and drivers, you may only be able to
 # access the "first" cdrom in the system.  On MacOSX, use path="drive"
 # to access the physical drive.
 #
@@ -722,7 +794,7 @@ ata0-master: type=disk, mode=flat, path="30M.sample"
 #ata0-slave: type=cdrom, path=D:, status=inserted
 #ata0-slave: type=cdrom, path=/dev/cdrom, status=inserted
 #ata0-slave: type=cdrom, path="drive", status=inserted
-#ata0-slave: type=cdrom, path=/dev/rcd0d, status=inserted 
+#ata0-slave: type=cdrom, path=/dev/rcd0d, status=inserted
 
 #=======================================================================
 # BOOT:
@@ -770,7 +842,7 @@ log: bochsout.txt
 #   %i : 8 hexadecimal digits of cpu current eip (ignored in SMP configuration)
 #   %e : 1 character event type ('i'nfo, 'd'ebug, 'p'anic, 'e'rror)
 #   %d : 5 characters string of the device, between brackets
-# 
+#
 # Default : %t%e%d
 # Examples:
 #   logprefix: %t-%e-@%i-%d
@@ -782,7 +854,7 @@ log: bochsout.txt
 # LOG CONTROLS
 #
 # Bochs has four severity levels for event logging.
-#   panic: cannot proceed.  If you choose to continue after a panic, 
+#   panic: cannot proceed.  If you choose to continue after a panic,
 #          don't be surprised if you get strange behavior or crashes.
 #   error: something went wrong, but it is probably safe to continue the
 #          simulation.
@@ -917,12 +989,13 @@ sound: driver=default, waveout=/dev/dsp. wavein=, midiout=
 # SPEAKER:
 # This defines the PC speaker output mode. In the 'sound' mode the beep
 # is generated by the square wave generator which is a part of the
-# lowlevel sound support. The 'system' mode is only available on Linux
-# and Windows. On Linux /dev/console is used for output and on Windows
+# lowlevel sound support. In this mode the 'volume' parameter can be used
+# to set the output volume (0 - 15). The 'system' mode is only available on
+# Linux and Windows. On Linux /dev/console is used for output and on Windows
 # the Beep() function. The 'gui' mode forwards the beep to the related
 # gui methods (currently only used by the Carbon gui).
 #=======================================================================
-speaker: enabled=1, mode=sound
+speaker: enabled=1, mode=sound, volume=15
 
 #=======================================================================
 # SB16:
@@ -955,14 +1028,15 @@ speaker: enabled=1, mode=sound
 # log:  The file to write the sb16 emulator messages to.
 # dmatimer:
 #      microseconds per second for a DMA cycle.  Make it smaller to fix
-#      non-continuous sound.  750000 is usually a good value.  This needs a
-#      reasonably correct setting for the IPS parameter of the CPU option.
+#      non-continuous sound. 1000000 is usually a good value.  This needs a
+#      reasonably correct setting for the IPS parameter of the CPU option
+#      and also depends on the clock sync setting.
 #
 # Examples for output modes:
 #   sb16: midimode=2, midifile="output.mid", wavemode=1 # MIDI to file
 #   sb16: midimode=1, wavemode=3, wavefile="output.wav" # wave to file and device
 #=======================================================================
-#sb16: midimode=1, wavemode=1, loglevel=2, log=sb16.log, dmatimer=600000
+#sb16: midimode=1, wavemode=1, loglevel=2, log=sb16.log, dmatimer=900000
 
 #=======================================================================
 # ES1370:
@@ -982,12 +1056,20 @@ speaker: enabled=1, mode=sound
 # ne2k: NE2000 compatible ethernet adapter
 #
 # Format:
-# ne2k: enabled=1, ioaddr=IOADDR, irq=IRQ, mac=MACADDR, ethmod=MODULE,
-#       ethdev=DEVICE, script=SCRIPT, bootrom=BOOTROM
+# ne2k: card=CARD, enabled=1, type=TYPE, ioaddr=IOADDR, irq=IRQ, mac=MACADDR,
+#       ethmod=MODULE, ethdev=DEVICE, script=SCRIPT, bootrom=BOOTROM
+#
+# CARD: This is the zero-based card number to configure with this ne2k config
+# line. Up to 4 devices are supported now (0...3). If not specified, the
+# following parameters apply to card #0.
+#
+# TYPE: This is the card type to emulate ("isa" or "pci"). If not specified,
+# card #0 defaults to "pci" if assigned to a pci slot. For the additional cards
+# the type parameter should be set up.
 #
 # IOADDR, IRQ: You probably won't need to change ioaddr and irq, unless there
 # are IRQ conflicts. These arguments are ignored when assign the ne2k to a
-# PCI slot.
+# PCI slot or set the type to 'pci'.
 #
 # MAC: The MAC address MUST NOT match the address of any machine on the net.
 # Also, the first byte must be an even number (bit 0 set means a multicast
@@ -998,35 +1080,36 @@ speaker: enabled=1, mode=sound
 # ETHDEV: The ethdev value is the name of the network interface on your host
 # platform.  On UNIX machines, you can get the name by running ifconfig.  On
 # Windows machines, you must run niclist to get the name of the ethdev.
-# Niclist source code is in misc/niclist.c and it is included in Windows 
+# Niclist source code is in misc/niclist.c and it is included in Windows
 # binary releases.
 # The 'socket' module uses this parameter to specify the UDP port for
 # receiving packets and (optional) the host to connect.
 #
-# SCRIPT: The script value is optional, and is the name of a script that 
-# is executed after bochs initialize the network interface. You can use 
+# SCRIPT: The script value is optional, and is the name of a script that
+# is executed after bochs initialize the network interface. You can use
 # this script to configure this network interface, or enable masquerading.
 # This is mainly useful for the tun/tap devices that only exist during
 # Bochs execution. The network interface name is supplied to the script
 # as first parameter.
 # The 'slirp' module uses this parameter to specify a config file for
 # setting up an alternative IP configuration or additional features.
-# The 'vnet' module uses this parameter to specify an alternative
-# log file name.
+# The 'vnet' module also uses this parameter to specify a config file similar
+# to slirp, but with only a few settings.
 #
 # BOOTROM: The bootrom value is optional, and is the name of the ROM image
 # to load. Note that this feature is only implemented for the PCI version of
-# the NE2000.
+# the NE2000. For the ISA version using one of the 'optromimage[1-4]' options
+# must be used instead of this one.
 #
 # If you don't want to make connections to any physical networks,
 # you can use the following 'ethmod's to simulate a virtual network.
 #   null: All packets are discarded, but logged to a few files.
 #   vde:  Virtual Distributed Ethernet
-#   vnet: ARP, ICMP-echo(ping), DHCP and read/write TFTP are simulated.
+#   vnet: ARP, ICMP-echo(ping), DHCP, DNS, FTP and TFTP are simulated.
 #         The virtual host uses 192.168.10.1.
-#         DHCP assigns 192.168.10.2 to the guest.
-#         TFTP uses the 'ethdev' value for the root directory and doesn't
-#         overwrite files.
+#         DHCP assigns 192.168.10.15 to the guest.
+#         FTP/TFTP using the 'ethdev' value for the root directory.
+#         TFTP doesn't overwrite files, DNS for server and client only.
 # socket: Connect up to 6 Bochs instances with external program 'bxhub'
 #         (simulating an ethernet hub). It provides the same services as the
 #         'vnet' module and assigns IP addresses like 'slirp' (10.0.2.x).
@@ -1061,11 +1144,12 @@ speaker: enabled=1, mode=sound
 # e1000: Intel(R) 82540EM Gigabit Ethernet adapter
 #
 # Format:
-# e1000: enabled=1, mac=MACADDR, ethmod=MODULE, ethdev=DEVICE, script=SCRIPT
-#        bootrom=BOOTROM
+# e1000: card=CARD, enabled=1, mac=MACADDR, ethmod=MODULE, ethdev=DEVICE,
+#        script=SCRIPT, bootrom=BOOTROM
 #
-# The E1000 accepts the same syntax (for mac, ethmod, ethdev, script, bootrom)
-# and supports the same networking modules as the NE2000 adapter.
+# The E1000 accepts the same syntax (for card, mac, ethmod, ethdev, script,
+# bootrom) and supports the same networking modules as the NE2000 adapter.
+# It also supports up to 4 devices selected with the card parameter.
 #=======================================================================
 #e1000: enabled=1, mac=52:54:00:12:34:56, ethmod=slirp, script=slirp.conf
 
@@ -1073,42 +1157,49 @@ speaker: enabled=1, mode=sound
 # USB_UHCI:
 # This option controls the presence of the USB root hub which is a part
 # of the i440FX PCI chipset. With the portX parameter you can connect devices
-# to the hub (currently supported: 'mouse', 'tablet', 'keypad', 'disk', 'cdrom',
-# 'floppy', 'hub' and 'printer').
+# to the hub (currently supported: 'mouse', 'tablet', 'keypad', 'keyboard',
+# 'disk', 'cdrom', 'floppy', 'hub' and 'printer').
 #
 # If you connect the mouse or tablet to one of the ports, Bochs forwards the
 # mouse movement data to the USB device instead of the selected mouse type.
 # When connecting the keypad to one of the ports, Bochs forwards the input of
-# the numeric keypad to the USB device instead of the PS/2 keyboard.
+# the numeric keypad to the USB device instead of the PS/2 keyboard. If the
+# keyboard is selected, all key events are sent to the USB device.
 #
-# To connect a 'flat' mode image as a USB hardisk you can use the 'disk' device
-# with the path to the image separated with a colon. To use other disk image modes
-# similar to ATA disks the syntax 'disk:mode:filename' must be used (see below).
+# To connect a disk image as a USB hardisk you can use the 'disk' device. Use
+# the 'path' option in the optionsX parameter to specify the path to the image
+# separated with a colon. To use other disk image modes similar to ATA disks
+# the syntax 'path:mode:filename' must be used (see below).
 #
-# To emulate a USB cdrom you can use the 'cdrom' device name and the path to
-# an ISO image or raw device name also separated with a colon. An option to
-# insert/eject media is available in the runtime configuration.
+# To emulate a USB cdrom you can use the 'cdrom' device and the path to an
+# ISO image or raw device name can be set with the 'path' option in the
+# optionsX parameter also separated with a colon. An option to insert/eject
+# media is available in the runtime configuration.
 #
-# To emulate a USB floppy you can use the 'floppy' device with the path to the
-# image separated with a colon. To use the VVFAT image mode similar to the
-# legacy floppy the syntax 'floppy:vvfat:directory' must be used (see below).
+# To emulate a USB floppy you can use the 'floppy' device and the path to a
+# floppy image can be set with the 'path' option in the optionsX parameter
+# separated with a colon. To use the VVFAT image mode similar to the legacy
+# floppy the syntax 'path:vvfat:directory' must be used (see below).
 # An option to insert/eject media is available in the runtime configuration.
 #
 # The device name 'hub' connects an external hub with max. 8 ports (default: 4)
-# to the root hub. To specify the number of ports you have to add the value
-# separated with a colon. Connecting devices to the external hub ports is only
-# available in the runtime configuration.
+# to the root hub. To specify the number of ports you have to use the 'ports'
+# option in the optionsX parameter with the value separated with a colon.
+# Connecting devices to the external hub ports is only available in the runtime
+# configuration.
 #
 # The device 'printer' emulates the HP Deskjet 920C printer. The PCL data is
-# sent to a file specified in bochsrc.txt. The current code appends the PCL
-# code to the file if the file already existed. The output file can be
-# changed at runtime.
+# sent to a file specified in the 'file' option with the optionsX parameter.
+# The current code appends the PCL code to the file if the file already existed.
+# The output file can be changed at runtime.
 #
 # The optionsX parameter can be used to assign specific options to the device
-# connected to the corresponding USB port. Currently this feature is used to
-# set the speed reported by device ('low', 'full', 'high' or 'super'). The
-# availabe speed choices depend on both HC and device. The option 'debug' turns
-# on debug output for the device at connection time.
+# connected to the corresponding USB port. The option 'speed' can be used to set
+# the speed reported by device ('low', 'full', 'high' or 'super'). The available
+# speed choices depend on both HC and device. The option 'debug' turns on debug
+# output for the device at connection time. The option 'pcap' turns on packet
+# logging in PCAP format.
+#
 # For the USB 'disk' device the optionsX parameter can be used to specify an
 # alternative redolog file (journal) of some image modes. For 'vvfat' mode USB
 # disks the optionsX parameter can be used to specify the disk size (range
@@ -1118,14 +1209,23 @@ speaker: enabled=1, mode=sound
 # supported (can fix hw detection in some guest OS). The USB floppy also
 # accepts the parameter "write_protected" with valid values 0 and 1 to select
 # the access mode (default is 0).
+#
+# For a high- or super-speed USB 'disk' device the optionsX parameter can include 
+# the 'proto:bbb' or 'proto:uasp' parameter specifying to use either the bulk-only
+# Protocol (default) or the USB Attached SCSI Protocol. If no such parameter
+# is given, the 'bbb' protocol is used. A Guest that doesn't support UASP
+# should revert to bbb even if the 'uasp' attribute is given. See the usb_ehci:
+# or usb_xhci: section below for an example. (Only 1 LUN is available at this time)
 #=======================================================================
 #usb_uhci: enabled=1
-#usb_uhci: enabled=1, port1=mouse, port2=disk:usbstick.img
-#usb_uhci: enabled=1, port1=hub:7, port2=disk:growing:usbdisk.img
-#usb_uhci: enabled=1, port2=disk:undoable:usbdisk.img, options2=journal:redo.log
-#usb_uhci: enabled=1, port2=disk:vvfat:vvfat, options2="debug,speed:full"
-#usb_uhci: enabled=1, port1=printer:printdata.bin, port2=cdrom:image.iso
-#usb_uhci: enabled=1, port2=floppy:vvfat:diskette, options2="model:teac"
+#usb_uhci: port1=mouse, port2=disk, options2="path:usbstick.img"
+#usb_uhci: port1=hub, options1="ports:6, pcap:outfile.pcap"
+#usb_uhci: port2=disk, options2="path:undoable:usbdisk.img, journal:u.redolog"
+#usb_uhci: port2=disk, options2=""path:usbdisk2.img, sect_size:1024"
+#usb_uhci: port2=disk, options2="path:vvfat:vvfat, debug, speed:full"
+#usb_uhci: port2=cdrom, options2="path:image.iso"
+#usb_uhci: port1=printer, options1="file:printdata.bin"
+#usb_uhci: port2=floppy, options2="path:vvfat:diskette, model:teac"
 
 #=======================================================================
 # USB_OHCI:
@@ -1143,19 +1243,43 @@ speaker: enabled=1, mode=sound
 # 6-port hub. The portX parameter accepts the same device types with the
 # same syntax as the UHCI controller (see above). The optionsX parameter is
 # also available on EHCI.
+# The HC will default to three UHCI companion controllers, but you can specify
+# either UHCI or OHCI. Each companion controller will be evenly divided
+# with 2 ports each, the first 2 on the first companion, and so on.
 #=======================================================================
 #usb_ehci: enabled=1
+#usb_ehci: enabled=1, companion=uhci
+#usb_ehci: enabled=1, companion=ohci
+#usb_ehci: port1=disk, options1="speed:high, path:hdd.img, proto:bbb"
+#usb_ehci: port1=disk, options1="speed:high, path:hdd.img, proto:uasp"
 
 #=======================================================================
 # USB_XHCI:
 # This option controls the presence of the USB xHCI host controller with a
-# 4-port hub. The portX parameter accepts the same device types with the
-# same syntax as the UHCI controller (see above). The optionsX parameter is
-# also available on xHCI. NOTE: port 1 and 2 are USB3 and only support
-# super-speed devices, but port 3 and 4 are USB2 and support speed settings
-# low, full and high.
+# default 4-port hub. The portX parameter accepts the same device types 
+# with the same syntax as the UHCI controller (see above). The optionsX 
+# parameter is also available on xHCI.
+#
+# The xHCI emulation allows you to set the number of ports used with a range
+# of 2 to 10, requiring an even numbered count.
+#
+# NOTE: The first half of the ports, (ports 1 and 2 on a 4-port hub) are
+# USB3 only and support super-speed devices. The second half ports (ports
+# 3 and 4) are USB2 and support speed settings of low, full, or high.
+# The xHCI also allows for different host controllers using the model=
+# parameter. Currently, the two allowed options are "uPD720202" and 
+# "uPD720201". The first defaults to 2 sockets (4 ports) and the later 
+# defaults to 4 sockets (8 ports).
 #=======================================================================
-#usb_xhci: enabled=1
+#usb_xhci: enabled=1               # defaults to the uPD720202 w/4 ports
+#usb_xhci: enabled=1, n_ports=6    # defaults to the uPD720202 w/6 ports
+#usb_xhci: enabled=1, model=uPD720202             # defaults to 4 ports
+#usb_xhci: enabled=1, model=uPD720202, n_ports=6  # change to 6 ports
+#usb_xhci: enabled=1, model=uPD720201             # defaults to 8 ports
+#usb_xhci: enabled=1, model=uPD720201, n_ports=10 # change to 10 ports
+#usb_xhci: port1=disk, options1="speed:super, path:hdd.img, proto:bbb"
+#usb_xhci: port1=disk, options1="speed:super, path:hdd.img, proto:uasp"
+#usb_xhci: port3=disk, options3="speed:high, path:hdd.img, proto:uasp"
 
 #=======================================================================
 # PCIDEV:
@@ -1175,13 +1299,22 @@ speaker: enabled=1, mode=sound
 #=======================================================================
 # MAGIC_BREAK:
 # This enables the "magic breakpoint" feature when using the debugger.
-# The useless cpu instruction XCHG BX, BX causes Bochs to enter the
+# The useless cpu instructions XCHG %REGW, %REGW causes Bochs to enter the
 # debugger mode. This might be useful for software development.
 #
-# Example:
+# You can specify multiple at once:
+#
+# cx dx bx sp bp si di
+#
+# Example for breaking on "XCHGW %DI, %DI" or "XCHG %SP, %SP" execution
+#   magic_break: enabled=1 di sp
+#
+# If nothing is specified, the default will be used: XCHGW %BX, %BX 
 #   magic_break: enabled=1
+#
+# Note: Windows XP ntldr can cause problems with XCHGW %BX, %BX
 #=======================================================================
-#magic_break: enabled=1
+# magic_break: enabled=1
 
 #=======================================================================
 # DEBUG_SYMBOLS:
@@ -1205,19 +1338,27 @@ speaker: enabled=1, mode=sound
 # very early when writing BIOS or OS code for example, without having to
 # bother with setting up a serial port or etc. Reading from port 0xE9 will
 # will return 0xe9 to let you know if the feature is available.
-# Leave this 0 unless you have a reason to use it.
+# Leave this 0 unless you have a reason to use it. By enabling the 
+# 'all_rings' option, you can utilize the port e9 hack from ring3.
 #
 # Example:
 #   port_e9_hack: enabled=1
+#   port_e9_hack: enabled=1, all_rings=1
 #=======================================================================
-#port_e9_hack: enabled=1
+#port_e9_hack: enabled=1, all_rings=1
 
 #=======================================================================
-# other stuff
+# IODEBUG:
+# I/O Interface to Bochs Debugger plugin allows the code running inside 
+# Bochs to monitor memory ranges, trace individual instructions, and 
+# observe register values during execution. By enabling the 'all_rings' 
+# option, you can utilize the iodebug ports from ring3. For more 
+# information, refer to "Advanced debugger usage" documentation.
+#
+# Example:
+#   iodebug: all_rings=1
 #=======================================================================
-# WARNING: This Bochs feature is not maintained yet. Is it still used ?
-#load32bitOSImage: os=nullkernel, path=../kernel.img, iolog=../vga_io.log
-#load32bitOSImage: os=linux, path=../linux.img, iolog=../vga_io.log, initrd=../initrd.img
+#iodebug: all_rings=1
 
 #=======================================================================
 # fullscreen: ONLY IMPLEMENTED ON AMIGA
@@ -1232,14 +1373,6 @@ speaker: enabled=1, mode=sound
 #screenmode: name="sample"
 
 #=======================================================================
-# USER_PLUGIN:
-# Load user-defined plugin. This option is available only if Bochs is
-# compiled with plugin support. Maximum 8 different plugins are supported.
-# See the example in the Bochs sources how to write a plugin device.
-#=======================================================================
-#user_plugin: name=testdev
-
-#=======================================================================
 # for Macintosh, use the style of pathnames in the following
 # examples.
 #
@@ -1250,7 +1383,7 @@ speaker: enabled=1, mode=sound
 
 #=======================================================================
 # MEGS
-# Set the number of Megabytes of physical memory you want to emulate. 
+# Set the number of Megabytes of physical memory you want to emulate.
 # The default is 32MB, most OS's won't need more than that.
 # The maximum amount of memory supported is 2048Mb.
 # The 'MEGS' option is deprecated. Use 'MEMORY' option instead.

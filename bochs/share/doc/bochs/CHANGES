@@ -1,3 +1,462 @@
+Changes in 2.8 (March 10, 2024):
+
+The Bochs source tree has been transitioned from SVN to GIT hosted on GitHub
+(https://github.com/bochs-emu/Bochs). We welcome every new contributor !
+
+Brief summary :
+  - Bugfixes for CPU emulation correctness (MONITOR/MWAIT, VMX/SVM, x87, AVX-VNNI, AVX-512, CET)
+    - Critical CPU emulation bugfixes for SHA and GFNI instructions, ADOX and XRSTOR/XRSTORS instructions (prevented boot of Win10)
+  ! SVM: Implemented SVM VM_CR_MSR and INIT redirect (required for booting SMP with SVM)
+  ! Implemented VMX MBE (Mode Based Execution Control) emulation required for Windows 11 guest
+  ! Implemented VMX 'Shadow Stack Prematurely Busy' control
+  ! Implemented MSR IA32_SPEC_CTRL Virtualization VMX extension
+  ! Implemented Posted-Interrupt Processing VMX extension emulation
+  ! Implemented Linear Address Separation (LASS) extension
+  ! Implemented 57-bit Linear Address and 5-Level Paging support
+  ! Implemented User-Level Interrupt (UINTR) extension
+  ! Implemented Intel AMX extensions (AMX, AMX_INT8, AMX_BF16, AMX_FP16, AMX_COMPLEX)
+  ! Implemented Intel instruction sets:
+    - MOVDIRI/MOVDIR64B, AVX512 BF16, AVX IFMA52, VNNI-INT8/VNNI-INT16, AVX-NE-CONVERT, CMPCCXADD, SM3/SM4, SHA512, WRMSRNS, MSRLIST, WAITPKG, SERIALIZE
+  ! CPUID: Added Xeon Sapphire Rapids CPU definition
+  - Improved 64-bit guest support in Bochs internal debugger, added new internal debugger commands
+  - Bochs debugger enhanced with new commands (setpmem, loadmem, deref, ...)
+    Enhanced magic breakpoint capabilities. Refer to user documentation for more details.
+  - Updated Bochs instrumentation examples for new disassembler introduced in Bochs 2.7 release
+  - USB: Fixed/added USB 2.0 Compliance to all devices. Hub still needs a few additions
+  - USB: xHCI: added the ability to have more than one model of xHCI hardware. Currently there are two.
+  - USB: Added experimental MSD UASP emulation
+  - USB: Added OHCI as an EHCI Companion option. Now allows UHCI or OHCI specified as a configuration parameter.
+  - Disk images: Allows large VHD image files
+  - Fixed and enhanced the Floppy Disk emulation, VGA emulation fixes
+  - Expand maximum resolution for Banshee and Voodoo 3 from 1600x1280 to 1920x1440
+  - LGPL'd VGABIOS updated to version 0.9a (several VBE fixes / additions)
+  - Documentation updates and fixes
+
+Detailed change log :
+
+- General
+  - Improved parsing bochsrc options passed on the command line
+  - Allow setting disabled parameters makes parsing options less strict
+
+- CPU/CPUDB
+  - Bugfixes for CPU emulation correctness (MONITOR/MWAIT, VMX/SVM, x87, AVX-VNNI, AVX-512, CET)
+    - Critical CPU emulation bugfixes for SHA and GFNI instructions, ADOX and XRSTOR/XRSTORS instructions (prevented boot of Win10)
+  - SVM: Implemented SVM VM_CR_MSR and INIT redirect (required for booting SMP with SVM)
+  - Implemented VMX MBE (Mode Based Execution Control) emulation required for Windows 11 guest
+  - Implemented advanced VM-exit information for EPT violations (tied to MBE Control)
+  - Implemented VMX 'Shadow Stack Prematurely Busy' control
+  - Implemented MSR IA32_SPEC_CTRL Virtualization VMX extension
+  - Implemented Posted-Interrupt Processing VMX extension emulation
+  - Implemented Linear Address Separation (LASS) extension
+  - Implemented 57-bit Linear Address and 5-Level Paging support
+  - Implemented User-Level Interrupt (UINTR) extension
+  - Implemented Intel AMX extensions (AMX, AMX_INT8, AMX_BF16, AMX_FP16, AMX_COMPLEX)
+  - Implemented Intel instruction sets:
+    - MOVDIRI/MOVDIR64B, AVX512 BF16, AVX IFMA52, VNNI-INT8/VNNI-INT16, AVX-NE-CONVERT, CMPCCXADD, SM3/SM4, SHA512, WRMSRNS, MSRLIST, WAITPKG, SERIALIZE
+  - CPUID: Added Xeon Sapphire Rapids CPU definition
+    - Features AMX/AMX_INT8/AMX_BF16, PKS, WAITPKG, UINTR, AVX-VNNI, AVX512_BF16, MOVDIRI/MOVDIR64, LA57, SERIALIZE and more
+      Not yet supported but will be added in future: AVX512_FP16, VMX Extensions (HLAT, IPI Virtualization)
+
+- Bochs Debugger and Instrumentation
+  - Updated Bochs instrumentation examples for new disassembler introduced in Bochs 2.7 release.
+  - Implemented option to allow port-e0-hack and iodebug from any protection ring (without x86 permissions checking)
+  - Enhanced magic breakpoint capabilities
+  - Bochs debugger enhanced with new commands (setpmem, loadmem, deref, ...)
+    Refer to user documentation for more details.
+  - Improved debugger 'info gdt'/'info ldt' commands x86-64 support
+  - Added symbol info to 'info idt' in protected 32-bit mode
+  - Fixed instruction pointer truncation in gdbstub
+
+- Configure and compile
+  - Apply standard CPPFLAGS from environment in all makefiles
+
+- Config interface
+  - Show message box while saving and restoring Bochs state
+
+- GUI and display libraries
+  - SDL / SDL2: change fullscreen toggle to key combination ALT+ENTER.
+  - SDL2: Save / restore window position when using fullscreen toggle
+  - win32: fixed internal palette handling when switching from/to 16 bpp modes
+  - win32: cancel topmost window mode after leaving fullscreen mode
+
+- Memory
+  - Fixed memory handling in volatile BIOS write support
+  - Added 'flash_data' parameter for loading/saving the config space of the
+    flash BIOS rom and save/restore support for it (unused by Bochs BIOS).
+
+- I/O Devices
+  - Timers
+    - Fixed APIC MWAIT timer activation
+    - APIC: Removed timer handles from save/restore list
+
+  - PIT
+    - PIT82C54: According to documentation (8254.pdf), mode 6 is the same as mode 2 and mode 7 is the same as mode 3.
+                Writes with mode 6 and 7 were not supported.
+
+  - CMOS
+    - Fixed and improved RTC handling in CMOS and BIOS (based on SF patch by Michele Giacomone).
+    - Added runtime option for turning on/off saving CMOS image on exit.
+
+  - PCI
+    - Fixed and improved PCI slot config error handling
+
+  - VGA
+    - Implemented accurate memory handling for all access modes (chain4, odd/even, planar)
+    - Fixes in MAP13 disabled mode (VGA mode 6): half dot clock, color support
+    - Fixes for the VGA mode 0x13 (Added split screen support)
+    - Fixes for non-chain4 256-color VGA mode called modeX (address wrap, horizonal scrolling)
+    - VGA text mode: implemented secondary charmap support
+    - mem_write(): in text mode don't mark graphics tiles for update
+    - Increase maximum VGA update frequency to 75 and set default to 10
+    - VGA update frequency value 0 enables support for using frame rate of emulated gfx device
+    - Fixes for emulated CGA mode
+    - Implemented more accurate vertical timing by using one timer with two alternating
+      periods. Set display start address from CRTC at vertical retrace end and after second
+      period the display start time for retrace and blanking detection
+
+  - SVGA Cirrus:
+    - PCI MMIO space is not disabled if the Cirrus card is in VGA mode
+    - Fixed color expand bitblt with dword granularity enabled
+    - BLT System-to-screen Dword Pointer (GR2F[6:5]) implemented
+    - Fixed redraw values for backward BitBlt
+    - Fixed bitblt issues caused by unhandled address wrap and unaligned drawing region
+    - Double scan support for color depth > 8 implemented (double width if necessary)
+
+  - Voodoo
+    - Expand maximum resolution for Banshee and Voodoo 3 from 1600x1280 to 1920x1440
+    - Fixed backward screen-to-screen copy operation for > 8 bpp modes
+    - Fixed Voodoo device compilation for big endian architectures
+    - Fixed randomly missing color palette updates
+    - Fixed Banshee read from ROM and mem_write() for any size and endianness
+    - Fixed Banshee bitblt redraw in 3D mode and pitch used in this mode
+    - Banshee: Implement 8 and 16 byte writes to CMDFIFO
+    - Double the screen width in 'half mode' if height > width
+
+  - CD-ROM:
+    - Fix to enable TEAC CD-ROM driver to work
+    - Allow to change the CD-ROM via the Bochs Ribbon, as well as properly "ejecting" a CD from the guest.
+      This fix simulates an open tray and then a closed tray for all CD changes.
+    - Bug fix which now closes the cdrom image file when using win32 configuration
+
+  - Hard drive / HD image
+    - Allow large VHD image files.
+      The size in question doesn't necessarily mean the size of the VHD file on disk. The size is the total
+      size of the image emulated. The total size increased from roughly 32gig to a limit of 2TB.
+    - VVFAT: Fixed short name generation in case base name length is > 8
+
+  - Floppy drive
+    - Allows a choice of multiple FDC Controllers to emulate.
+      Using a compile time #define, you can choose a specified Controller type/manufacture to emulate.
+    - Added most all FDC supported commands.
+      Use the 'FDC_TYPE_BOCHS' type to support all commands.
+      Other types will only support their respected supported commands.
+      Commands of note: 'format & write', 'read track', 'part id', and corrected the 'version' command.
+      Did not add the 'Write Deleted Data' command, since there is no way to mark the emulated image
+      file as a deleted sector. The 'Read Deleted Data' command ignores the SK bit.
+    - Fixed and enhanced the Format command and function.
+    - Fixed the Multi-track and EOT function.
+      A read/write/verify must stop at the end of a track (multi-track aware).
+    - Fixed the cmos floppy type setting (config.cc::get_floppy_devtype_from_type())
+    - IGNORE_DEBUG_03F6: set this define so that the log file is not flooded with reads/writes
+      to this register by the harddrive code.
+    - The new command/result max size is now a #define (MAX_PHASE_SIZE)
+    - The SCANEQ/SCANLOWEQ/SCANHIGHEQ commands are untested. I don't have a 'real hardware' controller that
+      supports these commands. Even though the controller is a 82078, which specifies that it should
+      support these commands, it returns 'command unsupported'. If I find another controller type, I will
+      try that one. It would surprise me if any of them actually support this rarely used command.
+    - This new code fixes an error where Win98 and older Windows versions would set the high order 
+      drive select bit in error. This would specify drive 2 for drive 0, and drive 3 for drive 1.
+    - Replaced the broken 82078 datasheet URL with one from the QEMU wiki. It should be static now.
+
+  - USB
+    - Added the ability to change interfaces (ex: BBB to UASP).
+    - Added the Toggle bit check to all controllers/devices. (optional with a #define)
+    - Added the ability to trigger an over-current to all controllers.
+    - Added numberous BX_DEBUG checks to the USB_COMMON emulation to help show bugs in a Guest's device driver.
+    - Added BX_DEBUG if the first requested packet after a reset is not 8 bytes.
+    - Added a BX_DEBUG check to make sure the speed indicator is correct within TDs.
+    - Added BX_DEBUG checks to all request lengths, max packet size, and other length checks.
+    - Return default speed of device/controller combination.
+    - Check that the bochsrc file doesn't specify two different devices for the same port.
+    - Check that the bochsrc file has a super-speed device defined on a correct port number.
+    - Re-wrote how the USB_COMMON passed on packets to allow for zero-length packets to be accepted.
+    - Fixed the Floppy CBI/CB configuration descriptor.
+    - Fixed/added USB 2.0 Compliance to all devices. Hub still needs a few additions.
+      - Floppies (using the CB/CBI protocol) can only be full-speed.
+      - Fixed the Endpoint Clear Feature request (halted, etc.).
+      - Added the Endpoint Get Status request to each device.
+      - Hub power switching emulation.
+      - Fixed the return/request error on Device Qualifier requests.
+      - Fixed Device Qualifier and Other Speed requests.
+    - Added hints to the xHCI configuration Port Option display.
+    - Added the ability to catch 0xEE descriptors (Microsoft specific).
+    - Added experimental MSD UASP emulation.
+    - HID: added multiple mouse modes to have different HID Reports, including a physical report, and an irregular report.
+    - HID: added the Boot Protocol function.
+    - HUB: fixed/Added a more accurate DeviceRemovable emulation.
+    - HUB: Allow USB 1.0 or USB 1.1 emulation (there is a difference).
+    - HUB: Add bit 0 function to the returned report (change status bit).
+    - HUB: Some Guests think a NAK on the Interrupt EP is an error. (option to ignore this)
+    - MSD: fixed USB 2.0 only descriptor emulation. (Device Qualifier, etc.)
+    - OHCI: fixed the toggle emulation.
+    - SCSI: added the Event Status command (0x4a).
+    - SCSI: added BX_DEBUG checks to the command sent by the Guest.
+    - SCSI: added the block_size in the Read Capacity command (0x25).
+    - SCSI: added some 0x9E/xx commands. ReadCapacity(16).
+    - UHCI: re-wrote the uhci stack to better support control/bulk reclamation.
+    - UHCI: check that a reset doesn't clear the CSC bit during a reset, but should after the reset is complete.
+    - xHCI: added the ability to have more than one model of xHCI hardware. Currently there are two.
+    - xHCI: added the ability to indicate the port count.
+    - xHCI: check the USB2 and USB3 port assignments.
+    - xHCI: added experimental Stream emulation.
+    - xHCI: added the (vendor) Dump Controller command (Specific to Bochs).
+    - xHCI: added checks to the Evaluate Context and Address Device commands.
+    - xHCI: fixed/updated the Port Status Change Event emulation.
+    - xHCI: fixed/updated the port bandwidth emulation.
+    - Many documentation additions.
+
+  - Networking
+    - E1000: Added support for i/o mapped register access to make DOS driver work.
+
+  - HPET
+    - Bugfixes in HPET emulation
+    - Fixed hang after HPET reset in legacy mode
+
+  - SB16
+    - Set default value for SB16 dmatimer to 1000000 and updated docs
+    - Align SB16 DMA buffer size to 4 to avoid crash in 16-bit stereo mode
+    - Added 16-bit write support for even i/o addresses
+
+  - Keyboard/Mouse
+    - Reduce default keyboard serial delay to 150 to avoid timeouts
+
+- BIOS / VGABIOS
+  - Added capability to enter keycode with ALT + numeric keypad
+  - LGPL'd VGABIOS updated to version 0.9a (from https://github.com/bochs-emu/VGABIOS)
+    - Added VBE get/set palette data support for Banshee and Cirrus versions
+    - Fixed order of colors in VBE function get/set palette data
+    - Added VBE set palette data support to protected mode interface
+    - VESA BIOS function 0x4f00 now stores strings in OemData (for VBE 2.0)
+    - Implemented AH=12h / BL=36h (video refresh control)
+    - Banshee: Added support for VBE function get/set palette format
+    - Fixed video mode detection for TTY functions
+    - Fixed Cirrus vertical timing parameters for 800x600 modes
+    - Added protected mode interface for the Banshee and Cirrus version
+    - Cirrus: Added support for 1152x864x8 video mode
+
+-------------------------------------------------------------------------
+Changes in 2.7 (August 1, 2021):
+
+Brief summary :
+  - Bugfixes for CPU emulation correctness (CPUID/VMX/SVM fixes to support
+    Windows Hyper-V as guest in Bochs)
+  - Improvements for the plugin handling to simplify Bochs extensions
+  - Added "multiple NICs" support to the NE2000 and E1000 devices
+  - Added experimental FTP service for networking modules 'vnet' and 'socket'
+  - Fixes and improvements for all supported Voodoo graphics adapters
+  - Added USB keyboard emulation with most of the keys supported
+  - GUI "cmdmode": create a headerbar event with key combo starting with F7
+  - LGPL'd VGABIOS updated to version 0.8a (new VGABIOS for Voodoo Banshee)
+
+Detailed change log :
+
+- General
+  - Improved plugins handling: all available plugins in path are detected at
+    startup (including externally developed ones). These types are supported in
+    Bochs configuration: config interfaces, display libraries, VGA compatile
+    adapters, optional PCI/ISA devices, pluggable USB devices, disk image,
+    networking and sound driver modules.
+  - Save/Restore bugfixes
+  - Removed legacy "load32bitOShack" feature.
+  - Removed "svga" display library designed for the obsolete Linux SVGALib.
+
+- Configure and compile
+  - Added example shortcut script for cross compiling on Linux for Windows.
+  - Visual Studio workspace files upgraded to VS2019 format.
+
+- Config interface
+  - The config interfaces 'textconfig' and 'win32config' are now plugins.
+  - Switch config interface to 'textconfig' at runtime in case the gui doesn't
+    support dialogs (rfb and vncsrv on Windows).
+
+- CPU/CPUDB
+  - Bugfixes for CPU emulation correctness (CPUID/VMX/SVM fixes to support Windows Hyper-V as guest in Bochs)
+  - TSC: Implemented TSC_ADJUST MSR and enabled in all relevant CPU models
+  - Protection Keys: Implemented Supervisor-Mode Protection Keys (PKS)
+  - AVX-VNNI: Implemented AVX encoded VNNI instructions
+  ! CPUID: Added TigerLake CPU definition (features CET and CLWB support)
+
+- Memory
+  - Improved BIOS write support by implementing Intel(tm) flash chip emulation.
+
+- Bochs Debugger and Instrumentation
+  - Switching to new internal instruction disassembler implementation based on Bochs internal instruction decoder.
+    New disassembler supporting natively all instruction extensions that Bochs is able to emulate, including AVX512*.
+    Old disassembler module is outdate and was removed from the source tree.
+  - Add more symbol lookups to disasm methods
+
+- I/O Devices
+  - Networking
+    - Added "multiple NICs" support to the NE2000 and E1000 devices. Up to 4 devices
+      per model are supported. Use the zero-based "card" parameter to specify device.
+    - Added experimental FTP service for networking modules 'vnet' and 'socket'.
+    - Fixes for iPXE network boot support (modules 'slirp', 'socket', 'vnet').
+    - Added config file support for the 'vnet' module (similar to 'slirp').
+    - Added log file support to 'bxhub' utility (networking module 'socket').
+    - Packet logging in text format for the 'slirp' and 'vnet' modules controlled
+      by runtime option ("pktlog" option in config).
+  - VGA
+    - Voodoo (all models): Now using CLUT for gamma correction in 16 bpp modes.
+    - Voodoo2: Added most of the bitblt capabilities.
+    - Voodoo Banshee: Added "Polygon Fill" command and 2D colorkey support.
+    - Removed lfb_enabled switch from Bochs VBE code. Now banked and LFB writes
+      to VRAM are always valid. Fixes GRUB bootloader menu when using Bochs VBE.
+    - DDC: Added "ddc" parameter to the "vga" option to make it possible
+      either to disable the DDC feature or to read the monitor EDID from file.
+  - PCI (general)
+    - Added config parameter to set up advanced PCI options. Now it is possible
+      to disable ACPI or HPET in case the i440FX chipset is selected. For the
+      i440BX chipset it is possible to disable the incomplete AGP subsystem.
+  - USB
+    - Added keyboard emulation with most of the keys supported.
+    - Added support for USB packet logging in PCAP format.
+    - Changed handling of device options in the USB port configuration
+      (see bochsrc sample).
+  - Sound
+    - Added PC speaker volume control for the lowlevel sound support.
+
+- GUI and display libraries
+    - Added support for calling a headerbar handler after pressing F7 (enabled
+      with "cmdmode" option / present in sdl, sdl2, win32 and x).
+    - Added support for saving text mode snapshot in BMP format.
+    - Write marker to log file by pressing "m" button (guis with "cmdmode" on).
+    - X11 keymaps: added new one for Swiss-German and improved Italian map.
+    - RFB / vncsrv: VGA features h/v pel panning and split screen now supported.
+    - RFB: added support for the pixel format RGB332.
+    - added display library option for disabling the Bochs gui console to use
+      the default system console instead (rfb, sdl, sdl2, vncsrv, x).
+    - win32: added display library option "autoscale" to scale a small
+      simulation window by factor 2, 4 or 8 depending in desktop window size.
+    - wx: fixed status bar handling to avoid segfaults and deadlocks.
+
+- VGABIOS
+  - LGPL'd VGABIOS updated to version 0.8a.
+    - Added initial version of the VGABIOS for Voodoo Banshee adapters.
+    - Added 'write character' support for non-VGA 8-bpp modes (Bochs VBE /
+      Cirrus / Banshee). Cirrus code uses bitblt engine.
+    - Fixed text output and scrolling in VGA graphics modes.
+    - Some small fixes in the VBE code and several code optimizations.
+
+- Misc
+  - Added support for converting VDI images to another format with bximage.
+
+-------------------------------------------------------------------------
+Changes in 2.6.11 (January 5, 2020):
+
+- General
+  - Added 64-bit support to the NSIS installer script
+  - Several fixes in the build system based on Debian patches
+
+- CPU / CPUDB
+  - Bugfixes for CPU emulation correctness
+    - Many critical bugfixes for Protection Keys, AVX512*, VMX/SVM, SHA, GFNI emulation
+  ! Implemented CET (Control Flow Enforcement Technology) emulation according to Intel SDM rev071
+
+- I/O Devices
+  - Added missing Cirrus SVGA bitblt feature "transparent color compare"
+  - Some fixes in HPET emulation (patch by Oleg)
+  - Fixed disk image lock mechanism in the USB MSD case
+
+- BIOS / VGABIOS
+  - LGPL'd VGABIOS updated to version 0.7b (Fixed VESA extension 'read EDID'
+    for Bochs VBE and Cirrus)
+  - Updated SeaBIOS ROM image to current version 1.13.0
+  - Added SeaVGABIOS ROM image for the Cirrus adapter
+  - Bochs BIOS built to work with CPU level 5 again
+
+-------------------------------------------------------------------------
+Changes in 2.6.10 (December 1, 2019):
+
+Brief summary :
+  - CPU: Bugfixes for CPU emulation correctness (critical bugfixes for PCID, ADCX/ADOX, MOVBE, AVX/AVX-512 and VMX emulation)
+  - CPU: implemented AVX-512 VBMI2/VNNI/BITALG, VAES, VPCLMULQDQ / GFNI instructions emulation
+  - VMX: Implement EPT-Based Sub-Page Protection
+  - CPUID: Added new CPU models Skylake-X, Cannonlake and Icelake-U
+  - CPUID: Implemented side-channel attack prevention reporting and corresponding MSR registers, enabled for Icelake-U
+  - Added basic support for the i440BX PCI/AGP chipset.
+  - Added basic Voodoo Banshee / Voodoo3 emulation support.
+  - Added basic DDC support for the VGA-compatible adapters.
+  - Implemented HPET emulation (ported from Qemu).
+
+Detailed change log :
+
+- General
+  - Disabled legacy "load32bitOShack" feature.
+  - Improved NSIS win32 installer script.
+
+- CPU / CPUDB
+  - Significant speedup to simulation of milti-threaded guest (patch by Luigu.B)
+  - Bugfixes for CPU emulation correctness (critical bugfixes for PCID, ADCX/ADOX, MOVBE, AVX/AVX-512 and VMX emulation)
+  ! x87: implemented FOPCODE and FDP deprecation features
+  ! AVX-512: implemented AVX-512 VBMI2/VNNI/BITALG instructions
+  ! Crypto: Implemented VAES instructions / VPCLMULQDQ / GFNI instruction
+  ! VMX: Implement EPT-Based Sub-Page Protection
+  ! CPUID: Added Skylake-X CPU definition (features AVX-512 support)
+  ! CPUID: Added Cannonlake CPU definition (features more AVX-512 levels, UMIP, SHA, PKU support)
+  ! CPUID: Added Icelake-U CPU definition (features more AVX-512 levels, UMIP, SHA, GFNI, VAES, PKU support)
+  ! CPUID: Implemented SCA (Side-Channel-Attack) Prevention reporting and corresponding MSR registers, enabled for Icelake-U CPU definition
+
+- Bochs Debugger and Instrumentation
+  - Added support for conditional breakpoints and conditional step/continue to Bochs debugger
+  - Support 'info tab' command for 64-bit mode as well
+  - Bochs debugger improvements patch by Doug Gale
+    - better handling of 64-bit addresses in the debugger, added support for 64 bit symbols,
+      added more symbol lookups.
+
+- I/O Devices
+  - PCI
+    - Added basic support for the i440BX PCI/AGP chipset.
+  - Timers
+    - Implemented HPET emulation (ported from Qemu).
+  - Hard drive / HD image
+    - Added support for unlocking disk images (locks leftover from previous
+      Bochs session) with the new command line argument '-unlock'.
+    - Added ATAPI command "get event status notification".
+    - Bugfix: undoable/volatile mode images now inherit the base image geometry
+      if present.
+  - Voodoo
+    - Voodoo1 emulation speedup with combined PCI / memory FIFO implementation
+      and multi-threading support (separate FIFO thread).
+    - Voodoo2 model now working after some fixes and implementation of the
+      CMDFIFO (using FIFO thread) and one of the bitBLT functions.
+    - Added Voodoo Banshee / Voodoo3 emulation support (still under construction,
+      but basically usable). The AGP models are available if chipset is i440BX.
+  - Display (general)
+    - Added basic DDC support for Bochs VBE, Cirrus and Voodoo Banshee / Voodoo3
+      adapters (reporting plug&play monitor "Bochs Screen").
+  - USB
+    - Now creating separate plugins for each USB device implementation.
+    - Added sector size option for USB disks (size 1024 and 4096 supported).
+  - Networking
+    - bxhub: Added DNS service support for the server "vnet" and connected
+      clients.
+  - Sound
+    - PC speaker now can play digitized sound by driving speaker gate.
+
+- GUI and display libraries
+  - Added new win32 gui option "traphotkeys" for fullscreen mode.
+  - wx: Fixes and updates for wxWidgets 3.0 support.
+  - Removed legacy guis "macos" and "svga" from display library auto-
+    detection (still available using --with-XXX option).
+
+- LGPL'd VGABIOS updated from CVS (VESA extension 'read EDID' for Bochs VBE
+  and Cirrus added).
+
+- Misc
+  - Added sector size option to bximage for creating flat, sparse and growing
+    mode images with big sectors (size 1024 and 4096 currently supported).
+
+-------------------------------------------------------------------------
 Changes in 2.6.9 (April 9, 2017):
 
 Brief summary :
@@ -930,7 +1389,7 @@ Brief summary :
 Detailed change log :
 
 - Configure rework
-  - Deprecate --enable-popcnt configure option. POPCNT instruction will be 
+  - Deprecate --enable-popcnt configure option. POPCNT instruction will be
     enabled automatically iff SSE4_2 is supported (like in hardware).
 
   - Make --ignore-bad-msrs runtime option in .bochsrc. Old --ignore-bad-msrs
@@ -1021,7 +1480,7 @@ Detailed change log :
  [2905385] Bochs crash
  [2901481] Instruction SYSRET and SS(PL)
  [2900632] Broken long mode RETF to outer priviledge with null SS
- [1429011] Use bx_phyaddr_t for physaddr vars and bx_adress for lin adr
+ [1429011] Use bx_phyaddr_t for physaddr vars and bx_address for lin adr
 
 - these S.F. feature requests were closed/implemented
  [2955911] RPM preuninstall scriptlet removes /core
@@ -1309,13 +1768,13 @@ Detailed change log :
  [1977045] support 40 bit physical address
  [1506385] Intel Core Duo VT features
  [1429015] Support for user plugins
- [1488136] debugger access to floppy controller  
+ [1488136] debugger access to floppy controller
  [1363136] Full debugger SMP and 64 bit support
  [2068304] Support for ACPI
   [431032] debugger "x" command
   [423420] profiling ideas (SMF)
   [445342] Add FM support?
-  [928439] alsa  
+  [928439] alsa
 
 -------------------------------------------------------------------------
 Changes in 2.3.7 (June 3, 2008):
@@ -1928,7 +2387,7 @@ Detailed change log :
 
 - CPU
   - fixed XMM registers restore in FXRSTOR instruction (Andrej Palkovsky)
-  - print registers dump to the log if tripple fault occured
+  - print registers dump to the log if tripple fault occurred
   - fixed PANIC in LTR instruction (Stanislav)
   - added virtual 8086 mode extensions (VME) implementation, to enable
     configure with --enable-vme (Stanislav)
@@ -2169,10 +2628,8 @@ Detailed change log :
 
 - CPU
   - fixes for booting OS/2 by Dmitri Froloff
-    - fixed v8086 priveleged instruction processing bug (was also reported
-      by LightCone Aug 7 2003)
-    - exception process bug (was reported by Diego Henriquez Sat Nov 15
-      01:16:51 CET 2003)
+    - fixed v8086 priveleged instruction processing bug (was also reported by LightCone Aug 7 2003)
+    - exception process bug (was reported by Diego Henriquez Nov 15 2003)
     - segment validation with IRET instruction
     - CS segment not present exception processing with IRET
   - several fixes by Kevin Lawton
@@ -2446,7 +2903,7 @@ Detailed change log :
  #1112836 PGE-Bit crashes Bochs
   #947586 The specification difference in x86-64 emulation
  #1117145 Push reset Button, APIC0 Error occur
- #1123043 fpu stack pointer changed *despite* fault occured (e.g. #pf)
+ #1123043 fpu stack pointer changed *despite* fault occurred (e.g. #pf)
  #1122066 PANIC: iret: IP > descriptor limit when installing os/2 warp
   #809574 rm -f segfaults
   #593952 SuSE rm segfaults
@@ -2624,7 +3081,7 @@ Changes in 2.1.1 (February 8, 2004):
 - notify display libraries on change of bpp (Volker)
 - fix bug in int13h function 0x10 (Volker)
 - fix floppy dialog error on win2k (Volker)
-- fix adress check in TSS IO permission bitmap (Christophe)
+- fix address check in TSS IO permission bitmap (Christophe)
 - fix buffer overflow vulnerability pointed out by SeSoX (Christophe)
 - updates for MacOS compile (Daniel Gimpelevich)
 

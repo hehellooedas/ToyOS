@@ -11,6 +11,7 @@
 #include <keyboard.h>
 #include <mouse.h>
 #include <disk.h>
+#include <SMP.h>
 
 
 #if PIC_APIC
@@ -43,6 +44,7 @@ void init_all(void){
     keyboard_init();
     mouse_init();
     disk_init();
+    SMP_init();
 
     //task_init();
 }

@@ -84,7 +84,14 @@ long IDE_close(void)
 
 long IDE_ioctl(long cmd,long arg)
 {
-    return 1;
+    struct block_buffer_node* node = NULL;
+    if(cmd == ATA_DISK_IDENTIFY){
+        node = make_request(cmd,0 ,0 ,(unsigned char*)arg );
+        submit(node);
+        wait_for_finish();
+        return 1;
+    }
+    return 0;
 }
 
 
@@ -111,7 +118,6 @@ long cmd_out(){
     list_del(&disk_request.is_using->list);
     disk_request.block_request_count--;
     wait_when_disk0_busy();
-    color_printk(BLUE,BLACK ,"count=%#lx,LBA=%#lx\n",node->count,node->LBA );
     switch (node->cmd) {
         case ATA_READ:
             Device_mode_LBA48(node->count,node->LBA );

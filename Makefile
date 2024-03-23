@@ -16,7 +16,7 @@ OBJS     =  $(BUILD_DIR)/head.o $(BUILD_DIR)/main.o $(BUILD_DIR)/printk.o \
 			$(BUILD_DIR)/trap.o $(BUILD_DIR)/entry.o $(BUILD_DIR)/memory.o \
 			$(BUILD_DIR)/interrupt.o $(BUILD_DIR)/cpu.o $(BUILD_DIR)/task.o \
 			$(BUILD_DIR)/APIC.o $(BUILD_DIR)/keyboard.o $(BUILD_DIR)/mouse.o \
-			$(BUILD_DIR)/disk.o
+			$(BUILD_DIR)/disk.o $(BUILD_DIR)/SMP.o
 
 PIC := PIC_APIC
 
@@ -90,10 +90,13 @@ $(BUILD_DIR)/mouse.o:device/mouse.c device/mouse.h
 $(BUILD_DIR)/disk.o:device/disk.c device/disk.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
+$(BUILD_DIR)/SMP.o:kernel/SMP.c kernel/SMP.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
 
 
 clean:
-	$(RM) $(RMFLAGS) kernel/head.s tools/boot.img build/*
+	$(RM) $(RMFLAGS) kernel/head.s tools/boot.img build/* tools/*.lock
 
 disk: copy $(BUILD_DIR)/loader.bin $(BUILD_DIR)/boot.bin
 	cp ./disk/hard.img tools/boot.img
@@ -113,6 +116,7 @@ bochs:clean compile link disk
 	           ./bochs/bin/bochs -f ./tools/bochsrc;; \
 	 * ) echo "无效的输入";; \
 	esac
+
 
 qemu: clean compile link disk
 	qemu-system-x86_64 \

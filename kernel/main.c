@@ -17,11 +17,6 @@ extern struct block_device_operation IDE_device_operation;
 
 void Start_Kernel(void){
     init_all();
-    unsigned char buf[512];
-    IDE_device_operation.transfer(ATA_READ,0,1,buf);
-    for(int i=0;i<512;i++){
-        color_printk(GREEN,BLACK ,"%#x ",buf[i] );
-    }
     while(1){
         if(keyboard_queue->count){
             analysis_keycode();

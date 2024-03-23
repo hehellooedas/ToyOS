@@ -1,5 +1,5 @@
 # Bochs Keymap file
-# $Id: sdl2-pc-us.map 12400 2014-07-06 18:29:06Z vruppert $
+# $Id$
 # Target: PC(x86) keyboard, US keymap, SDL2 gui
 # Author: Volker Ruppert (based on SDL keymap by Bryce Denney)
 #
