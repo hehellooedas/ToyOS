@@ -60,11 +60,11 @@ void screen_clear(void){
 
 
 /*  滚屏  */
-void screen_roll(void){
+void screen_roll_row(void){
     char* video_memory_start = (char *)Pos.FB_addr;
     unsigned int step = Pos.XResolution * Pos.YCharSize * 4;
-    for(int row=0;row<(Pos.YResolution / Pos.YCharSize);row++){
-        memset(video_memory_start+row*step,0,step);
+    for(unsigned int row=0;row<(Pos.YResolution / Pos.YCharSize);row++){
         memcpy(video_memory_start+row*step,video_memory_start+(row+1)*step ,step );
     }
 }
+

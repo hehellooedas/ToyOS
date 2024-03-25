@@ -39,7 +39,6 @@ void init_all(void){
     color_printk(RED,BLACK,"current PIC is 8259A\n");
 #endif
     interrupt_init();
-    color_printk(GREEN,BLACK,"bochs will run sti!\n");
     sti();
     keyboard_init();
     mouse_init();

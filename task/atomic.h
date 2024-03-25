@@ -8,8 +8,9 @@ typedef struct{
 
 
 /*
-atomic_T为原子变量
-lock前缀会锁住硬件平台的前端总线
+ * atomic_T为原子变量
+ * lock前缀会锁住硬件平台的前端总线
+ * 阻止其他处理器核心访问系统内存
 */
 
 

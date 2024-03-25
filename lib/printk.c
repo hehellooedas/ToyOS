@@ -372,7 +372,7 @@ int color_printk(unsigned int FRcolor,unsigned int BKcolor,const char* fmt,...){
         }
         if(Pos.YPosition >= (Pos.YResolution / Pos.YCharSize)){
             /*  整个页面写满了,滚屏  */
-            screen_roll();
+            screen_roll_row();
             Pos.YPosition--;
         }
     }

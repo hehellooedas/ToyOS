@@ -17,6 +17,11 @@ extern struct block_device_operation IDE_device_operation;
 
 void Start_Kernel(void){
     init_all();
+    *(unsigned int*)0xffff800000020000 = 0xf4;
+    wrmsr(0x830,0xc4500 );
+    wrmsr(0x830,0xc4620 );
+    wrmsr(0x830,0xc4620 );
+    /*
     while(1){
         if(keyboard_queue->count){
             analysis_keycode();
@@ -25,4 +30,6 @@ void Start_Kernel(void){
             analysis_mousecode();
         }
     }
+    */
+    while(1);
 }
