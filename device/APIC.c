@@ -6,27 +6,8 @@
 #include <lib.h>
 #include <interrupt.h>
 #include <stdbool.h>
+#include <SMP.h>
 
-
-#define IA32_APIC_BASE_MSR          0x1B
-#define IA32_APIC_BASE_MSR_BSP      0x100 // 处理器是 BSP
-#define IA32_APIC_SVR_MSR           0x80f
-#define IA32_APIC_ID_MSR            0x802
-#define IA32_APIC_VERSION_MSR       0x803
-
-
-/*  LVT本地中断向量表(处理器内部产生的中断请求)  */
-#define LVT_CMCI_MSR        0x82f   //CMCI
-#define LVT_TIMER_MSR       0x832   //定时器寄存器
-#define LVT_THERMAL_MSR     0x833   //过热保护寄存器
-#define LVT_PERFORMANCE_MSR 0x834   //性能监控计数寄存器
-#define LVT_LINT0_MSR       0x835   //当处理器的LINT0引脚接收到中断请求信号时
-#define LVT_LINT1_MSR       0x836   //当处理器的LINT1引脚接收到中断请求信号时
-#define LVT_ERROR_MSR       0x837   //内部错误寄存器
-
-
-#define TPR_MSR             0x808
-#define PPR_MSR             0x80a
 
 
 
@@ -43,18 +24,16 @@ void Local_APIC_init(void)
     unsigned long msr = rdmsr(IA32_APIC_BASE_MSR);
     color_printk(GREEN,BLACK ,"%#lx\n",msr );
     msr |= 0b110000000000;  //开启x2APIC模式
-    msr ^= 0b100000000;
+    //msr ^= 0b100000000;
     wrmsr(IA32_APIC_BASE_MSR,msr );
     msr = rdmsr(IA32_APIC_BASE_MSR);
     color_printk(GREEN,BLACK ,"%#lx\n",msr );
 
-/*
+
     msr = rdmsr(IA32_APIC_SVR_MSR);
-    color_printk(GREEN,BLACK ,"%#lx\n",msr );
     msr |= 0b0000100000000;  //开启APIC模式(bochs模拟器不支持禁用EOI)
     wrmsr(IA32_APIC_SVR_MSR,msr );
-    color_printk(GREEN,BLACK ,"%#lx\n",msr );
-*/
+
 
     unsigned long APIC_ID = rdmsr(IA32_APIC_ID_MSR );
     color_printk(GREEN,BLACK ,"APIC ID:%#lx\n",APIC_ID );
@@ -67,7 +46,7 @@ void Local_APIC_init(void)
 
 
     /*  屏蔽LVT的所有中断投递功能  */
-    //wrmsr(LVT_CMCI_MSR,0x10000 ); //bochs不支持CMCI 支持的最大LVT是6个
+    wrmsr(LVT_CMCI_MSR,0x10000 );
     wrmsr(LVT_TIMER_MSR,0x10000 );
     wrmsr(LVT_THERMAL_MSR,0x10000 );
     wrmsr(LVT_PERFORMANCE_MSR,0x10000 );
@@ -155,6 +134,7 @@ void APIC_IOAPIC_init(void)
     out8(0x23,0x01 );
 
     Local_APIC_init();
+    SMP_init();
     IOAPIC_init();
 
     memset(interrupt_desc,0,sizeof(irq_desc_T) *NR_IRQS);

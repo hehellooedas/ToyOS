@@ -25,11 +25,13 @@ _start:
     mov %ax,%fs
     mov %ax,%gs
     mov %ax,%ss
-    movq $0x7e00,%rsp
+    movq _stack_start(%rip),%rsp
+
 
     #加载(换到新地址去)
     movq $0x101000,%rax
     movq %rax,%cr3
+
     
     movq switch_seg(%rip),%rax
     pushq $0x08   /*选择子*/
@@ -47,6 +49,11 @@ entry64:
     movq %rax,%gs
     movq %rax,%ss
     movq _stack_start(%rip),%rsp  #更新rsp为内核栈的地址
+
+    movq $0x1b,%rcx
+    rdmsr
+    bt $8,%rax
+    jnc start_smp
 
 
 setup_IDT:
@@ -109,6 +116,19 @@ setup_TSS64:
 
 go_to_kernel:
     .quad   Start_Kernel
+
+
+
+start_smp:
+    movq go_to_smp_kernel(%rip),%rax
+    pushq $0x08
+    pushq %rax
+    lretq
+
+go_to_smp_kernel:
+    .quad Start_SMP
+
+
 
 
 
@@ -260,7 +280,7 @@ GDT_Table:
     .quad   0x0000f20000000000  /* 用户64位数据段(IA32_SYSENTER_SS) */
     .quad   0x00cf9a000000ffff  /* 内核32位代码段 */
     .quad   0x00cf92000000ffff  /* 内核32位数据段 */
-    .fill   10,8,0
+    .fill   100,8,0
 GDT_END:
 
 GDT_POINTER:
@@ -285,7 +305,3 @@ IDT_BASE:   .quad   IDT_Table
 TSS64_Table:
     .fill 13,8,0   #预留13个TSS槽位(每个TSS占据8字节)
 TSS64_END:
-
-TSS64_LIMIT:    .word   TSS64_END - TSS64_Table - 1
-TSS64_BASE:     .quad   TSS64_Table
-

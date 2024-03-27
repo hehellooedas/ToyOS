@@ -43,7 +43,7 @@ void init_all(void){
     keyboard_init();
     mouse_init();
     disk_init();
-    SMP_init();
+
 
     //task_init();
 }

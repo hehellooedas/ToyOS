@@ -8,10 +8,34 @@
 
 
 /*
- *
+ * APIC为多处理器环境下的中断管理提供了高效、灵活的机制
  *
  *
 */
+
+
+
+#define IA32_APIC_BASE_MSR          0x1B
+#define IA32_APIC_BASE_MSR_BSP      0x100 // 处理器是 BSP
+#define IA32_APIC_SVR_MSR           0x80f
+#define IA32_APIC_ID_MSR            0x802
+#define IA32_APIC_VERSION_MSR       0x803
+
+
+/*  LVT本地中断向量表(处理器内部产生的中断请求)  */
+#define LVT_CMCI_MSR        0x82f   //CMCI
+#define LVT_TIMER_MSR       0x832   //定时器寄存器
+#define LVT_THERMAL_MSR     0x833   //过热保护寄存器
+#define LVT_PERFORMANCE_MSR 0x834   //性能监控计数寄存器
+#define LVT_LINT0_MSR       0x835   //当处理器的LINT0引脚接收到中断请求信号时
+#define LVT_LINT1_MSR       0x836   //当处理器的LINT1引脚接收到中断请求信号时
+#define LVT_ERROR_MSR       0x837   //内部错误寄存器
+
+
+#define TPR_MSR             0x808
+#define PPR_MSR             0x80a
+
+
 
 
 /*  LVT结构(只有定时器有timer_mode)  */
@@ -98,6 +122,16 @@ struct IO_APIC_RET_ENTRY{
                          logical_dest:8;    //自定义APIC ID号
         }logical;
     }destination;
+}__attribute__((packed));
+
+
+
+/*----------------------------------------------*/
+
+
+
+struct INT_CMD_REG{
+
 }__attribute__((packed));
 
 

@@ -2,11 +2,13 @@
 #include <lib.h>
 #include <stddef.h>
 #include <stdbool.h>
+#include <spinlock.h>
 
 
 char buf[4096] = {0};
 struct position Pos;
 extern unsigned char font_ascii[256][16];
+
 
 
 int skip_atoi(const char** s){
@@ -334,6 +336,7 @@ int color_printk(unsigned int FRcolor,unsigned int BKcolor,const char* fmt,...){
     i = vsprintf(buf,fmt,args);  //返回字符串长度
     va_end(args);
 
+    spin_lock(&Pos.printk_lock);
     for(count=0;count<i||line;count++){
         if(line > 0){
             count--;
@@ -376,5 +379,6 @@ int color_printk(unsigned int FRcolor,unsigned int BKcolor,const char* fmt,...){
             Pos.YPosition--;
         }
     }
+    spin_unlock(&Pos.printk_lock);
     return i;
 }

@@ -18,7 +18,8 @@ OBJS     =  $(BUILD_DIR)/head.o $(BUILD_DIR)/main.o $(BUILD_DIR)/printk.o \
 			$(BUILD_DIR)/trap.o $(BUILD_DIR)/entry.o $(BUILD_DIR)/memory.o \
 			$(BUILD_DIR)/interrupt.o $(BUILD_DIR)/cpu.o $(BUILD_DIR)/task.o \
 			$(BUILD_DIR)/APIC.o $(BUILD_DIR)/keyboard.o $(BUILD_DIR)/mouse.o \
-			$(BUILD_DIR)/disk.o $(BUILD_DIR)/SMP.o $(BUILD_DIR)/APU_boot.o
+			$(BUILD_DIR)/disk.o $(BUILD_DIR)/SMP.o $(BUILD_DIR)/APU_boot.o \
+			$(BUILD_DIR)/time.o
 
 PIC := PIC_APIC
 
@@ -96,6 +97,9 @@ $(BUILD_DIR)/mouse.o:device/mouse.c device/mouse.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/disk.o:device/disk.c device/disk.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/time.o:device/time.c device/time.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/SMP.o:kernel/SMP.c kernel/SMP.h

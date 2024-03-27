@@ -188,7 +188,7 @@ void memory_init(void){
     color_printk(INDIGO,BLACK,"*Global_CR3\t:%#lx\n",*Phy_To_Virt(Global_CR3) & (~0xff));
     color_printk(INDIGO,BLACK,"**Global_CR3\t:%#lx\n",*Phy_To_Virt(*Phy_To_Virt(Global_CR3) & (~0xff)) &(~0xff));
     for(i = 0;i<10;i++){
-        *(Phy_To_Virt(Global_CR3) + i) = 0UL;
+        //*(Phy_To_Virt(Global_CR3) + i) = 0UL;
     }
     flush_tlb();
 }
