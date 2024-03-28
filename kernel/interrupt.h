@@ -71,4 +71,9 @@ bool register_irq(
 bool unregister_irq(unsigned long irq);
 
 
+
+irq_desc_T SMP_IPI_desc[10] = {0};
+extern void (*SMP_interrupt[10])(void);
+
+
 #endif // !__KERNEL_INTERRUPT_H

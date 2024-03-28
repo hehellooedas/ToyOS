@@ -83,7 +83,7 @@ rp_sidt:
     jne rp_sidt
 
 
-setup_TSS64: #设置BSP的TSS描述符,AP不要到这里执行
+setup_TSS64: #设置BSP的TSS描述符,AP不要到这里执行(AVL位保留)
     leaq TSS64_Table(%rip),%rdx #当前TSS描述符指向TSS64_Table
     xorq %rax,%rax
     xorq %rcx,%rcx

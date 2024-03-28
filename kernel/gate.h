@@ -85,16 +85,24 @@ void set_tss64(unsigned int* Table,unsigned long rsp0,unsigned long rsp1,unsigne
 
 
 
+
 /*  设置指定的TSS  */
+/*
+|        reserved         |       address(63:32)        |
+127                                                     64
+
+|  address(31:24)  |    0    |  0x89   |    address(23:0)       |    limit    |
+63               56  不用设置           40                      16              0
+*/
 static __attribute__((always_inline))
 void set_tss64_descriptor(unsigned int n,void* addr)
 {
-    unsigned long limit = 103;
+    unsigned long limit = 103;  //段限长(右移16位=0)
     /*  设置低位  */
-    *(unsigned long*)(TSS64_Table + n) = (limit & 0xffff) | ();
+    *(unsigned long*)(GDT_Table + n) = (limit & 0xffff) | (((unsigned long)addr & 0xffffff )<< 16) | ((unsigned long)0x89 << 40) | (((unsigned long)addr >> 24 & 0xff) << 56);
 
     /*  设置高位  */
-    *(unsigned long*)(TSS64_Table +n + 1) = ((unsigned long)addr >> 32 & 0xffffffff) | 0;
+    *(unsigned long*)(GDT_Table +n + 1) = ((unsigned long)addr >> 32 & 0xffffffff) | 0;
 }
 
 

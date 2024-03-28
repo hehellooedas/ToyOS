@@ -7,6 +7,7 @@
 #include <interrupt.h>
 #include <stdbool.h>
 #include <SMP.h>
+#include <ptrace.h>
 
 
 
@@ -187,4 +188,9 @@ void IOAPIC_level_ack(unsigned long irq)
 void IOAPIC_edge_ack(unsigned long irq)
 {
     wrmsr(0x80b,0 );
+}
+
+
+void do_IRQ(struct pt_regs* regs,unsigned long nr){
+
 }

@@ -32,7 +32,7 @@ void task_init(void) {
     wrmsr(0x176, (unsigned long)system_call); // IA32_SYSENTER_RIP
 
 
-    set_tss64(init_thread.rsp0, init_tss[0].rsp1, init_tss[0].rsp2,
+    set_tss64(TSS64_Table,init_thread.rsp0, init_tss[0].rsp1, init_tss[0].rsp2,
             init_tss[0].ist1, init_tss[0].ist2, init_tss[0].ist3,
             init_tss[0].ist4, init_tss[0].ist5, init_tss[0].ist6,
             init_tss[0].ist7);
@@ -180,7 +180,7 @@ void __attribute__((always_inline))
 __switch_to(struct task_struct *prev, struct task_struct *next) {
     init_tss[0].rsp0 = next->thread->rsp0; //更新rsp0
 
-    set_tss64(init_tss[0].rsp0, init_tss[0].rsp1, init_tss[0].rsp2,
+    set_tss64(TSS64_Table,init_tss[0].rsp0, init_tss[0].rsp1, init_tss[0].rsp2,
             init_tss[0].ist1, init_tss[0].ist2, init_tss[0].ist3,
             init_tss[0].ist4, init_tss[0].ist5, init_tss[0].ist6,
             init_tss[0].ist7);  //更新后写入到TSS

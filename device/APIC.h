@@ -62,8 +62,8 @@ struct APIC_LVT{
 
 
 /*  目标模式(仅RTE使用)  */
-#define APIC_DEST_MODE_PHY  0       //物理目标模式(使用APIC ID号来确定接收中断消息的处理器)
-#define APIC_DEST_MODE_LOGIC        //逻辑目标模式(使用LDR和DFR寄存器提供的自定义ID号~)
+#define APIC_DEST_MODE_PHY   0       //物理目标模式(使用APIC ID号来确定接收中断消息的处理器)
+#define APIC_DEST_MODE_LOGIC 1       //逻辑目标模式(使用LDR和DFR寄存器提供的自定义ID号~)
 
 
 /*  APIC的投递状态(deliver_status)  */
@@ -136,7 +136,7 @@ struct INT_CMD_REG{
                  deliver_mode:3,
                  dest_mode:1,
                  deliver_status:1,
-                 res_1,
+                 res_1:1,
                  level:1,       //信号驱动电平
                  trigger_mode:1,
                  res_2:2,
@@ -158,7 +158,7 @@ struct INT_CMD_REG{
 #define ICR_DELIVER_MODE_SMI                0b010
 #define ICR_DELIVER_MODE_NMI                0b100
 #define ICR_DELIVER_MODE_INIT               0b101
-#define ICR_DELIVER_MODE_START_UP           0b111   //AP启动
+#define ICR_DELIVER_MODE_START_UP           0b110
 
 #define ICR_DEST_MODE_PHY       APIC_DEST_MODE_PHY
 #define ICR_DEST_MODE_LOGIC     APIC_DEST_MODE_LOGIC
@@ -172,10 +172,10 @@ struct INT_CMD_REG{
 #define ICR_TRIGGER_MODE_EDGE   APIC_TRIGGER_MODE_EDGE
 #define ICR_TRIGGER_MODE_LEVEL  APIC_TRIGGER_MODE_LEVEL
 
-#define ICR_SHORTHAND_NONE          0b00
-#define ICR_SHORTHAND_ALL_SELF      0b01
-#define ICR_SHORTHAND_ONLY_SELF     0b10
-#define ICR_SHORTHAND_ALL_NOT_SELF  0b11
+#define ICR_SHORTHAND_NONE           0b00
+#define ICR_SHORTHAND_ONLY_SELF      0b01
+#define ICR_SHORTHAND_ALL_SELF       0b10
+#define ICR_SHORTHAND_ALL_NOT_SELF   0b11
 
 
 

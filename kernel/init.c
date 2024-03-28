@@ -25,7 +25,7 @@ extern unsigned long _stack_start;
 
 void init_all(void){
     load_TR(10);
-    set_tss64(TSS64_Table,_stack_start,_stack_start,_stack_start,_stack_start,0xffff800000007c00,0xffff800000007c00,0xffff800000007c00,0xffff800000007c00,0xffff800000007c00,0xffff800000007c00);
+    set_tss64(TSS64_Table,_stack_start,_stack_start,_stack_start,0xffff800000007c00,0xffff800000007c00,0xffff800000007c00,0xffff800000007c00,0xffff800000007c00,0xffff800000007c00,0xffff800000007c00);
     screen_init();
     sys_vector_init();
     cpu_init();
