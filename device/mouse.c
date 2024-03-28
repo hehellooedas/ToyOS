@@ -75,7 +75,7 @@ void mouse_exit(void)
 /*  中断部分只要把从设备发来消息存储到循环队列就好  */
 void mouse_handler(unsigned long irq,unsigned long parameter,struct pt_regs* regs)
 {
-    ioqueue_producer(mouse_queue,in8(PORT_KB_DATA));  //读取鼠标数据包
+    ioqueue_producer(mouse_queue,in8(PORT_KB_DATA));  //读取鼠标数据包,存入循环队列
 }
 
 

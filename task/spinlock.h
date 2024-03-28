@@ -27,7 +27,7 @@ void spin_lock(spinlock_T* lock)
         "lock decq %0   \n\t"
         "jns 3f         \n\t"   //非负数可以离开
         "2:             \n\t"
-        "pause          \n\t"   //低功耗空转
+        "pause          \n\t"   //低功耗空转(改善忙等待循环)
         "cmpq $0,%0     \n\t"   //与0去比较
         "jle 2b         \n\t"   //小于等于0则继续空转
         "jmp 1b         \n\t"   //大于0则重新进入1

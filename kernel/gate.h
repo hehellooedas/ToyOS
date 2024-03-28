@@ -61,26 +61,43 @@ do{                         \
 
 
 /*  
-设置TSS 直接把数据写入到TSS的第一项
-(其中reserved部分不需要赋值了)
+ * 设置指定Table的TSS
+ * 其中reserved部分不需要赋值
 */
 static __attribute__((always_inline)) 
-void set_tss64(unsigned long rsp0,unsigned long rsp1,unsigned long rsp2\
+void set_tss64(unsigned int* Table,unsigned long rsp0,unsigned long rsp1,unsigned long rsp2\
 ,unsigned long ist1,unsigned long ist2,unsigned long ist3,unsigned long ist4\
 ,unsigned long ist5,unsigned long ist6,unsigned long ist7)
 {
-    *(unsigned long*)(TSS64_Table + 1) = rsp0;
-    *(unsigned long*)(TSS64_Table + 3) = rsp1;
-    *(unsigned long*)(TSS64_Table + 5) = rsp2;
+    *(unsigned long*)(Table + 1) = rsp0;
+    *(unsigned long*)(Table + 3) = rsp1;
+    *(unsigned long*)(Table + 5) = rsp2;
 
-    *(unsigned long*)(TSS64_Table + 9) = ist1;
-    *(unsigned long*)(TSS64_Table + 11) = ist2;
-    *(unsigned long*)(TSS64_Table + 13) = ist3;
-    *(unsigned long*)(TSS64_Table + 15) = ist4;
-    *(unsigned long*)(TSS64_Table + 17) = ist5;
-    *(unsigned long*)(TSS64_Table + 19) = ist6;
-    *(unsigned long*)(TSS64_Table + 21) = ist7;
+    *(unsigned long*)(Table + 9) = ist1;
+    *(unsigned long*)(Table + 11) = ist2;
+    *(unsigned long*)(Table + 13) = ist3;
+    *(unsigned long*)(Table + 15) = ist4;
+    *(unsigned long*)(Table + 17) = ist5;
+    *(unsigned long*)(Table + 19) = ist6;
+    *(unsigned long*)(Table + 21) = ist7;
 }
+
+
+
+
+/*  设置指定的TSS  */
+static __attribute__((always_inline))
+void set_tss64_descriptor(unsigned int n,void* addr)
+{
+    unsigned long limit = 103;
+    /*  设置低位  */
+    *(unsigned long*)(TSS64_Table + n) = (limit & 0xffff) | ();
+
+    /*  设置高位  */
+    *(unsigned long*)(TSS64_Table +n + 1) = ((unsigned long)addr >> 32 & 0xffffffff) | 0;
+}
+
+
 
 
 

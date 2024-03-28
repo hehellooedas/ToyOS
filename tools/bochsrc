@@ -9,7 +9,7 @@ config_interface:textconfig
 display_library:x
 
 
-#设置ROM模拟
+#设置ROM和VGA模拟
 romimage:file="/usr/share/bochs/BIOS-bochs-latest"
 vgaromimage:file="/usr/share/bochs/VGABIOS-lgpl-latest"
 

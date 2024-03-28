@@ -10,8 +10,8 @@ RM = rm -rf
 #BXSHARE = bochs/lib/bochs/share/bochs
 #export LTDL_LIBRARY_PATH = bochs/lib/bochs/plugins
 
-LIB      = -I kernel -I lib -I device -I task
-CFLAGS   = -O0 -mcmodel=large -fno-builtin -m64 -fno-stack-protector -g $(LIB)
+LIB      = -I kernel -I lib -I device -I task -I fs
+CFLAGS   = -mcmodel=large -fno-builtin -m64 -fno-stack-protector -fno-pic -fno-pie -g $(LIB)
 LDFLAGS  = -b elf64-x86-64 -z muldefs -T kernel/kernel.lds
 OBJS     =  $(BUILD_DIR)/head.o $(BUILD_DIR)/main.o $(BUILD_DIR)/printk.o \
 	   		$(BUILD_DIR)/init.o $(BUILD_DIR)/screen.o $(BUILD_DIR)/string.o \

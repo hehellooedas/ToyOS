@@ -130,13 +130,56 @@ struct IO_APIC_RET_ENTRY{
 
 
 
+/*  ICR寄存器(用于向目标处理器发送IPI中断消息)  */
 struct INT_CMD_REG{
+    unsigned int vector:8,      //当dest_mode为Start_UP时vector存储的是BSP的起始地址(vector << 12)
+                 deliver_mode:3,
+                 dest_mode:1,
+                 deliver_status:1,
+                 res_1,
+                 level:1,       //信号驱动电平
+                 trigger_mode:1,
+                 res_2:2,
+                 dest_shorthand:2,
+                 res_3:12;
+    union{
+        struct {
+            unsigned int res_4:24,
+                         deliver_dest:8;
+        }apic_destination;                //apic的情况下
 
+        unsigned int x2apic_destination;  //x2apic的情况下
+    }destination;
 }__attribute__((packed));
 
 
+#define ICR_DELIVER_MODE_FIXED              0b000
+#define ICR_DELIVER_MODE_LOWESTPRIORITY     0b001
+#define ICR_DELIVER_MODE_SMI                0b010
+#define ICR_DELIVER_MODE_NMI                0b100
+#define ICR_DELIVER_MODE_INIT               0b101
+#define ICR_DELIVER_MODE_START_UP           0b111   //AP启动
+
+#define ICR_DEST_MODE_PHY       APIC_DEST_MODE_PHY
+#define ICR_DEST_MODE_LOGIC     APIC_DEST_MODE_LOGIC
+
+#define ICR_DELIVER_STATUS_IDLE    APIC_DELIVER_STATUS_IDLE
+#define ICR_DELIVER_STATUS_SENDING_PENDING    APIC_DELIVER_STATUS_SEND_PENDING
+
+#define ICR_LVEL_MODE_DE_ASSERT     0   //INIT投递模式选这个
+#define ICR_LVEL_MODE_OTHER         1   //其他投递模式选这个
+
+#define ICR_TRIGGER_MODE_EDGE   APIC_TRIGGER_MODE_EDGE
+#define ICR_TRIGGER_MODE_LEVEL  APIC_TRIGGER_MODE_LEVEL
+
+#define ICR_SHORTHAND_NONE          0b00
+#define ICR_SHORTHAND_ALL_SELF      0b01
+#define ICR_SHORTHAND_ONLY_SELF     0b10
+#define ICR_SHORTHAND_ALL_NOT_SELF  0b11
 
 
+
+/*----------------------------------------------------------------*/
 
 struct IOAPIC_map{
     unsigned int physical_address;        //间接访问寄存器的物理基地址

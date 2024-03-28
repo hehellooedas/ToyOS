@@ -30,6 +30,7 @@ extern struct position Pos;
 void screen_init(void);
 void frame_buffer_init(void);
 void screen_clear(void);
+void set_screen_blue(void);
 void screen_roll_row(void);
 
 #endif // !__DEVICE_SCREEN_H

@@ -83,25 +83,25 @@ rp_sidt:
     jne rp_sidt
 
 
-setup_TSS64:
-    leaq TSS64_Table(%rip),%rdx
+setup_TSS64: #设置BSP的TSS描述符,AP不要到这里执行
+    leaq TSS64_Table(%rip),%rdx #当前TSS描述符指向TSS64_Table
     xorq %rax,%rax
     xorq %rcx,%rcx
-    movq $0x89,%rax
-    shlq $40,%rax
-    movl %edx,%ecx
-    shrl $24,%ecx
-    shlq $56,%rcx
-    addq %rcx,%rax
+    movq $0x89,%rax  #1000 1001 存在 ring0 Type位表明这是TSS描述符
+    shlq $40,%rax    #左移到目的位置(eax)
+    movl %edx,%ecx   #TSS64_Table地址的低32位
+    shrl $24,%ecx    #把低24位去掉,ecx变成TSS64_Table低32地址的高8位(即31:24)
+    shlq $56,%rcx    #把TSS64_Table地址的低8位移动到目的位置(ecx)
+    addq %rcx,%rax   #合成eax和ecx
     xorq %rcx,%rcx
     movl %edx,%ecx
     andl $0xffffff,%ecx
-    shlq $16,%rcx
-    addq %rcx,%rax
-    addq $103,%rax
-    leaq GDT_Table(%rip),%rdi
+    shlq $16,%rcx    #TSS64_Table的低24位
+    addq %rcx,%rax   #用加法
+    addq $103,%rax   #长度固定为104-1(每个核心只使用TSS表的第一个项目)
+    leaq GDT_Table(%rip),%rdi   #把制作好的TSS描述符注册到GDT_Table里
     movq %rax,80(%rdi)    #将计算出的TSS的高64位存储到GDT中
-    shrq $32,%rdx
+    shrq $32,%rdx         #TSS_Table的高32位
     movq %rdx,88(%rdi)    #将计算出的TSS的低64位存储到GDT中
     
     #mov $0x40,%ax
@@ -303,5 +303,5 @@ IDT_BASE:   .quad   IDT_Table
 #TSS64
 .global TSS64_Table
 TSS64_Table:
-    .fill 13,8,0   #预留13个TSS槽位(每个TSS占据8字节)
+    .fill 13,8,0   #104B=26*4B(TSS的内部结构很大)
 TSS64_END:

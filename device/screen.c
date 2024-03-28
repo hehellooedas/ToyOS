@@ -61,6 +61,20 @@ void screen_clear(void){
 }
 
 
+
+
+/*  模拟Windows蓝屏(blue screen death)的效果  */
+void set_screen_blue(void){
+    Pos.XPosition = 0;
+    Pos.YPosition = 0;
+    for(int i=0;i<Pos.XResolution * Pos.YResolution;i++){
+        color_printk(BLUE,BLUE ," " );
+    }
+    Pos.XPosition = 0;
+    Pos.YPosition = 0;
+}
+
+
 /*  滚屏  */
 void screen_roll_row(void){
     char* video_memory_start = (char *)Pos.FB_addr;

@@ -4,9 +4,19 @@
 #include <cpu.h>
 #include <lib.h>
 #include <APIC.h>
+#include <spinlock.h>
+#include <gate.h>
+#include <memory.h>
+#include <task.h>
 
 
 struct INT_CMD_REG  icr_entry;
+static spinlock_T SMP_lock;
+
+int global_i = 0;
+
+unsigned long _stack_start;
+unsigned int* tss;
 
 
 void SMP_init(void){
@@ -22,12 +32,47 @@ void SMP_init(void){
 
     color_printk(WHITE,BLACK ,"SMP copy byte:%#lx\n",(unsigned long)&_APU_boot_end - (unsigned long)&_APU_boot_start );
 
+    spin_init(&SMP_lock);
+
+
     /*  把AP核心的启动引导写入到指定地址  */
     memcpy((unsigned char*)0xffff800000020000,_APU_boot_start ,(unsigned long)&_APU_boot_end - (unsigned long)&_APU_boot_start );
 
-    wrmsr(0x830,0xc4500 );
-    wrmsr(0x830,0xc4620 );
-    wrmsr(0x830,0xc4620 );
+    struct INT_CMD_REG icr_entry;
+    icr_entry.vector = 0x00;
+    icr_entry.deliver_mode = ICR_DELIVER_MODE_INIT;
+    icr_entry.dest_mode = ICR_DEST_MODE_PHY;
+    icr_entry.deliver_status = ICR_DELIVER_STATUS_IDLE;
+    icr_entry.level = ICR_LVEL_MODE_DE_ASSERT;
+    icr_entry.trigger_mode = ICR_TRIGGER_MODE_EDGE;
+    icr_entry.dest_shorthand = ICR_SHORTHAND_ALL_SELF;
+    icr_entry.destination.x2apic_destination = 0x00;
+    icr_entry.res_1 = icr_entry.res_2 = icr_entry.res_3 = 0;
+    wrmsr(0x830,*(unsigned long*)&icr_entry );  //INIT IPI
+
+
+    for(global_i = 1;global_i<8;global_i++){
+        spin_lock(&SMP_lock);
+
+        _stack_start = (unsigned long)kmalloc(STACK_SIZE,0 ) + STACK_SIZE;
+        tss = (unsigned int*)kmalloc(128,0 ); //额外留下一部分空间
+
+        set_tss64_descriptor((10 + global_i * 2), tss);
+
+        set_tss64(tss,_stack_start,_stack_start,_stack_start,_stack_start,_stack_start,_stack_start,_stack_start,_stack_start,_stack_start,_stack_start );
+
+
+        icr_entry.vector = 0x20;
+        icr_entry.deliver_mode = ICR_DELIVER_MODE_START_UP ;
+        icr_entry.dest_shorthand = ICR_SHORTHAND_NONE;
+        icr_entry.destination.x2apic_destination = global_i;
+
+        wrmsr(0x830,*(unsigned long*)&icr_entry );
+        wrmsr(0x830,*(unsigned long*)&icr_entry );  //向目标处理器投递两次Start UP
+
+    }
+
+
     stop();
 }
 
@@ -50,5 +95,8 @@ void Start_SMP(void){
     unsigned long APIC_ID = rdmsr(IA32_APIC_ID_MSR );
     color_printk(GREEN,BLACK ,"APIC ID:%#lx\n",APIC_ID );
 
+    load_TR((10 + global_i * 2));
+
+    spin_unlock(&SMP_lock);
     hlt();
 }
