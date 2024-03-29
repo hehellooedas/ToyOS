@@ -2,16 +2,19 @@ SHELL = /bin/sh
 BUILD_DIR = build
 MAKE = make
 NASM = nasm
-CC = ccache gcc
 AS = as
 LD = ld
 AR = ar
 RM = rm -rf
-#BXSHARE = bochs/lib/bochs/share/bochs
-#export LTDL_LIBRARY_PATH = bochs/lib/bochs/plugins
+ifeq ($(command -v ccache > /dev/null 2>&1 && echo 1 || echo 0),1)
+	CC = ccache gcc
+else
+	CC = gcc
+endif
+
 
 LIB      = -I kernel -I lib -I device -I task -I fs
-CFLAGS   = -mcmodel=large -fno-builtin -m64 -fno-stack-protector -fno-pic -fno-pie -g $(LIB)
+CFLAGS   = -mcmodel=large -march=x86-64 -fno-builtin -m64 -fno-stack-protector -W -Wstrict-prototypes -Wmissing-prototypes -ffreestanding -fno-pic -fno-pie -fdiagnostics-color=always -g $(LIB)
 LDFLAGS  = -b elf64-x86-64 -z muldefs -T kernel/kernel.lds
 OBJS     =  $(BUILD_DIR)/head.o $(BUILD_DIR)/main.o $(BUILD_DIR)/printk.o \
 	   		$(BUILD_DIR)/init.o $(BUILD_DIR)/screen.o $(BUILD_DIR)/string.o \
@@ -43,6 +46,7 @@ $(BUILD_DIR)/loader.bin: boot/loader.asm
 
 
 
+
 $(BUILD_DIR)/head.o: kernel/head.S kernel/linkage.h
 	gcc -E kernel/head.S > $(BUILD_DIR)/head.s
 	$(AS)  $(BUILD_DIR)/head.s -o $@ -a=$(BUILD_DIR)/1.lst
@@ -54,6 +58,7 @@ $(BUILD_DIR)/entry.o: kernel/entry.S
 $(BUILD_DIR)/APU_boot.o: kernel/APU_boot.S
 	gcc -E kernel/APU_boot.S > $(BUILD_DIR)/APU_boot.s
 	$(AS)  build/APU_boot.s -o $@
+
 
 
 
@@ -107,6 +112,7 @@ $(BUILD_DIR)/HPET.o:device/HPET.c device/HPET.h
 
 $(BUILD_DIR)/SMP.o:kernel/SMP.c kernel/SMP.h
 	$(CC) $(CFLAGS) -c $< -o $@
+
 
 
 

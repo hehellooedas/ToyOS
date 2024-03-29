@@ -29,7 +29,7 @@ void HPET_init(void)
     entry.res_1 = 0;
     entry.destination.physical.phy_dest = entry.destination.physical.res_2 = entry.destination.physical.res_3 = 0;
 
-    register_irq(34,&entry ,&HPET_handler ,NULL ,&HPET_int_controler ,"HPET" );
+    register_irq(34,&entry ,&HPET_handler ,0 ,&HPET_int_controler ,"HPET" );
 }
 
 

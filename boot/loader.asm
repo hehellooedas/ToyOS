@@ -4,6 +4,30 @@ org 0x10000  ;loader放置在64KB的位置
 %include "./boot/fat12.inc"
 
 
+
+;临时变量和字符串定义
+SVGAModeCounter:             dd      0
+RootDirSizeForLoop:          dw      RootDirSectors
+SectorNo:                    dw      0
+Odd:                         dw      0
+DisplayPosition:             dd      0
+OffsetOfKernelFileCount:     dd      OffsetOfKernelFile
+StartLoaderMessage:          db      "Start Loader"
+KernelFileName:              db      'KERNEL  BIN',0
+NoKernelMessage:             db      'ERROR:NO Kernel FOUND!'
+StartGetMemStructMessage:    db      'Start Get Memory Struct.'
+GetMemStructErrMessage:      db      'Get Memory Struct ERROR!'
+GetMemStructOKMessage:       db      'Get Memory Struct SUCCESSFUL!'
+MemStructNumber:             dd      0
+VBE_No_Support:              db      'No VBE SUPPORT!'
+VBE_Support:                 db      'VBE SUPPORT'
+StartGetSVGAVBEInfoMessage:  db      'Start Get SVGA VBE Info'
+GetSVGAModeFail:             db      'Get SVGA Mode Fail!'
+GetSVGAModeInfoMessage:      db      'Get SVGA Mode Successfully!'
+
+
+
+
 ;临时的GDT(只需要内核代码段和数据段就好)
 [SECTION gdt] 
 LABEL_GDT:              dd      0,0     ;NULL描述符
@@ -735,24 +759,5 @@ IDT_POINTER:
 
 
 
-;临时变量和字符串定义
-SVGAModeCounter:             dd      0
-RootDirSizeForLoop:          dw      RootDirSectors
-SectorNo:                    dw      0
-Odd:                         dw      0
-DisplayPosition:             dd      0
-OffsetOfKernelFileCount:     dd      OffsetOfKernelFile
-StartLoaderMessage:          db      "Start Loader"
-KernelFileName:              db      'KERNEL  BIN',0
-NoKernelMessage:             db      'ERROR:NO Kernel FOUND!'
-StartGetMemStructMessage:    db      'Start Get Memory Struct.'
-GetMemStructErrMessage:      db      'Get Memory Struct ERROR!'
-GetMemStructOKMessage:       db      'Get Memory Struct SUCCESSFUL!'
-MemStructNumber:             dd      0
-VBE_No_Support:              db      'No VBE SUPPORT!'
-VBE_Support:                 db      'VBE SUPPORT'
-StartGetSVGAVBEInfoMessage:  db      'Start Get SVGA VBE Info'
-GetSVGAModeFail:             db      'Get SVGA Mode Fail!'
-GetSVGAModeInfoMessage:      db      'Get SVGA Mode Successfully!'
 
-times (0x1000 - ($ - $$)) db 0
+;times (0x1000 - ($ - $$)) db 0
