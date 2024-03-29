@@ -135,6 +135,7 @@ void APIC_IOAPIC_init(void)
     out8(0x23,0x01 );
 
     Local_APIC_init();
+    screen_clear();
     SMP_init();
     IOAPIC_init();
 

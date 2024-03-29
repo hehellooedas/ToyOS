@@ -3,18 +3,15 @@ BUILD_DIR = build
 MAKE = make
 NASM = nasm
 AS = as
+CC = gcc
 LD = ld
 AR = ar
 RM = rm -rf
-ifeq ($(command -v ccache > /dev/null 2>&1 && echo 1 || echo 0),1)
-	CC = ccache gcc
-else
-	CC = gcc
-endif
 
 
-LIB      = -I kernel -I lib -I device -I task -I fs
-CFLAGS   = -mcmodel=large -march=x86-64 -fno-builtin -m64 -fno-stack-protector -W -Wstrict-prototypes -Wmissing-prototypes -ffreestanding -fno-pic -fno-pie -fdiagnostics-color=always -g $(LIB)
+
+LIB      = -I kernel -I lib -I device -I task -I fs -I task
+CFLAGS   = -mcmodel=large -march=x86-64 -fno-builtin -m64 -fno-stack-protector -w -fno-pic -fno-pie -fdiagnostics-color=always -g $(LIB)
 LDFLAGS  = -b elf64-x86-64 -z muldefs -T kernel/kernel.lds
 OBJS     =  $(BUILD_DIR)/head.o $(BUILD_DIR)/main.o $(BUILD_DIR)/printk.o \
 	   		$(BUILD_DIR)/init.o $(BUILD_DIR)/screen.o $(BUILD_DIR)/string.o \
@@ -22,7 +19,8 @@ OBJS     =  $(BUILD_DIR)/head.o $(BUILD_DIR)/main.o $(BUILD_DIR)/printk.o \
 			$(BUILD_DIR)/interrupt.o $(BUILD_DIR)/cpu.o $(BUILD_DIR)/task.o \
 			$(BUILD_DIR)/APIC.o $(BUILD_DIR)/keyboard.o $(BUILD_DIR)/mouse.o \
 			$(BUILD_DIR)/disk.o $(BUILD_DIR)/SMP.o $(BUILD_DIR)/APU_boot.o \
-			$(BUILD_DIR)/time.o $(BUILD_DIR)/HPET.o
+			$(BUILD_DIR)/time.o $(BUILD_DIR)/HPET.o $(BUILD_DIR)/softirq.o \
+			$(BUILD_DIR)/timer.o
 
 PIC := PIC_APIC
 
@@ -31,10 +29,10 @@ PIC := PIC_APIC
 compile: $(OBJS)
 
 link: compile
-	$(LD) $(LDFLAGS) $(OBJS) -o $(BUILD_DIR)/system
+	@$(LD) $(LDFLAGS) $(OBJS) -o $(BUILD_DIR)/system
 
 copy: link
-	objcopy -I elf64-x86-64 -S -R ".eh_frame" -R ".comment" -O binary $(BUILD_DIR)/system $(BUILD_DIR)/kernel.bin
+	@objcopy -I elf64-x86-64 -S -R ".eh_frame" -R ".comment" -O binary $(BUILD_DIR)/system $(BUILD_DIR)/kernel.bin
 
 
 
@@ -48,70 +46,76 @@ $(BUILD_DIR)/loader.bin: boot/loader.asm
 
 
 $(BUILD_DIR)/head.o: kernel/head.S kernel/linkage.h
-	gcc -E kernel/head.S > $(BUILD_DIR)/head.s
-	$(AS)  $(BUILD_DIR)/head.s -o $@ -a=$(BUILD_DIR)/1.lst
+	@gcc -E kernel/head.S > $(BUILD_DIR)/head.s
+	@$(AS)  $(BUILD_DIR)/head.s -o $@ -a=$(BUILD_DIR)/1.lst
 
 $(BUILD_DIR)/entry.o: kernel/entry.S
-	gcc -E kernel/entry.S > $(BUILD_DIR)/entry.s
-	$(AS)  build/entry.s -o $@
+	@gcc -E kernel/entry.S > $(BUILD_DIR)/entry.s
+	@$(AS)  build/entry.s -o $@
 
 $(BUILD_DIR)/APU_boot.o: kernel/APU_boot.S
-	gcc -E kernel/APU_boot.S > $(BUILD_DIR)/APU_boot.s
-	$(AS)  build/APU_boot.s -o $@
+	@gcc -E kernel/APU_boot.S > $(BUILD_DIR)/APU_boot.s
+	@$(AS)  build/APU_boot.s -o $@
 
 
 
 
 $(BUILD_DIR)/main.o: kernel/main.c
-	$(CC) $(CFLAGS) -c $< -o $@
+	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/printk.o: lib/printk.c
-	$(CC) $(CFLAGS) -c $< -o $@
+	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/screen.o: device/screen.c
-	$(CC) $(CFLAGS) -c $< -o $@
+	@@$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/init.o:kernel/init.c
-	$(CC) $(CFLAGS) -c $< -o $@ -D$(PIC)
+	@$(CC) $(CFLAGS) -c $< -o $@ -D$(PIC)
 
 $(BUILD_DIR)/trap.o:kernel/trap.c kernel/trap.h
-	$(CC) $(CFLAGS) -c $< -o $@
+	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/memory.o:kernel/memory.c kernel/memory.h
-	$(CC) $(CFLAGS) -c $< -o $@
+	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/interrupt.o:kernel/interrupt.c kernel/interrupt.h
-	$(CC) $(CFLAGS) -c $< -o $@ -D$(PIC)
+	@$(CC) $(CFLAGS) -c $< -o $@ -D$(PIC)
 
 $(BUILD_DIR)/cpu.o:kernel/cpu.c kernel/cpu.h
-	$(CC) $(CFLAGS) -c $< -o $@
+	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/task.o:task/task.c task/task.h
-	$(CC) $(CFLAGS) -c $< -o $@
+	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/string.o:lib/string.c lib/string.h
-	$(CC) $(CFLAGS) -c $< -o $@
+	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/APIC.o:device/APIC.c device/APIC.h
-	$(CC) $(CFLAGS) -c $< -o $@
+	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/keyboard.o:device/keyboard.c device/keyboard.h
-	$(CC) $(CFLAGS) -c $< -o $@
+	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/mouse.o:device/mouse.c device/mouse.h
-	$(CC) $(CFLAGS) -c $< -o $@
+	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/disk.o:device/disk.c device/disk.h
-	$(CC) $(CFLAGS) -c $< -o $@
+	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/time.o:device/time.c device/time.h
-	$(CC) $(CFLAGS) -c $< -o $@
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/timer.o:device/timer.c device/timer.h
+	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/HPET.o:device/HPET.c device/HPET.h
-	$(CC) $(CFLAGS) -c $< -o $@
+	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/SMP.o:kernel/SMP.c kernel/SMP.h
-	$(CC) $(CFLAGS) -c $< -o $@
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/softirq.o:kernel/softirq.c kernel/softirq.h
+	@$(CC) $(CFLAGS) -c $< -o $@
 
 
 

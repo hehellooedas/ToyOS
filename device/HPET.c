@@ -1,6 +1,8 @@
-#include "interrupt.h"
+#include <printk.h>
+#include <interrupt.h>
 #include <memory.h>
 #include <HPET.h>
+#include <lib.h>
 
 
 
@@ -30,10 +32,25 @@ void HPET_init(void)
     entry.destination.physical.phy_dest = entry.destination.physical.res_2 = entry.destination.physical.res_3 = 0;
 
     register_irq(34,&entry ,&HPET_handler ,0 ,&HPET_int_controler ,"HPET" );
+
+    color_printk(GREEN,BLACK,"HPET - GCAP_ID:%#lx\n",*(unsigned long*)HPET_addr);
+
+
+    *(unsigned long*)(HPET_addr + HPET_GEN_CONF) = 3;
+    mfence();
+
+    *(unsigned long*)(HPET_addr + HPET_TIM0_CONF) = 0x004c;
+    mfence();
+
+    *(unsigned long*)(HPET_addr + HPET_TIM0_COMP) = 14318179;
+    mfence();
+
+    *(unsigned long*)(HPET_addr + HPET_MAIN_CNT) = 0;
+    mfence();
 }
 
 
 void HPET_handler(unsigned long nr,unsigned long parameter,struct pt_regs* regs)
 {
-
+    color_printk(RED,BLACK ,"HPET\n" );
 }
