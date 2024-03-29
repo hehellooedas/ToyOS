@@ -57,6 +57,7 @@ typedef struct{
     unsigned long flags;        //标志位
 } irq_desc_T;
 
+
 irq_desc_T interrupt_desc[NR_IRQS] = {0};
 
 

@@ -6,6 +6,8 @@
 #include <task.h>
 #include <control.h>
 #include <random.h>
+#include <SMP.h>
+
 
 extern char _data;
 extern char _rodata;
@@ -37,7 +39,7 @@ void task_init(void) {
             init_tss[0].ist4, init_tss[0].ist5, init_tss[0].ist6,
             init_tss[0].ist7);
 
-    init_tss[0].rsp0 = init_thread.rsp0;
+    init_tss[SMP_cpu_id()].rsp0 = init_thread.rsp0;
 
     list_init(&init_task_union.task.list);  //初始化init进程的链表结构
     kernel_thread(init, 10,

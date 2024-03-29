@@ -65,6 +65,10 @@ struct task_struct {
   long counter;  // 时间片
   long signal;   // 进程持有的信号
   long priority; // 进程优先级
+
+  long preempt_count;
+  long cpu_id;
+
 };
 
 
@@ -133,7 +137,7 @@ struct thread_struct init_thread;
   {                                                                            \
     .state = TASK_UNINTERRUPTIBLE, .flags = PF_KTHREAD, .mm = &init_mm,        \
     .thread = &init_thread, .addr_limit = 0xffff800000000000, .pid = 0,        \
-    .counter = 1, .signal = 0, .priority = 0                                   \
+    .counter = 1, .signal = 0, .priority = 0, .cpu_id = 0, .preempt_count = 0                                   \
   }
 
 

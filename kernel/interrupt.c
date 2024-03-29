@@ -5,25 +5,48 @@
 #include <8259A.h>
 #include <lib.h>
 #include <stdbool.h>
+#include <APIC.h>
 
 #if PIC_APIC
 void do_IRQ(struct pt_regs* regs,unsigned long nr){
-    irq_desc_T* irq = &interrupt_desc[nr - 32];
+    switch (nr & 0x80) {
+        case 0x00:
+            irq_desc_T* irq = &interrupt_desc[nr - 32];
 
-    if(irq->handler != NULL){
-        irq->handler(nr,irq->parameter,regs);
-    }
-    if(irq->controler != NULL && irq->controler->ack != NULL){
-        irq->controler->ack(nr);  //向中断控制器发送应答消息
+            if(irq->handler != NULL){
+                irq->handler(nr,irq->parameter,regs);
+            }
+            if(irq->controler != NULL && irq->controler->ack != NULL){
+                irq->controler->ack(nr);  //向中断控制器发送应答消息
+            }
+            break;
+        case 0x80:
+            color_printk(RED,BLACK ,"SMP IPI:%d\n",nr );
+            Local_APIC_edge_level_ack(nr);
+            break;
+        default:
+            color_printk(RED,BLACK ,"do_IRQ receive:%d\n",nr );
+            break;
     }
 }
 #else
-void do_IRQ(unsigned long regs,unsigned long nr){
-    unsigned char x;
-    color_printk(RED,BLACK,"do_IRQ:%#08x\t",nr);
-    x = in8(0x60);
-    color_printk(RED,BLACK,"key code:%#08x\n",x);
-    out8(0x20,0x20);
+void do_IRQ(struct pt_regs* regs,unsigned long nr){
+    switch (nr & 0x80) {
+        case 0x00:
+            unsigned char x;
+            color_printk(RED,BLACK,"do_IRQ:%#08x\t",nr);
+            x = in8(0x60);
+            color_printk(RED,BLACK,"key code:%#08x\n",x);
+            out8(0x20,0x20);
+            break;
+        case 0x80:
+            color_printk(RED,BLACK ,"SMP IPI:%d\n",nr );
+            Local_APIC_edge_level_ack(nr);
+            break;
+        default:
+            color_printk(RED,BLACK ,"do_IRQ receive:%d\n",nr );
+            break;
+    }
 }
 #endif
 

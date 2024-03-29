@@ -1,5 +1,5 @@
+#include "printk.h"
 #include <time.h>
-
 
 
 
@@ -15,4 +15,12 @@ void get_cmos_time(struct time* time){
     }while(time->second != CMOS_READ(0x00));
     out8(PORT_CMOS_INDEX,0x00 );
     sti();
+}
+
+
+
+void print_current_time(void){
+    struct time current_time;
+    get_cmos_time(&current_time);
+    color_printk(GREEN,BLACK,"%x-%x-%x  %x-%x-%x\n",current_time.year,current_time.mounth,current_time.day,current_time.hour,current_time.minute,current_time.second);
 }

@@ -18,7 +18,7 @@ extern struct block_device_operation IDE_device_operation;
 
 void Start_Kernel(void){
     init_all();
-    /*
+
     while(1){
         if(keyboard_queue->count){
             analysis_keycode();
@@ -27,6 +27,6 @@ void Start_Kernel(void){
             analysis_mousecode();
         }
     }
-    */
+
     while(1);
 }

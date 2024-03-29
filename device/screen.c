@@ -53,11 +53,13 @@ void screen_init(void){
 
 /*  清屏  */
 void screen_clear(void){
+    spin_lock(&Pos.printk_lock);
     /*  设置当前位置为左上角  */
     Pos.XPosition = 0;
     Pos.YPosition = 0;
     /*  把数据清零  */
     memset(Pos.FB_addr,0 ,Pos.FB_length);
+    spin_unlock(&Pos.printk_lock);
 }
 
 
@@ -65,6 +67,7 @@ void screen_clear(void){
 
 /*  模拟Windows蓝屏(blue screen death)的效果  */
 void set_screen_blue(void){
+    spin_lock(&Pos.printk_lock);
     Pos.XPosition = 0;
     Pos.YPosition = 0;
     for(int i=0;i<Pos.XResolution * Pos.YResolution;i++){
@@ -72,6 +75,7 @@ void set_screen_blue(void){
     }
     Pos.XPosition = 0;
     Pos.YPosition = 0;
+    spin_unlock(&Pos.printk_lock);
 }
 
 

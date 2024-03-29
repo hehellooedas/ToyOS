@@ -74,10 +74,22 @@ void SMP_init(void){
         wrmsr(0x830,*(unsigned long*)&icr_entry );
         wrmsr(0x830,*(unsigned long*)&icr_entry );  //向目标处理器投递两次Start UP
     }
+
     for(int i=200;i<210;i++){
         set_intr_gate(i,2 ,SMP_interrupt[i - 200] );
     }
-    memset(SMP_IPI_desc,0,sizeof(irq_desc_T) * 10);
+    memset(SMP_IPI_desc,0,sizeof(irq_desc_T) * 10);   //暂时不设置中断下文
+
+/*
+    icr_entry.vector = 0xc8;
+    icr_entry.destination.x2apic_destination = 1;
+    icr_entry.deliver_mode = ICR_DELIVER_MODE_FIXED;
+    color_printk(GREEN,BLACK ,"%#lx\n",*(unsigned long*)&icr_entry );
+    wrmsr(0x830,*(unsigned long*)&icr_entry );
+    icr_entry.vector = 0xc9;
+    wrmsr(0x830,*(unsigned long*)&icr_entry );
+*/
+
 }
 
 
@@ -105,6 +117,10 @@ void Start_SMP(void){
     color_printk(GREEN,BLACK ,"CPU%d is running!\n",global_i - 1 );
     spin_unlock(&SMP_lock);
 
+    sti();
 
-    hlt();
+    while(1){
+        hlt();
+    }
+
 }

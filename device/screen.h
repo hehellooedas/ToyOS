@@ -21,7 +21,7 @@ struct position{
     unsigned int* FB_addr;   //帧缓冲区起始地址(frame buffer)
     unsigned long FB_length; //帧缓冲区容量大小
 
-    spinlock_T printk_lock;
+    spinlock_T printk_lock;     //屏幕控制的自旋锁
 };
 
 extern struct position Pos;

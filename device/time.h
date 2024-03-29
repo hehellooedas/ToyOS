@@ -4,6 +4,7 @@
 
 #include <io.h>
 #include <interrupt.h>
+#include <printk.h>
 
 
 struct time{
@@ -37,5 +38,8 @@ struct time{
 
 
 void get_cmos_time(struct time* time);
+void print_current_time(void);
+
+
 
 #endif // !__DEVICE_TIME_H

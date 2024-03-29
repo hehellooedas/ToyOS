@@ -8,7 +8,7 @@
 #include <stdbool.h>
 #include <SMP.h>
 #include <ptrace.h>
-
+#include <interrupt.h>
 
 
 
@@ -191,6 +191,7 @@ void IOAPIC_edge_ack(unsigned long irq)
 }
 
 
-void do_IRQ(struct pt_regs* regs,unsigned long nr){
-
+void Local_APIC_edge_level_ack(unsigned long nr){
+    wrmsr(0x80b,0 );
 }
+

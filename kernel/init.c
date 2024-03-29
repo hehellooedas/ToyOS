@@ -12,6 +12,8 @@
 #include <mouse.h>
 #include <disk.h>
 #include <SMP.h>
+#include <time.h>
+#include <HPET.h>
 
 
 #if PIC_APIC
@@ -34,6 +36,7 @@ void init_all(void){
     frame_buffer_init();
     pagetable_init();
     IC_8259A_init();
+
 #if PIC_APIC
     color_printk(RED,BLACK,"current PIC is APIC\n",APIC);
     APIC_IOAPIC_init();
@@ -45,6 +48,8 @@ void init_all(void){
     keyboard_init();
     mouse_init();
     disk_init();
+    print_current_time();
+
 
 
     //task_init();
