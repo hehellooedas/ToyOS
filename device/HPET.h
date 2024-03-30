@@ -45,4 +45,31 @@ void HPET_handler(unsigned long nr,unsigned long parameter,struct pt_regs* regs)
 
 
 
+/*  定时器配置  */
+#define Timer_Conf_Trigger_Mode_Edge     (0 << 1)   //边沿触发
+#define Timer_Conf_Trigger_Mode_Level    (1 << 1)   //电平触发
+
+#define Timer_Conf_Interrupt_Disable     (0 << 2)   //使能中断
+#define Timer_Conf_Interrupt_Enable      (1 << 2)   //禁止中断
+
+#define Timer_Conf_Type_Disposable       (0 << 3)   //一次性产生中断
+#define Timer_Conf_Type_Cyclical         (1 << 3)   //周期性产生中断(持续产生中断直到应答)
+
+#define Timer_Conf_Cyclical_Support (1 << 4)    //检测定时器是否支持周期模式(只读,只有定时器0才支持)
+#define Timer_Conf_BitWidth_Support (1 << 5)    //检测定时器的位宽(只读)
+
+#define Timer_Conf_Modify_CNT_Enable    (1 << 6)    //允许定时器在允许时修改定时值
+
+
+#define Timer_Conf_Mask     ~(0b1111111100000001)    //定时器配置掩码
+
+/*  生成定时器配置字  */
+static __attribute__((always_inline))
+unsigned long gen_time_conf(unsigned short conf)
+{
+    return (((unsigned long)(conf & Timer_Conf_Mask) )& ~(0xffffffffffff0000));
+}
+
+
+
 #endif

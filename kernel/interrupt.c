@@ -186,7 +186,7 @@ void (*SMP_interrupt[10])(void) = {
 void interrupt_init(void)
 {
     for(int i=32;i<56;i++){
-        set_intr_gate(i,2,interrupt[i - 32]);
+        set_intr_gate(i,0,interrupt[i - 32]);
     }
 }
 

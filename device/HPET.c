@@ -3,8 +3,9 @@
 #include <memory.h>
 #include <HPET.h>
 #include <lib.h>
+#include <softirq.h>
 
-
+extern unsigned long jiffies;
 
 hw_int_controler HPET_int_controler = {
     .enable = IOAPIC_enbale,
@@ -39,7 +40,8 @@ void HPET_init(void)
     *(unsigned long*)(HPET_addr + HPET_GEN_CONF) = 3;
     mfence();
 
-    *(unsigned long*)(HPET_addr + HPET_TIM0_CONF) = 0x004c;
+    *(unsigned long*)(HPET_addr + HPET_TIM0_CONF) = gen_time_conf(Timer_Conf_Interrupt_Enable | Timer_Conf_Modify_CNT_Enable | Timer_Conf_Trigger_Mode_Edge | Timer_Conf_Type_Cyclical);
+
     mfence();
 
     *(unsigned long*)(HPET_addr + HPET_TIM0_COMP) = 14318179;
@@ -52,5 +54,6 @@ void HPET_init(void)
 
 void HPET_handler(unsigned long nr,unsigned long parameter,struct pt_regs* regs)
 {
-    color_printk(RED,BLACK ,"HPET\n" );
+    jiffies++;
+    set_softirq_status(TIMER_STRQ);
 }

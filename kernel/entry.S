@@ -63,6 +63,13 @@ RESTORE_ALL:
 ret_from_exception:
 
 ENTRY(ret_from_intr)
+    movq $-1,%rcx
+    testq softirq_status(%rip),%rcx
+    jnz softirq_handler
+    jmp RESTORE_ALL
+
+softirq_handler:
+    callq do_softirq
     jmp RESTORE_ALL
 
 
