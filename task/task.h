@@ -1,6 +1,7 @@
 #ifndef __Task_Task_H
 #define __Task_Task_H
 
+
 #include <cpu.h>
 #include <lib.h>
 #include <list.h>
@@ -8,7 +9,10 @@
 #include <printk.h>
 #include <ptrace.h>
 
+
 #define STACK_SIZE 32768 // 32K(暂且如此设定)
+
+
 
 /*  进程状态  */
 #define TASK_RUNNING (1 << 0)         // 运行态
@@ -68,7 +72,7 @@ struct task_struct {
 
   long preempt_count;
   long cpu_id;
-
+  long virtual_runtime;
 };
 
 
@@ -137,7 +141,12 @@ struct thread_struct init_thread;
   {                                                                            \
     .state = TASK_UNINTERRUPTIBLE, .flags = PF_KTHREAD, .mm = &init_mm,        \
     .thread = &init_thread, .addr_limit = 0xffff800000000000, .pid = 0,        \
-    .counter = 1, .signal = 0, .priority = 0, .cpu_id = 0, .preempt_count = 0                                   \
+    .counter = 1,                                     \
+    .signal = 0,                                     \
+    .priority = 2,                                  \
+    .cpu_id = 0,                                   \
+    .preempt_count = 0,                             \
+    .virtual_runtime = 0                            \
   }
 
 
@@ -164,7 +173,9 @@ struct thread_struct init_thread = {
     .gs = KERNEL_DS,
     .cr2 = 0,
     .trap_nr = 0,
-    .error_code = 0};
+    .error_code = 0
+};
+
 
 
 /*  初始化TSS结构体(用于将TSS信息写入到TSS_Table)  */

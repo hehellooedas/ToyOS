@@ -58,6 +58,5 @@ void do_softirq(){
             softirq_status &= ~ (1 << i);
         }
     }
-
     cli();
 }

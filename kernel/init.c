@@ -51,7 +51,6 @@ void init_all(void){
     mouse_init();
     disk_init();
     print_current_time();
-    HPET_init();
 
     softirq_init();
     timer_init();

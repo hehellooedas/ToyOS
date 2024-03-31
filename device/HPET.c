@@ -4,6 +4,7 @@
 #include <HPET.h>
 #include <lib.h>
 #include <softirq.h>
+#include <timer.h>
 
 extern unsigned long jiffies;
 
@@ -55,5 +56,6 @@ void HPET_init(void)
 void HPET_handler(unsigned long nr,unsigned long parameter,struct pt_regs* regs)
 {
     jiffies++;
-    set_softirq_status(TIMER_STRQ);
+    if((container_of(get_List_next(&timer_list_head.list),struct timer_list ,list )->expire_jiffies <= jiffies))
+        set_softirq_status(TIMER_STRQ);
 }
