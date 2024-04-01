@@ -112,6 +112,7 @@ void Start_SMP(void){
     unsigned long APIC_ID = rdmsr(IA32_APIC_ID_MSR );
     color_printk(GREEN,BLACK ,"APIC ID:%#lx\n",APIC_ID );
 
+    memset(current,0,sizeof(struct task_struct));
     load_TR((10 + (global_i - 1) * 2));
 
     color_printk(GREEN,BLACK ,"CPU%d is running!\n",global_i - 1 );

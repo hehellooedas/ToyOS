@@ -20,7 +20,7 @@ OBJS     =  $(BUILD_DIR)/head.o $(BUILD_DIR)/main.o $(BUILD_DIR)/printk.o \
 			$(BUILD_DIR)/APIC.o $(BUILD_DIR)/keyboard.o $(BUILD_DIR)/mouse.o \
 			$(BUILD_DIR)/disk.o $(BUILD_DIR)/SMP.o $(BUILD_DIR)/APU_boot.o \
 			$(BUILD_DIR)/time.o $(BUILD_DIR)/HPET.o $(BUILD_DIR)/softirq.o \
-			$(BUILD_DIR)/timer.o
+			$(BUILD_DIR)/timer.o $(BUILD_DIR)/schedule.o
 
 PIC := PIC_APIC
 
@@ -85,6 +85,9 @@ $(BUILD_DIR)/cpu.o:kernel/cpu.c kernel/cpu.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/task.o:task/task.c task/task.h
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/schedule.o:task/schedule.c task/schedule.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/string.o:lib/string.c lib/string.h

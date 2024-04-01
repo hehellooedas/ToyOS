@@ -1,3 +1,4 @@
+#include "schedule.h"
 #include <printk.h>
 #include <interrupt.h>
 #include <memory.h>
@@ -5,6 +6,8 @@
 #include <lib.h>
 #include <softirq.h>
 #include <timer.h>
+#include <task.h>
+
 
 extern unsigned long jiffies;
 
@@ -53,9 +56,25 @@ void HPET_init(void)
 }
 
 
+
 void HPET_handler(unsigned long nr,unsigned long parameter,struct pt_regs* regs)
 {
     jiffies++;
     if((container_of(get_List_next(&timer_list_head.list),struct timer_list ,list )->expire_jiffies <= jiffies))
         set_softirq_status(TIMER_STRQ);
+    switch (current->priority) {
+        case 0:
+        case 1:
+            task_schedule.CPU_exec_task_jiffies--;
+            current->virtual_runtime++;
+            break;
+        case 2:
+        default:
+            task_schedule.CPU_exec_task_jiffies -= 2;
+            current->virtual_runtime += 2;
+            break;
+    }
+    if(task_schedule.CPU_exec_task_jiffies <= 0){
+        current->flags |= NEED_SCHEDULE;
+    }
 }

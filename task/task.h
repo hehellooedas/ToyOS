@@ -21,16 +21,20 @@
 #define TASK_ZOMBIE (1 << 3)          // 僵尸进程
 #define TASK_STOPPED (1 << 4)         // 进程的执行暂停
 
-#define PF_KTHREAD (1 << 0)
+#define PF_KTHREAD    (1UL << 0)
+#define NEED_SCHEDULE (1UL << 1)    //标记当前进程是否可被调度
 
-#define KERNEL_CS 0x08 // 内核代码段选择子
-#define KERNEL_DS 0x10 // 内核数据段选择子
-#define USER_CS 0x28   // 用户代码段选择子
-#define USER_DS 0x30   // 用户数据段选择子
+#define KERNEL_CS 0x08    // 内核代码段选择子
+#define KERNEL_DS 0x10    // 内核数据段选择子
+#define USER_CS   0x28    // 用户代码段选择子
+#define USER_DS   0x30    // 用户数据段选择子
 
 #define CLONE_FS (1 << 0)
 #define CLONE_FILES (1 << 1)
 #define CLONE_SIGNAL (1 << 2)
+
+
+
 
 extern char _text;
 extern char _etext;
@@ -57,23 +61,27 @@ struct mm_struct {
 
 /*  PCB是进程的身份证  */
 struct task_struct {
-  struct List list;    // 双向链表
-  volatile long state; // 进程状态(保证实时状态)
-  unsigned long flags; // 进程标志(进程/线程/内核线程)
+  volatile long state;    // 进程状态(保证实时状态)
+  unsigned long flags;    // 进程标志(进程/线程/内核线程)
+  long preempt_flags;     //记录持有自旋锁的数量
+  long signal;            // 进程持有的信号
+  long cpu_id;            //该进程绑定哪一个核心
 
   struct mm_struct *mm;         // 内存空间分布结构体
   struct thread_struct *thread; // 进程切换时保留的状态信息(紧跟在pcb后面)
+  struct List list;       // 双向链表
   unsigned long addr_limit;     // 进程地址空间范围(内核/用户空间)
-
-  long pid;      // 进程ID
-  long counter;  // 时间片
-  long signal;   // 进程持有的信号
-  long priority; // 进程优先级
+  /*
+   * 0x0000000000000000 - 0x00007fffffffffff属于用户空间
+   * 0xffff800000000000 - 0xffffffffffffffff属于内核空间
+   */
 
   long preempt_count;
-  long cpu_id;
+  long pid;      // 进程ID
+  long priority; // 进程优先级
   long virtual_runtime;
 };
+
 
 
 /*
@@ -141,7 +149,6 @@ struct thread_struct init_thread;
   {                                                                            \
     .state = TASK_UNINTERRUPTIBLE, .flags = PF_KTHREAD, .mm = &init_mm,        \
     .thread = &init_thread, .addr_limit = 0xffff800000000000, .pid = 0,        \
-    .counter = 1,                                     \
     .signal = 0,                                     \
     .priority = 2,                                  \
     .cpu_id = 0,                                   \

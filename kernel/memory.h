@@ -155,10 +155,11 @@ struct Page{
 
 #define PAGE_KERNEL_GDT (PAGE_R_W | PAGE_Present)
 
-#define PAGE_KERNEL_Dir (PAGE_R_W | PAGE_Present)
+#define PAGE_KERNEL_Dir  (PAGE_R_W | PAGE_Present)
 #define PAGE_KERNEL_Page (PAGE_PS | PAGE_R_W | PAGE_Present)
-#define PAGE_USER_Dir   (PAGE_U_S| PAGE_R_W | PAGE_Present)
-#define PAGE_USER_Page  (PAGE_PS | PAGE_U_S| PAGE_R_W | PAGE_Present)
+#define PAGE_USER_GDT    (PAGE_U_S | PAGE_R_W | PAGE_Present)
+#define PAGE_USER_Dir    (PAGE_U_S| PAGE_R_W | PAGE_Present)
+#define PAGE_USER_Page   (PAGE_PS | PAGE_U_S| PAGE_R_W | PAGE_Present)
 
 #define PG_PTable_Maped	(1 << 0)    //已在页表中映射
 #define PG_Kernel_Init	(1 << 1)    //内核初始化程序

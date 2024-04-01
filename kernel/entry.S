@@ -1,6 +1,11 @@
 #include "linkage.h"
 
 
+/*  这是PCB中几个变量的偏移地址  */
+TASK_STATE   =   0x00
+TASK_FLAGS   =   0x08
+TASK_PREEMPT =   0x10
+TASK_SIGNAL  =   0x18
 
 .code64
 /*  各个寄存器在栈中的偏移量  */
@@ -56,20 +61,37 @@ RESTORE_ALL:
 
 
 #define GET_CURRENT(reg) \
-    movq $-323768,reg \
+    movq $-32768,reg; \
     andq %rsp,reg
 
 
 ret_from_exception:
 
 ENTRY(ret_from_intr)
+    /*  判断是否有软中断需要解决  */
     movq $-1,%rcx
     testq softirq_status(%rip),%rcx
     jnz softirq_handler
+    /*  判断是否进程需要调度  */
+    GET_CURRENT(%rbx)
+    movq TASK_FLAGS(%rbx),%rcx
+    testq $2,%rcx
+    jnz reschedule
     jmp RESTORE_ALL
+
 
 softirq_handler:
     callq do_softirq
+    jmp RESTORE_ALL
+
+
+reschedule:
+    callq schedule
+    GET_CURRENT(%rbx)
+    movq TASK_FLAGS(%rbx),%rcx
+    testq $2,%rcx
+    jnz reschedule
+    jmp RESTORE_ALL
     jmp RESTORE_ALL
 
 

@@ -16,6 +16,7 @@
 #include <HPET.h>
 #include <timer.h>
 #include <softirq.h>
+#include <schedule.h>
 
 
 #if PIC_APIC
@@ -46,17 +47,14 @@ void init_all(void){
     color_printk(RED,BLACK,"current PIC is 8259A\n");
 #endif
     interrupt_init();
-    sti();
     keyboard_init();
     mouse_init();
     disk_init();
     print_current_time();
-
+    schedule_init();
     softirq_init();
     timer_init();
-    HPET_init();
-
-
-
-    //task_init();
+    HPET_init();    //在定时器产生中断之前,把其他模块都初始化完
+    sti();
+    task_init();
 }

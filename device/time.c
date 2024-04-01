@@ -14,7 +14,7 @@ void get_cmos_time(struct time* time){
         time->second = CMOS_READ(RTC_SECOND_INDEX);
     }while(time->second != CMOS_READ(0x00));
     out8(PORT_CMOS_INDEX,0x00 );
-    sti();
+    //sti();
 }
 
 

@@ -1,3 +1,5 @@
+#include "memory.h"
+#include "schedule.h"
 #include <lib.h>
 #include <printk.h>
 #include <ptrace.h>
@@ -46,7 +48,7 @@ void task_init(void) {
                 CLONE_FS | CLONE_FILES | CLONE_SIGNAL); // 创建init进程(非内核线程)
     init_task_union.task.state = TASK_RUNNING;
 
-    p = container_of(get_List_next(&current->list), struct task_struct, list);
+    p = container_of(get_List_next(&task_schedule.task_queue.list), struct task_struct, list);
     switch_to(current, p);
 }
 
@@ -57,6 +59,7 @@ unsigned long init(unsigned long arg) {
 
     color_printk(RED, BLACK, "init task is running,arg:%#018x\n", arg);
 
+    current->flags = 0;
     current->thread->rip = (unsigned long)ret_system_call;
     current->thread->rsp =
         (unsigned long)current + STACK_SIZE - sizeof(struct pt_regs);
@@ -155,6 +158,7 @@ unsigned long do_fork(struct pt_regs *regs, unsigned long clone_flags,
 
     task->pid++;
     task->state = TASK_UNINTERRUPTIBLE;
+    task->priority = 2;
 
     thread = (struct thread_struct *)(task + 1);
     task->thread = thread;
@@ -173,6 +177,7 @@ unsigned long do_fork(struct pt_regs *regs, unsigned long clone_flags,
         thread->rip = regs->rip = (unsigned long)ret_system_call;
     }
     task->state = TASK_RUNNING;
+    instert_task_queue(task);
     return 0;
 }
 
@@ -194,7 +199,7 @@ __switch_to(struct task_struct *prev, struct task_struct *next) {
         asm volatile ("movq %0,%%fs \n\t":"=a"(next->thread->fs));
         asm volatile ("movq %0,%%gs \n\t":"=a"(next->thread->gs));
     */
-
+    wrmsr(0x175,next->thread->rsp0 );
     /*  相互保存fs和gs段寄存器  */
     asm volatile(
         "movq %%fs,%0       \n\t"
@@ -219,12 +224,38 @@ unsigned long do_exit(unsigned long code) {
 
 
 unsigned long do_execute(struct pt_regs *regs) {
+    unsigned long addr = 0x800000;
+    unsigned long* tmp;
+    unsigned long* virtual = NULL;
+    struct Page* p = NULL;
+
+
     regs->rdx = 0x800000; // rip
     regs->rcx = 0xa00000; // rsp
     regs->rax = 1;
     regs->ds = 0;
     regs->es = 0;
     color_printk(RED, BLACK, "do_execute task is running\n");
+
+    Global_CR3 = Get_gdt();
+    tmp = Phy_To_Virt((unsigned long*)((unsigned long)Global_CR3 & (~0xfffUL)) + ((addr >> PAGE_GDT_SHIFT) & 0x1ff));
+    virtual = kmalloc(PAGE_4K_SIZE,0);
+    set_pml4t(tmp,mk_pml4t(Virt_To_Phy(virtual),PAGE_USER_GDT ) );
+
+    tmp = Phy_To_Virt((unsigned long*)(*tmp & (~0xfffUL)) + ((addr >> PAGE_1G_SHIFT) & 0x1ff));
+    virtual = kmalloc(PAGE_4K_SIZE,0);
+    set_pdpt(tmp,mk_pdpt(Virt_To_Phy(virtual),PAGE_USER_Dir ) );
+
+    tmp = Phy_To_Virt((unsigned long*)(*tmp & (~0xfffUL)) + ((addr >> PAGE_2M_SHIFT) & 0x1ff));
+    p = alloc_pages(ZONE_NORMAL,1,PG_PTable_Maped);
+    set_pdt(tmp,mk_pdt(p->PHY_address,PAGE_USER_Page ) );
+
+    flush_tlb();
+
+    if(!(current->flags & PF_KTHREAD)){
+        current->addr_limit = 0xffff800000000000;
+    }
+
     memcpy((void *)0x800000, user_level_function, 1024);
     return 0;
 }

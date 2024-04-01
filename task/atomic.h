@@ -1,6 +1,8 @@
 #ifndef __TASK_ATOMIC_H
 #define __TASK_ATOMIC_H
 
+
+
 typedef struct{
     /* 变量设置为volatile 每次读写都必须到内存操作 */
     __volatile__ long value;
@@ -30,6 +32,7 @@ void atomic_add(atomic_T* atomic,long value)
         :"memory"
     );
 }
+
 
 static __attribute__((always_inline)) 
 void atomic_sub(atomic_T* atomic,long value)
@@ -65,7 +68,6 @@ void atomic_dec(atomic_T* atomic)
         :"memory"
     );
 }
-
 
 
 
