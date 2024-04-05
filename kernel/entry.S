@@ -71,9 +71,15 @@ ENTRY(ret_from_intr)
     /*  判断是否有软中断需要解决  */
     movq $-1,%rcx
     testq softirq_status(%rip),%rcx
-    jnz softirq_handler
+    jnz softirq_handler #不为0则有软中断需要处理
+
     /*  判断是否进程需要调度  */
     GET_CURRENT(%rbx)
+    /*  判断当前进程是否允许被调度  */
+    movq TASK_PREEMPT(%rbx),%rcx
+    cmpq $0,%rcx    #为0则允许被调度
+    jne RESTORE_ALL
+
     movq TASK_FLAGS(%rbx),%rcx
     testq $2,%rcx
     jnz reschedule
@@ -81,17 +87,20 @@ ENTRY(ret_from_intr)
 
 
 softirq_handler:
-    callq do_softirq
+    callq do_softirq    #先把软中断处理掉
+    GET_CURRENT(%rbx)
+    movq TASK_PREEMPT(%rbx),%rcx
+    cmpq $0,%rcx
+    jne RESTORE_ALL
+
+    movq TASK_FLAGS(%rbx),%rcx
+    testq $2,%rcx
+    jnz reschedule
     jmp RESTORE_ALL
 
 
 reschedule:
     callq schedule
-    GET_CURRENT(%rbx)
-    movq TASK_FLAGS(%rbx),%rcx
-    testq $2,%rcx
-    jnz reschedule
-    jmp RESTORE_ALL
     jmp RESTORE_ALL
 
 

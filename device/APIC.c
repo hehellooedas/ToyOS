@@ -9,7 +9,7 @@
 #include <SMP.h>
 #include <ptrace.h>
 #include <interrupt.h>
-
+#include <screen.h>
 
 
 /*  ESR错误内容记录在这里  */

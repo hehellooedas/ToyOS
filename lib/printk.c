@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <spinlock.h>
 #include <flags.h>
+#include <screen.h>
 
 
 char buf[4096] = {0};

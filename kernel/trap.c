@@ -2,6 +2,7 @@
 #include <printk.h>
 #include <stddef.h>
 #include <trap.h>
+#include <SMP.h>
 
 
 
@@ -71,16 +72,20 @@ Error Code
 
 */
 
+
+
 /*  除0异常  */
 void do_divide_error(unsigned long rsp, unsigned long error_code) {
   unsigned long *p = NULL;
   p = (unsigned long *)(rsp + 0x98);
   color_printk(RED, BLACK,
-               "do_divide_error(0),ERROR_CODE:%#lx,RSP:%#lx,RIP:%#lx\n",
-               error_code, rsp, *p);
+               "do_divide_error(0),ERROR_CODE:%#lx,RSP:%#lx,RIP:%#lx,CPU:%#lx\n",
+               error_code, rsp, *p,SMP_cpu_id());
   while (1)
     ;
 }
+
+
 
 void do_debug(unsigned long rsp, unsigned long error_code) {
   unsigned long *p = NULL;
@@ -91,6 +96,8 @@ void do_debug(unsigned long rsp, unsigned long error_code) {
   while (1)
     ;
 }
+
+
 
 /*  不可屏蔽中断,不是异常  */
 void do_nmi(unsigned long rsp, unsigned long error_code) {
@@ -103,6 +110,8 @@ void do_nmi(unsigned long rsp, unsigned long error_code) {
     ;
 }
 
+
+
 void do_int3(unsigned long rsp, unsigned long error_code) {
   unsigned long *p = NULL;
   p = (unsigned long *)(rsp + 0x98);
@@ -112,6 +121,9 @@ void do_int3(unsigned long rsp, unsigned long error_code) {
   while (1)
     ;
 }
+
+
+
 
 void do_overflow(unsigned long rsp, unsigned long error_code) {
   unsigned long *p = NULL;
@@ -123,6 +135,8 @@ void do_overflow(unsigned long rsp, unsigned long error_code) {
     ;
 }
 
+
+
 void do_bounds(unsigned long rsp, unsigned long error_code) {
   unsigned long *p = NULL;
   p = (unsigned long *)(rsp + 0x98);
@@ -132,6 +146,8 @@ void do_bounds(unsigned long rsp, unsigned long error_code) {
   while (1)
     ;
 }
+
+
 
 void do_undefined_opcode(unsigned long rsp, unsigned long error_code) {
   unsigned long *p = NULL;
@@ -144,6 +160,8 @@ void do_undefined_opcode(unsigned long rsp, unsigned long error_code) {
     ;
 }
 
+
+
 void do_dev_not_avaliable(unsigned long rsp, unsigned long error_code) {
   unsigned long *p = NULL;
   p = (unsigned long *)(rsp + 0x98);
@@ -155,6 +173,8 @@ void do_dev_not_avaliable(unsigned long rsp, unsigned long error_code) {
     ;
 }
 
+
+
 void do_double_fault(unsigned long rsp, unsigned long error_code) {
   unsigned long *p = NULL;
   p = (unsigned long *)(rsp + 0x98);
@@ -164,6 +184,8 @@ void do_double_fault(unsigned long rsp, unsigned long error_code) {
   while (1)
     ;
 }
+
+
 
 void do_coprocessor_segmeng_overrun(unsigned long rsp,
                                     unsigned long error_code) {
@@ -177,22 +199,31 @@ void do_coprocessor_segmeng_overrun(unsigned long rsp,
     ;
 }
 
+
+
 void do_segment_not_protection(unsigned long rsp, unsigned long error_code) {
   color_printk(RED, BLACK, "segment_not_protection");
   while (1)
     ;
 }
 
+
+
 void do_stack_segment_fault(unsigned long rsp, unsigned long error_code) {
   while (1)
     ;
 }
+
+
 
 void do_general_protection(unsigned long rsp, unsigned long error_code) {
   color_printk(RED, BLACK, "do_general_protection(13):%d\n", error_code);
   while (1)
     ;
 }
+
+
+
 
 void do_invalid_TSS(unsigned long rsp, unsigned long error_code) {
   unsigned long *p = NULL;
@@ -225,6 +256,8 @@ void do_invalid_TSS(unsigned long rsp, unsigned long error_code) {
   while (1)
     ;
 }
+
+
 
 void do_page_fault(unsigned long rsp, unsigned long error_code) {
   unsigned long *p = NULL;

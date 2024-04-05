@@ -14,7 +14,7 @@ struct gate_struct{
 
 extern struct desc_struct GDT_Table[];
 extern struct gate_struct IDT_Table[];
-extern unsigned int TSS64_Table[26];
+//extern unsigned int TSS64_Table[26];
 
 
 

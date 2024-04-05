@@ -48,7 +48,7 @@ entry64:
     movq %rax,%es
     movq %rax,%gs
     movq %rax,%ss
-    movq _stack_start(%rip),%rsp  #更新rsp为内核栈的地址
+    movq _stack_start(%rip),%rsp  #更新rsp为内核栈的地址(_stack_start是动态的)
 
     movq $0x1b,%rcx
     rdmsr
@@ -84,7 +84,7 @@ rp_sidt:
 
 
 setup_TSS64: #设置BSP的TSS描述符,AP不要到这里执行(AVL位保留)
-    leaq TSS64_Table(%rip),%rdx #当前TSS描述符指向TSS64_Table
+    leaq init_tss(%rip),%rdx #当前TSS描述符指向TSS64_Table
     xorq %rax,%rax
     xorq %rcx,%rcx
     movq $0x89,%rax  #1000 1001 存在 ring0 Type位表明这是TSS描述符
@@ -297,11 +297,3 @@ IDT_END:
 IDT_POINTER:
 IDT_LIMIT:  .word   IDT_END - IDT_Table - 1
 IDT_BASE:   .quad   IDT_Table
-
-
-
-#TSS64
-.global TSS64_Table
-TSS64_Table:
-    .fill 13,8,0   #104B=26*4B(TSS的内部结构很大)
-TSS64_END:

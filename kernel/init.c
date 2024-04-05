@@ -28,14 +28,27 @@
 extern unsigned long _stack_start;
 
 
+
 void init_all(void){
     load_TR(10);
-    set_tss64(TSS64_Table,_stack_start,_stack_start,_stack_start,0xffff800000007c00,0xffff800000007c00,0xffff800000007c00,0xffff800000007c00,0xffff800000007c00,0xffff800000007c00,0xffff800000007c00);
+    set_tss64((unsigned int*)&init_tss[0],_stack_start,_stack_start,_stack_start,0xffff800000007c00,0xffff800000007c00,0xffff800000007c00,0xffff800000007c00,0xffff800000007c00,0xffff800000007c00,0xffff800000007c00);
     screen_init();
     sys_vector_init();
     cpu_init();
     memory_init();
     slab_init();
+    /*  Slab初始化之后才有kmalloc  */
+    unsigned char* ptr = NULL;
+    ptr = (unsigned char*)kmalloc(STACK_SIZE,0) + STACK_SIZE;
+    ((struct task_struct*)(ptr - STACK_SIZE))->cpu_id = 0;
+    init_tss[0].ist1 = (unsigned long)ptr;
+    init_tss[0].ist2 = (unsigned long)ptr;
+    init_tss[0].ist3 = (unsigned long)ptr;
+    init_tss[0].ist4 = (unsigned long)ptr;
+    init_tss[0].ist5 = (unsigned long)ptr;
+    init_tss[0].ist6 = (unsigned long)ptr;
+    init_tss[0].ist7 = (unsigned long)ptr;
+
     frame_buffer_init();
     pagetable_init();
     IC_8259A_init();
@@ -55,6 +68,7 @@ void init_all(void){
     softirq_init();
     timer_init();
     HPET_init();    //在定时器产生中断之前,把其他模块都初始化完
+    //task_init();
     sti();
-    task_init();
+
 }

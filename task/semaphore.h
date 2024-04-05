@@ -3,6 +3,7 @@
 #include <list.h>
 #include <task.h>
 #include <atomic.h>
+#include <schedule.h>
 
 
 
@@ -17,7 +18,7 @@
 /*  等待队列中的每一个项目  */
 typedef struct{
     struct List wait_list;    //用来标记在队列中的位置
-    struct task_struct* task; //该进程
+    struct task_struct* task; //该进程的pcb
 } wait_queue_T;
 
 

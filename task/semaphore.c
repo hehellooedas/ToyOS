@@ -12,7 +12,7 @@ void __down(semaphore_T *semaphore)
     wait_queue_init(&wait,current);  //初始化当前进程的队列项
     current->state = TASK_UNINTERRUPTIBLE;  //设置为不可中断态
     list_add_to_before(&semaphore->wait.wait_list,&wait.wait_list);
-    //schedule();  //让当前进程转让使用权
+    schedule();  //让当前进程转让使用权
 }
 
 
@@ -33,7 +33,7 @@ void __up(semaphore_T* semaphore)
     wait_queue_T* wait = container_of(get_List_next(&semaphore->wait.wait_list),wait_queue_T,wait_list);
     list_del(&wait->wait_list); //把要唤醒的进程从等待队列里删除
     wait->task->state = TASK_RUNNING; //设置为运行态
-    //insert_task_queue(wait->task);  //把进程插入到就绪队列里以待调度
+    insert_task_queue(wait->task);  //把进程插入到就绪队列里以待调度
 }
 
 

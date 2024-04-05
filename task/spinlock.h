@@ -1,13 +1,15 @@
 #ifndef __TASK_SPINLOCK_H
 #define __TASK_SPINLOCK_H
 
-
+#include <preempt.h>
+#include <task.h>
 
 /*
  * 自旋锁是一种忙式等待锁
  * 当一个进程试图访问无空闲资源的自旋锁时,会进入低功耗等待(pause)
  * 直到有资源空闲时,继续才会运行
  * 使用场景:短时间内持有锁的场景
+ * 自旋锁更加底层,适合给中断处理使用
  */
 
 
@@ -29,6 +31,7 @@ void spin_init(spinlock_T* lock)
 static __attribute__((always_inline))
 void spin_lock(spinlock_T* lock)
 {
+    preempt_disable();
     asm volatile (
         "1:             \n\t"
         "lock decq %0   \n\t"
@@ -56,7 +59,28 @@ void spin_unlock(spinlock_T* lock)
         :
         :"memory"
     );
+    preempt_enable();
 }
+
+
+
+static __attribute__((always_inline))
+long spin_trylock(spinlock_T* lock)
+{
+    unsigned long tmp_value = 0;
+    preempt_disable();
+    asm volatile (
+        "xchgq %0,%1    \n\t"
+        :"=q"(tmp_value),"=m"(lock->lock)
+        :"0"(0)
+        :"memory"
+    );
+    if(!tmp_value){
+        preempt_enable();
+    }
+    return tmp_value;
+}
+
 
 
 #endif

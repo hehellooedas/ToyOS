@@ -63,9 +63,9 @@ struct mm_struct {
 struct task_struct {
   volatile long state;    // 进程状态(保证实时状态)
   unsigned long flags;    // 进程标志(进程/线程/内核线程)
-  long preempt_flags;     //记录持有自旋锁的数量
+  long preempt_count;     // preempt_count>0说明该进程持有自旋锁(受保护,不能被调度出去)
   long signal;            // 进程持有的信号
-  long cpu_id;            //该进程绑定哪一个核心
+  long cpu_id;            // 该进程绑定哪一个核心
 
   struct mm_struct *mm;         // 内存空间分布结构体
   struct thread_struct *thread; // 进程切换时保留的状态信息(紧跟在pcb后面)
@@ -76,7 +76,6 @@ struct task_struct {
    * 0xffff800000000000 - 0xffffffffffffffff属于内核空间
    */
 
-  long preempt_count;
   long pid;      // 进程ID
   long priority; // 进程优先级
   long virtual_runtime;
@@ -141,8 +140,8 @@ struct tss_struct {
   unsigned short iomapbaseaddr;
 } __attribute__((packed));
 
-struct mm_struct init_mm;
-struct thread_struct init_thread;
+extern struct mm_struct init_mm;
+extern struct thread_struct init_thread;
 
 /*  初始化为内核进程(填写pcb信息)  */
 #define INIT_TASK(tsk)                                                         \
@@ -161,14 +160,13 @@ struct thread_struct init_thread;
 init进程就是以0x118000为开始(pcb)的进程
 将init_task_uniox这个全局变量绑定到一个特别的程序段内
 */
-union task_union init_task_union __attribute__((
-    __section__(".data.init_task"))) = {INIT_TASK(init_task_union.task)};
+extern union task_union init_task_union;
 
 
-struct task_struct *init_task[NR_CPUS] = {&init_task_union.task, 0};
+extern struct task_struct *init_task[NR_CPUS];
 
 
-struct mm_struct init_mm = {0};
+extern struct mm_struct init_mm;
 
 
 struct thread_struct init_thread = {
@@ -203,7 +201,7 @@ struct thread_struct init_thread = {
   }
 
 
-struct tss_struct init_tss[NR_CPUS] = {[0 ... NR_CPUS - 1] = INIT_TSS};
+extern struct tss_struct init_tss[NR_CPUS];
 
 #define MAX_SYSTEM_CALL_NR 128
 typedef unsigned long (*system_call_t)(struct pt_regs *regs);
@@ -254,7 +252,7 @@ static __attribute__((always_inline)) struct task_struct *get_current() {
 
 #define GET_CURRENT                                                            \
   "movq %rsp,%rbx     \n\t"                                                    \
-  "andq $-32769,%rbx  \n\t"
+  "andq $-32768,%rbx  \n\t"
 
 
 

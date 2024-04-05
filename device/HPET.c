@@ -1,3 +1,4 @@
+#include "SMP.h"
 #include "schedule.h"
 #include <printk.h>
 #include <interrupt.h>
@@ -8,6 +9,8 @@
 #include <timer.h>
 #include <task.h>
 
+
+extern struct schedule task_schedule[NR_CPUS];
 
 extern unsigned long jiffies;
 
@@ -65,16 +68,16 @@ void HPET_handler(unsigned long nr,unsigned long parameter,struct pt_regs* regs)
     switch (current->priority) {
         case 0:
         case 1:
-            task_schedule.CPU_exec_task_jiffies--;
+            task_schedule[SMP_cpu_id()].CPU_exec_task_jiffies--;
             current->virtual_runtime++;
             break;
         case 2:
         default:
-            task_schedule.CPU_exec_task_jiffies -= 2;
+            task_schedule[SMP_cpu_id()].CPU_exec_task_jiffies -= 2;
             current->virtual_runtime += 2;
             break;
     }
-    if(task_schedule.CPU_exec_task_jiffies <= 0){
+    if(task_schedule[SMP_cpu_id()].CPU_exec_task_jiffies <= 0){
         current->flags |= NEED_SCHEDULE;
     }
 }

@@ -16,6 +16,20 @@ extern char _rodata;
 extern char _erodata;
 extern char _stack_start;
 
+extern struct schedule task_schedule[NR_CPUS];
+
+struct tss_struct init_tss[NR_CPUS] = {[0 ... (NR_CPUS - 1)] = INIT_TSS};
+
+struct task_struct *init_task[NR_CPUS] = {&init_task_union.task, 0};
+
+struct mm_struct init_mm = {0};
+
+union task_union init_task_union __attribute__((
+    __section__(".data.init_task"))) = {INIT_TASK(init_task_union.task)};
+
+
+struct mm_struct init_mm;
+struct thread_struct init_thread;
 
 
 void task_init(void) {
@@ -35,22 +49,23 @@ void task_init(void) {
     wrmsr(0x175, current->thread->rsp0);      // IA32_SYSEXTER_ESP
     wrmsr(0x176, (unsigned long)system_call); // IA32_SYSENTER_RIP
 
-
-    set_tss64(TSS64_Table,init_thread.rsp0, init_tss[0].rsp1, init_tss[0].rsp2,
-            init_tss[0].ist1, init_tss[0].ist2, init_tss[0].ist3,
-            init_tss[0].ist4, init_tss[0].ist5, init_tss[0].ist6,
-            init_tss[0].ist7);
-
     init_tss[SMP_cpu_id()].rsp0 = init_thread.rsp0;
+
+
+    set_tss64((unsigned int *)&init_tss[SMP_cpu_id()],init_tss[SMP_cpu_id()].rsp0, init_tss[SMP_cpu_id()].rsp1, init_tss[SMP_cpu_id()].rsp2,init_tss[SMP_cpu_id()].ist1, init_tss[SMP_cpu_id()].ist2, init_tss[SMP_cpu_id()].ist3,init_tss[SMP_cpu_id()].ist4, init_tss[SMP_cpu_id()].ist5, init_tss[SMP_cpu_id()].ist6,init_tss[SMP_cpu_id()].ist7);
+
 
     list_init(&init_task_union.task.list);  //初始化init进程的链表结构
     kernel_thread(init, 10,
                 CLONE_FS | CLONE_FILES | CLONE_SIGNAL); // 创建init进程(非内核线程)
     init_task_union.task.state = TASK_RUNNING;
+    init_task_union.task.preempt_count = 0;
+    init_task_union.task.cpu_id = SMP_cpu_id();
 
-    p = container_of(get_List_next(&task_schedule.task_queue.list), struct task_struct, list);
+    p = container_of(get_List_next(&task_schedule[SMP_cpu_id()].task_queue.list), struct task_struct, list);
     switch_to(current, p);
 }
+
 
 
 /*  init内核线程(0x200000~0x208000)  */
@@ -59,6 +74,7 @@ unsigned long init(unsigned long arg) {
 
     color_printk(RED, BLACK, "init task is running,arg:%#018x\n", arg);
 
+    current->cpu_id = SMP_cpu_id();
     current->flags = 0;
     current->thread->rip = (unsigned long)ret_system_call;
     current->thread->rsp =
@@ -76,6 +92,7 @@ unsigned long init(unsigned long arg) {
     );
     return 1;
 }
+
 
 
 /*  刚创建的进程通过这个函数恢复现场  */
@@ -159,6 +176,8 @@ unsigned long do_fork(struct pt_regs *regs, unsigned long clone_flags,
     task->pid++;
     task->state = TASK_UNINTERRUPTIBLE;
     task->priority = 2;
+    task->preempt_count = 0;
+    task->cpu_id = SMP_cpu_id();
 
     thread = (struct thread_struct *)(task + 1);
     task->thread = thread;
@@ -177,20 +196,20 @@ unsigned long do_fork(struct pt_regs *regs, unsigned long clone_flags,
         thread->rip = regs->rip = (unsigned long)ret_system_call;
     }
     task->state = TASK_RUNNING;
-    instert_task_queue(task);
+    insert_task_queue(task);
     return 0;
 }
+
+
 
 
 /*  进程切换的下半段  */
 void __attribute__((always_inline))
 __switch_to(struct task_struct *prev, struct task_struct *next) {
-    init_tss[0].rsp0 = next->thread->rsp0; //更新rsp0
+    unsigned int color = 0;
+    init_tss[SMP_cpu_id()].rsp0 = next->thread->rsp0; //更新rsp0
 
-    set_tss64(TSS64_Table,init_tss[0].rsp0, init_tss[0].rsp1, init_tss[0].rsp2,
-            init_tss[0].ist1, init_tss[0].ist2, init_tss[0].ist3,
-            init_tss[0].ist4, init_tss[0].ist5, init_tss[0].ist6,
-            init_tss[0].ist7);  //更新后写入到TSS
+    //set_tss64((unsigned int*)&init_tss[SMP_cpu_id()],init_tss[SMP_cpu_id()].rsp0, init_tss[SMP_cpu_id()].rsp1, init_tss[SMP_cpu_id()].rsp2,init_tss[SMP_cpu_id()].ist1, init_tss[SMP_cpu_id()].ist2, init_tss[SMP_cpu_id()].ist3,init_tss[SMP_cpu_id()].ist4, init_tss[SMP_cpu_id()].ist5, init_tss[SMP_cpu_id()].ist6,init_tss[SMP_cpu_id()].ist7);  //更新后写入到TSS
 
     /*
         asm volatile ("movq %%fs,%0 \n\t":"=a"(prev->thread->fs));
@@ -200,6 +219,13 @@ __switch_to(struct task_struct *prev, struct task_struct *next) {
         asm volatile ("movq %0,%%gs \n\t":"=a"(next->thread->gs));
     */
     wrmsr(0x175,next->thread->rsp0 );
+    if(SMP_cpu_id() == 0){
+        color = WHITE;
+    }else{
+        color = YELLOW;
+    }
+
+
     /*  相互保存fs和gs段寄存器  */
     asm volatile(
         "movq %%fs,%0       \n\t"
@@ -211,8 +237,8 @@ __switch_to(struct task_struct *prev, struct task_struct *next) {
         : "memory"
     );
 
-    color_printk(WHITE, BLACK, "prev->thread->rsp0:%#-18x\n", prev->thread->rsp0);
-    color_printk(WHITE, BLACK, "next->thread->rsp0:%#-18x\n", next->thread->rsp0);
+    color_printk(color, BLACK, "prev->thread->rsp0:%#-18x\n", prev->thread->rsp0);
+    color_printk(color, BLACK, "next->thread->rsp0:%#-18x\n", next->thread->rsp0);
 }
 
 
@@ -221,6 +247,8 @@ unsigned long do_exit(unsigned long code) {
     color_printk(RED, BLACK, "exit task is running,arg:%#018x\n", code);
     while (1);
 }
+
+
 
 
 unsigned long do_execute(struct pt_regs *regs) {
@@ -259,6 +287,7 @@ unsigned long do_execute(struct pt_regs *regs) {
     memcpy((void *)0x800000, user_level_function, 1024);
     return 0;
 }
+
 
 
 void user_level_function() {

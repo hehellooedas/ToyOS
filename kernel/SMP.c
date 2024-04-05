@@ -12,11 +12,11 @@
 
 
 struct INT_CMD_REG  icr_entry;
-static spinlock_T SMP_lock;
+spinlock_T SMP_lock;
 
 int global_i = 0;
 
-extern unsigned long _stack_start;
+extern unsigned long _stack_start;  //head.S中定义了该变量
 unsigned int* tss;
 
 
@@ -40,6 +40,7 @@ void SMP_init(void){
     memcpy((unsigned char*)0xffff800000020000,_APU_boot_start ,(unsigned long)&_APU_boot_end - (unsigned long)&_APU_boot_start );
 
 
+
     struct INT_CMD_REG icr_entry;
     icr_entry.vector = 0x00;
     icr_entry.deliver_mode = ICR_DELIVER_MODE_INIT;
@@ -51,6 +52,7 @@ void SMP_init(void){
     icr_entry.destination.x2apic_destination = 0x00;
     icr_entry.res_1 = icr_entry.res_2 = icr_entry.res_3 = 0;
 
+    unsigned char* ptr = NULL;
 
     wrmsr(0x830,0xc4500 );  //INIT IPI
 
@@ -58,14 +60,38 @@ void SMP_init(void){
     for(global_i = 1;global_i<8;global_i++){
         spin_lock(&SMP_lock);
 
-        _stack_start = (unsigned long)kmalloc(STACK_SIZE,0 ) + STACK_SIZE;
-        tss = (unsigned int*)kmalloc(128,0 ); //额外留下一部分空间
+        ptr = (unsigned char*)kmalloc(STACK_SIZE,0 );
+        ((struct task_struct *)ptr)->cpu_id = global_i;
+        _stack_start = (unsigned long)ptr + STACK_SIZE;
 
-        set_tss64_descriptor((10 + global_i * 2), tss);
 
-        set_tss64(tss,_stack_start,_stack_start,_stack_start,_stack_start,_stack_start,_stack_start,_stack_start,_stack_start,_stack_start,_stack_start );
+        //tss = (unsigned int*)kmalloc(128,0 ); //额外留下一部分空间
 
-        icr_entry.vector = 0x20;
+        memset(&init_tss[global_i],0,sizeof(struct tss_struct));
+
+        //set_tss64(tss,_stack_start,_stack_start,_stack_start,_stack_start,_stack_start,_stack_start,_stack_start,_stack_start,_stack_start,_stack_start );
+
+
+
+        init_tss[global_i].rsp0 = _stack_start;
+        init_tss[global_i].rsp1 = _stack_start;
+        init_tss[global_i].rsp2 = _stack_start;
+
+        ptr = (unsigned char*)kmalloc(STACK_SIZE,0 ) + STACK_SIZE;
+        ((struct task_struct *)(ptr - STACK_SIZE))->cpu_id = global_i;
+
+        init_tss[global_i].ist1 = (unsigned long)ptr;
+        init_tss[global_i].ist2 = (unsigned long)ptr;
+        init_tss[global_i].ist3 = (unsigned long)ptr;
+        init_tss[global_i].ist4 = (unsigned long)ptr;
+        init_tss[global_i].ist5 = (unsigned long)ptr;
+        init_tss[global_i].ist6 = (unsigned long)ptr;
+        init_tss[global_i].ist7 = (unsigned long)ptr;
+
+        set_tss64_descriptor((10 + global_i * 2), &init_tss[global_i]);
+
+
+        icr_entry.vector = 0x20;    //指定AP核心从什么位置开始运行
         icr_entry.deliver_mode = ICR_DELIVER_MODE_START_UP ;
         icr_entry.dest_shorthand = ICR_SHORTHAND_NONE;
         icr_entry.destination.x2apic_destination = global_i;
@@ -78,7 +104,7 @@ void SMP_init(void){
     for(int i=200;i<210;i++){
         set_intr_gate(i,2 ,SMP_interrupt[i - 200] );
     }
-    memset(SMP_IPI_desc,0,sizeof(irq_desc_T) * 10);   //暂时不设置中断下文
+    memset(SMP_IPI_desc,0,sizeof(irq_desc_T) * 10);
 
 /*
     icr_entry.vector = 0xc8;
@@ -94,7 +120,7 @@ void SMP_init(void){
 
 
 
-/*  由AP核在执行  */
+/*  由AP核在执行(AP核心进入长模式后直接跳过来)  */
 void Start_SMP(void){
     unsigned int x,y;
     color_printk(YELLOW,BLACK ,"APU starting......\n" );
@@ -112,16 +138,36 @@ void Start_SMP(void){
     unsigned long APIC_ID = rdmsr(IA32_APIC_ID_MSR );
     color_printk(GREEN,BLACK ,"APIC ID:%#lx\n",APIC_ID );
 
-    memset(current,0,sizeof(struct task_struct));
-    load_TR((10 + (global_i - 1) * 2));
+
 
     color_printk(GREEN,BLACK ,"CPU%d is running!\n",global_i - 1 );
+
+
+    current->state = TASK_RUNNING;
+    current->flags = PF_KTHREAD;
+    current->mm = &init_mm;
+
+    list_init(&current->list);
+    current->addr_limit = 0xffff800000000000;
+    current->priority = 2;
+    current->virtual_runtime = 0;
+
+    current->thread = (struct thread_struct *)(current + 1);
+    memset(current->thread,0,sizeof(struct thread_struct));
+    current->thread->rsp0 = _stack_start;
+    current->thread->rsp = _stack_start;
+    current->thread->fs = KERNEL_DS;
+    current->thread->gs = KERNEL_DS;
+
+
+    init_task[SMP_cpu_id()] = current;  //保存到init_task数组里
+
+    load_TR((10 + (global_i - 1) * 2));
     spin_unlock(&SMP_lock);
 
-    sti();
+    current->preempt_count = 0;
 
     while(1){
         hlt();
     }
-
 }

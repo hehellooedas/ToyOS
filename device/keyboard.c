@@ -166,7 +166,7 @@ void analysis_keycode()
     }
 
     if(key){
-        color_printk(RED,BLACK ,"%c",key );
+        color_printk(WHITE,BLACK ,"%c",key );
     }
 }
 
