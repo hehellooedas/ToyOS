@@ -9,7 +9,7 @@
 struct ioqueue* mouse_queue = NULL;
 static int mouse_count = 0;
 
-hw_int_controler mouse_int_controler = {
+hw_int_controller mouse_int_controller = {
     .enable = IOAPIC_enbale,
     .disable = IOAPIC_disable,
     .installer = IOAPIC_install,
@@ -37,7 +37,7 @@ void mouse_init(void)
     entry.destination.physical.phy_dest = 0;
     entry.destination.physical.res_3 = 0;
 
-    register_irq(0x2c,&entry,&mouse_handler,(unsigned long)mouse_queue,&mouse_int_controler,"ps/2 mouse");
+    register_irq(0x2c,&entry,&mouse_handler,(unsigned long)mouse_queue,&mouse_int_controller,"ps/2 mouse");
 
     wait_KB_write();
     out8(PORT_KB_CMD,KBCMD_EN_MOUSE_INTFACE ); //开启鼠标端口

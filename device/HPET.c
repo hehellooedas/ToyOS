@@ -6,15 +6,17 @@
 #include <HPET.h>
 #include <lib.h>
 #include <softirq.h>
+#include <string.h>
 #include <timer.h>
 #include <task.h>
+#include <APIC.h>
 
 
 extern struct schedule task_schedule[NR_CPUS];
 
 extern unsigned long jiffies;
 
-hw_int_controler HPET_int_controler = {
+hw_int_controller HPET_int_controller = {
     .enable = IOAPIC_enbale,
     .disable = IOAPIC_disable,
     .installer = IOAPIC_install,
@@ -39,7 +41,7 @@ void HPET_init(void)
     entry.res_1 = 0;
     entry.destination.physical.phy_dest = entry.destination.physical.res_2 = entry.destination.physical.res_3 = 0;
 
-    register_irq(34,&entry ,&HPET_handler ,0 ,&HPET_int_controler ,"HPET" );
+    register_irq(34,&entry ,&HPET_handler ,0 ,&HPET_int_controller ,"HPET" );
 
     color_printk(GREEN,BLACK,"HPET - GCAP_ID:%#lx\n",*(unsigned long*)HPET_addr);
 
@@ -62,7 +64,19 @@ void HPET_init(void)
 
 void HPET_handler(unsigned long nr,unsigned long parameter,struct pt_regs* regs)
 {
+
+    struct INT_CMD_REG icr_entry;
     jiffies++;
+
+    memset(&icr_entry,0,sizeof(struct INT_CMD_REG));    //没赋值的参数就是0
+    icr_entry.vector = 0xc8;
+    icr_entry.dest_shorthand = ICR_SHORTHAND_ALL_NOT_SELF;
+    icr_entry.trigger_mode = ICR_TRIGGER_MODE_EDGE;
+    icr_entry.dest_mode = ICR_DEST_MODE_PHY;
+    icr_entry.deliver_mode = ICR_DELIVER_MODE_FIXED;
+    wrmsr(0x830,*(unsigned long*)&icr_entry );
+
+
     if((container_of(get_List_next(&timer_list_head.list),struct timer_list ,list )->expire_jiffies <= jiffies))
         set_softirq_status(TIMER_STRQ);
     switch (current->priority) {
@@ -78,6 +92,6 @@ void HPET_handler(unsigned long nr,unsigned long parameter,struct pt_regs* regs)
             break;
     }
     if(task_schedule[SMP_cpu_id()].CPU_exec_task_jiffies <= 0){
-        current->flags |= NEED_SCHEDULE;
+        //current->flags |= NEED_SCHEDULE;
     }
 }

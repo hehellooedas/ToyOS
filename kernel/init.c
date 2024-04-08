@@ -17,6 +17,7 @@
 #include <timer.h>
 #include <softirq.h>
 #include <schedule.h>
+#include <spinlock.h>
 
 
 #if PIC_APIC
@@ -26,7 +27,6 @@
 
 
 extern unsigned long _stack_start;
-
 
 
 void init_all(void){
@@ -65,10 +65,12 @@ void init_all(void){
     disk_init();
     print_current_time();
     schedule_init();
+    SMP_init();
     softirq_init();
     timer_init();
-    HPET_init();    //在定时器产生中断之前,把其他模块都初始化完
-    //task_init();
-    sti();
+    task_init();
+    HPET_init();
 
+    sti();
+    stop();
 }

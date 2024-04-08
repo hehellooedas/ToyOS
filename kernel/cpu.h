@@ -18,7 +18,6 @@ output:
 */
 
 
-
 #define NR_CPUS   8
 
 static __attribute__((always_inline))

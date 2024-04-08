@@ -8,7 +8,7 @@
 static int disk_flags = 0;  //标记当前硬盘的忙/闲状态
 
 
-hw_int_controler disk_int_controler = {
+hw_int_controller disk_int_controller = {
     .enable = IOAPIC_enbale,
     .disable = IOAPIC_disable,
     .installer = IOAPIC_install,
@@ -43,7 +43,7 @@ void disk_init(void){
     entry.destination.physical.phy_dest = 0;
     entry.destination.physical.res_3 = 0;
 
-    register_irq(0x2e,&entry,&disk_handler,(unsigned long)&disk_request,&disk_int_controler,"disk0");
+    register_irq(0x2e,&entry,&disk_handler,(unsigned long)&disk_request,&disk_int_controller,"disk0");
 
     out8(PORT_DISK0_STATUS,0 );
     list_init(&disk_request.queue_list);

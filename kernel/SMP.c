@@ -1,3 +1,4 @@
+#include "ptrace.h"
 #include <printk.h>
 #include <string.h>
 #include <SMP.h>
@@ -9,6 +10,8 @@
 #include <memory.h>
 #include <task.h>
 #include <interrupt.h>
+#include <schedule.h>
+#include <screen.h>
 
 
 struct INT_CMD_REG  icr_entry;
@@ -57,26 +60,20 @@ void SMP_init(void){
     wrmsr(0x830,0xc4500 );  //INIT IPI
 
 
-    for(global_i = 1;global_i<8;global_i++){
+    for(global_i = 1;global_i<NR_CPUS;global_i++){
         spin_lock(&SMP_lock);
 
         ptr = (unsigned char*)kmalloc(STACK_SIZE,0 );
         ((struct task_struct *)ptr)->cpu_id = global_i;
         _stack_start = (unsigned long)ptr + STACK_SIZE;
 
-
-        //tss = (unsigned int*)kmalloc(128,0 ); //额外留下一部分空间
-
         memset(&init_tss[global_i],0,sizeof(struct tss_struct));
-
-        //set_tss64(tss,_stack_start,_stack_start,_stack_start,_stack_start,_stack_start,_stack_start,_stack_start,_stack_start,_stack_start,_stack_start );
-
 
 
         init_tss[global_i].rsp0 = _stack_start;
         init_tss[global_i].rsp1 = _stack_start;
         init_tss[global_i].rsp2 = _stack_start;
-
+        color_printk(RED,BLACK ,"_stack_start:%#lx",_stack_start );
         ptr = (unsigned char*)kmalloc(STACK_SIZE,0 ) + STACK_SIZE;
         ((struct task_struct *)(ptr - STACK_SIZE))->cpu_id = global_i;
 
@@ -102,19 +99,10 @@ void SMP_init(void){
     }
 
     for(int i=200;i<210;i++){
-        set_intr_gate(i,2 ,SMP_interrupt[i - 200] );
+        set_intr_gate(i,0 ,SMP_interrupt[i - 200] );
     }
     memset(SMP_IPI_desc,0,sizeof(irq_desc_T) * 10);
-
-/*
-    icr_entry.vector = 0xc8;
-    icr_entry.destination.x2apic_destination = 1;
-    icr_entry.deliver_mode = ICR_DELIVER_MODE_FIXED;
-    color_printk(GREEN,BLACK ,"%#lx\n",*(unsigned long*)&icr_entry );
-    wrmsr(0x830,*(unsigned long*)&icr_entry );
-    icr_entry.vector = 0xc9;
-    wrmsr(0x830,*(unsigned long*)&icr_entry );
-*/
+    register_IPI(200,NULL ,&IPI_0x200 ,0 ,NULL ,"IPI 0x200" );
 
 }
 
@@ -138,10 +126,9 @@ void Start_SMP(void){
     unsigned long APIC_ID = rdmsr(IA32_APIC_ID_MSR );
     color_printk(GREEN,BLACK ,"APIC ID:%#lx\n",APIC_ID );
 
-
-
     color_printk(GREEN,BLACK ,"CPU%d is running!\n",global_i - 1 );
 
+    interrupt_init();
 
     current->state = TASK_RUNNING;
     current->flags = PF_KTHREAD;
@@ -166,8 +153,34 @@ void Start_SMP(void){
     spin_unlock(&SMP_lock);
 
     current->preempt_count = 0;
+    sti();
+
+    //task_init();
+
+
 
     while(1){
         hlt();
+    }
+}
+
+
+
+
+void IPI_0x200(unsigned long nr,unsigned long parameter,struct pt_regs* regs){
+    switch (current->priority) {
+        case 0:
+        case 1:
+            task_schedule[SMP_cpu_id()].CPU_exec_task_jiffies--;
+            current->virtual_runtime++;
+            break;
+        case 2:
+        default:
+            task_schedule[SMP_cpu_id()].CPU_exec_task_jiffies -= 2;
+            current->virtual_runtime += 2;
+            break;
+    }
+    if(task_schedule[SMP_cpu_id()].CPU_exec_task_jiffies <= 0){
+        //current->flags |= NEED_SCHEDULE;
     }
 }

@@ -45,12 +45,12 @@ typedef struct hw_int_type{
     bool (*installer)(unsigned long irq,void* arg);
     void (*uninstaller)(unsigned long irq);
     void (*ack)(unsigned long nr);          //应答
-} hw_int_controler;
+} hw_int_controller;
 
 
 /*  记录处理中断时所必须的信息  */
 typedef struct{
-    hw_int_controler* controler;//中断的使能、应答、禁止等操作
+    hw_int_controller* controller;//中断的使能、应答、禁止等操作
     char* irq_name;             //中断名
     unsigned long parameter;    //中断处理函数的参数
     void (*handler)(unsigned long nr,unsigned long parameter,struct pt_regs* regs); //中断处理函数
@@ -58,23 +58,33 @@ typedef struct{
 } irq_desc_T;
 
 
-irq_desc_T interrupt_desc[NR_IRQS] = {0};
+extern irq_desc_T interrupt_desc[NR_IRQS];
 
 
 bool register_irq(
     unsigned long irq,
     void* arg,
     void (*handler)(unsigned long nr,unsigned long parameter,struct pt_regs* regs),
-                  unsigned long parameter,
-                  hw_int_controler* controler,
-                  char* irq_name
+    unsigned long parameter,
+    hw_int_controller* controller,
+    char* irq_name
 );
 bool unregister_irq(unsigned long irq);
 
 
 
-irq_desc_T SMP_IPI_desc[10] = {0};
+extern irq_desc_T SMP_IPI_desc[10];
+
 extern void (*SMP_interrupt[10])(void);
+
+bool register_IPI(
+    unsigned long irq,
+    void* arg,
+    void (*handler)(unsigned long nr,unsigned long parameter,struct pt_regs* regs),
+    unsigned long parameter,
+    hw_int_controller* controller,
+    char* irq_name
+);
 
 
 #endif // !__KERNEL_INTERRUPT_H

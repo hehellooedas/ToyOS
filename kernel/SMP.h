@@ -12,5 +12,7 @@ extern unsigned char _APU_boot_end[];
 
 void SMP_init(void);
 void Start_SMP(void);
+void IPI_0x200(unsigned long nr,unsigned long parameter,struct pt_regs* regs);
+
 
 #endif

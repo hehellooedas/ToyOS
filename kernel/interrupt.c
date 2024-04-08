@@ -1,3 +1,5 @@
+#include <task.h>
+#include <SMP.h>
 #include <gate.h>
 #include <io.h>
 #include <printk.h>
@@ -6,6 +8,9 @@
 #include <lib.h>
 #include <stdbool.h>
 #include <APIC.h>
+#include <schedule.h>
+
+
 
 #if PIC_APIC
 void do_IRQ(struct pt_regs* regs,unsigned long nr){
@@ -16,13 +21,19 @@ void do_IRQ(struct pt_regs* regs,unsigned long nr){
             if(irq->handler != NULL){
                 irq->handler(nr,irq->parameter,regs);
             }
-            if(irq->controler != NULL && irq->controler->ack != NULL){
-                irq->controler->ack(nr);  //向中断控制器发送应答消息
+            if(irq->controller != NULL && irq->controller->ack != NULL){
+                irq->controller->ack(nr);  //向中断控制器发送应答消息
             }
             break;
         case 0x80:
-            color_printk(RED,BLACK ,"SMP IPI:%d\n",nr );
+            //color_printk(YELLOW,BLACK ,"currect->thread->rsp0=%#lx\n",current->thread->rsp0 );
             Local_APIC_edge_level_ack(nr);
+            {
+                irq_desc_T* irq = &SMP_IPI_desc[nr - 200];
+                if(irq->handler != NULL){
+                    irq->handler(nr,irq->parameter,regs);
+                }
+            }
             break;
         default:
             color_printk(RED,BLACK ,"do_IRQ receive:%d\n",nr );
@@ -181,6 +192,9 @@ void (*SMP_interrupt[10])(void) = {
     IRQ0xd1_interrupt,
 };
 
+irq_desc_T interrupt_desc[NR_IRQS] = {0};
+irq_desc_T SMP_IPI_desc[10] = {0};
+
 
 
 void interrupt_init(void)
@@ -197,17 +211,17 @@ bool register_irq(
     void* arg,
     void (*handler)(unsigned long nr,unsigned long parameter,struct pt_regs* regs),
     unsigned long parameter,
-    hw_int_controler* controler,
+    hw_int_controller* controller,
     char* irq_name
 ){
     irq_desc_T* p = &interrupt_desc[irq - 32];
-    p->controler = controler;
+    p->controller = controller;
     p->parameter = parameter;
     p->irq_name = irq_name;
     p->flags = 0;
     p->handler = handler;
-    p->controler->installer(irq,arg);
-    p->controler->enable(irq);
+    p->controller->installer(irq,arg);
+    p->controller->enable(irq);
     return true;
 }
 
@@ -215,13 +229,31 @@ bool register_irq(
 
 bool unregister_irq(unsigned long irq){
     irq_desc_T* p = &interrupt_desc[irq - 32];
-    p->controler->disable(irq);
-    p->controler->uninstaller(irq);
-    p->controler = NULL;
+    p->controller->disable(irq);
+    p->controller->uninstaller(irq);
+    p->controller = NULL;
     p->flags = 0;
     p->irq_name = NULL;
     p->handler = NULL;
     p->parameter = 0;
     return true;
+}
+
+
+
+bool register_IPI(unsigned long irq,
+                  void* arg,
+                  void (*handler)(unsigned long nr,unsigned long parameter,struct pt_regs* regs),
+                  unsigned long parameter,
+                  hw_int_controller* controller,
+                  char* irq_name
+){
+    irq_desc_T* p = &SMP_IPI_desc[irq - 200];
+    p->controller = NULL;
+    p->irq_name = irq_name;
+    p->parameter = parameter;
+    p->flags = 0;
+    p->handler = handler;
+    return 1;
 }
 

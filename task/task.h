@@ -67,14 +67,17 @@ struct task_struct {
   long signal;            // 进程持有的信号
   long cpu_id;            // 该进程绑定哪一个核心
 
+  /*  以上变量的位置非常重要  */
+
   struct mm_struct *mm;         // 内存空间分布结构体
   struct thread_struct *thread; // 进程切换时保留的状态信息(紧跟在pcb后面)
-  struct List list;       // 双向链表
+  struct List list;             // 双向链表
   unsigned long addr_limit;     // 进程地址空间范围(内核/用户空间)
   /*
    * 0x0000000000000000 - 0x00007fffffffffff属于用户空间
    * 0xffff800000000000 - 0xffffffffffffffff属于内核空间
    */
+
 
   long pid;      // 进程ID
   long priority; // 进程优先级
@@ -141,7 +144,6 @@ struct tss_struct {
 } __attribute__((packed));
 
 extern struct mm_struct init_mm;
-extern struct thread_struct init_thread;
 
 /*  初始化为内核进程(填写pcb信息)  */
 #define INIT_TASK(tsk)                                                         \
@@ -169,18 +171,7 @@ extern struct task_struct *init_task[NR_CPUS];
 extern struct mm_struct init_mm;
 
 
-struct thread_struct init_thread = {
-    .rsp0 = (unsigned long)(init_task_union.stack +
-                            STACK_SIZE / sizeof(unsigned long)),
-    .rsp = (unsigned long)(init_task_union.stack +
-                           STACK_SIZE / sizeof(unsigned long)),
-    .fs = KERNEL_DS,
-    .gs = KERNEL_DS,
-    .cr2 = 0,
-    .trap_nr = 0,
-    .error_code = 0
-};
-
+extern struct thread_struct init_thread;
 
 
 /*  初始化TSS结构体(用于将TSS信息写入到TSS_Table)  */
@@ -209,11 +200,7 @@ typedef unsigned long (*system_call_t)(struct pt_regs *regs);
 unsigned long default_system_call(struct pt_regs *regs);
 unsigned long sys_printf(struct pt_regs *regs);
 
-system_call_t system_call_table[MAX_SYSTEM_CALL_NR] = {
-    [0] = default_system_call,
-    [1] = sys_printf,
-    [2 ...(MAX_SYSTEM_CALL_NR - 1)] = default_system_call
-};
+extern system_call_t system_call_table[MAX_SYSTEM_CALL_NR];
 
 
 

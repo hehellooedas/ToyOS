@@ -10,7 +10,7 @@ struct ioqueue* keyboard_queue = NULL;
 static int shift_l,shift_r,ctrl_l,ctrl_r,alt_l,alt_r; //几个重要的控制按键
 
 
-hw_int_controler keyboard_int_controler = {
+hw_int_controller keyboard_int_controller = {
     .enable = IOAPIC_enbale,
     .disable = IOAPIC_disable,
     .installer = IOAPIC_install,
@@ -49,7 +49,7 @@ void keyboard_init(void)
     }
 
     shift_l = shift_r = ctrl_l = ctrl_r = alt_l = alt_r = 0;
-    register_irq(0x21,&entry,&keyboard_handler,(unsigned long)keyboard_queue,&keyboard_int_controler,"ps/2 keyboard");
+    register_irq(0x21,&entry,&keyboard_handler,(unsigned long)keyboard_queue,&keyboard_int_controller,"ps/2 keyboard");
 }
 
 

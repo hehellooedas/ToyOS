@@ -136,7 +136,7 @@ void APIC_IOAPIC_init(void)
 
     Local_APIC_init();
     screen_clear();
-    SMP_init();
+    //SMP_init();
     IOAPIC_init();
 
     memset(interrupt_desc,0,sizeof(irq_desc_T) *NR_IRQS);

@@ -12,6 +12,8 @@ struct schedule{
 };     //就绪队列
 
 
+extern struct schedule task_schedule[NR_CPUS];
+
 void schedule_init(void);
 void schedule(void);
 struct task_struct* get_next_task(void);

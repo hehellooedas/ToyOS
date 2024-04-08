@@ -1,4 +1,5 @@
 #include "SMP.h"
+#include "lib.h"
 #include "task.h"
 #include <schedule.h>
 #include <string.h>
@@ -28,9 +29,9 @@ void schedule(void)
 {
     struct task_struct* task = NULL;
     current->flags &= ~NEED_SCHEDULE;
+
     task = get_next_task();
     long cpu_id = SMP_cpu_id();
-    //color_printk(RED,BLACK ,"#schedule:%#ld#\n",jiffies );
 
     if(current->virtual_runtime >= task->virtual_runtime){
         if(current->state == TASK_RUNNING){
@@ -48,7 +49,7 @@ void schedule(void)
                     break;
             }
         }
-        switch_to(current,task );
+        switch_to(current,task );   //进程切换
     }else{
         insert_task_queue(task);
         if(!task_schedule[cpu_id].CPU_exec_task_jiffies){
@@ -70,13 +71,14 @@ void schedule(void)
 
 struct task_struct* get_next_task(void)
 {
+    long cpu_id = SMP_cpu_id();
     struct task_struct* task = NULL;
-    if(list_is_empty(&task_schedule[SMP_cpu_id()].task_queue.list)){
-        return &init_task_union.task;
+    if(list_is_empty(&task_schedule[cpu_id].task_queue.list)){
+        return init_task[cpu_id];     //队列空了,就默认允许IDLE进程
     }
-    task = container_of(get_List_next(&task_schedule[SMP_cpu_id()].task_queue.list),struct task_struct,list);
+    task = container_of(get_List_next(&task_schedule[cpu_id].task_queue.list),struct task_struct,list);
     list_del(&task->list);
-    task_schedule[SMP_cpu_id()].running_task_count--;
+    task_schedule[cpu_id].running_task_count--;
     return task;
 }
 
@@ -84,17 +86,22 @@ struct task_struct* get_next_task(void)
 
 void insert_task_queue(struct task_struct* task)
 {
-    struct task_struct* tmp = container_of(get_List_next(&task_schedule[SMP_cpu_id()].task_queue.list),struct task_struct,list);
-    if(task == tmp){
-        return;
-    }
-    if(list_is_empty(&task_schedule[SMP_cpu_id()].task_queue.list)){
 
+    if(task == init_task[SMP_cpu_id()]){ //比较的是地址
+        return; //如果一样就不用插入了
+    }
+
+    struct task_struct* tmp = NULL;
+    tmp = container_of(get_List_next(&task_schedule[SMP_cpu_id()].task_queue.list),struct task_struct,list);
+    //color_printk(RED,BLACK ,"CPU:%d,tmp address:%#lx\n",SMP_cpu_id(),tmp );
+
+    if(list_is_empty(&task_schedule[SMP_cpu_id()].task_queue.list)){
     }else{
         while (tmp->virtual_runtime < task->virtual_runtime) {
             tmp = container_of(get_List_next(&tmp->list),struct task_struct,list);
         }
     }
+
     list_add_to_before(&tmp->list,&task->list );
     task_schedule[SMP_cpu_id()].running_task_count++;
 }
