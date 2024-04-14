@@ -259,7 +259,7 @@ __switch_to(struct task_struct *prev, struct task_struct *next) {
         : "memory"
     );
 
-    color_printk(color, BLACK, "prev->thread->rsp0:%#lx\tnext->thread->rsp0:%#lx\tCPU:%d\n", prev->thread->rsp0,next->thread->rsp0,SMP_cpu_id());
+    color_printk(color, BLACK, "[info] prev->thread->rsp0:%#lx\tnext->thread->rsp0:%#lx\tCPU:%d\n", prev->thread->rsp0,next->thread->rsp0,SMP_cpu_id());
 }
 
 

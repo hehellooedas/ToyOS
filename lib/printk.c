@@ -7,6 +7,7 @@
 #include <screen.h>
 #include <interrupt.h>
 
+
 char buf[4096] = {0};
 struct position Pos;
 extern unsigned char font_ascii[256][16];
@@ -336,8 +337,8 @@ int color_printk(unsigned int FRcolor,unsigned int BKcolor,const char* fmt,...){
     va_list args;
     va_start(args, fmt);
 
-    if(get_rflags() & 0x200UL)      //判断调用者是否为中断程序
-        spin_lock(&Pos.printk_lock);
+    enum intr_status old_status = intr_disable();;
+    spin_lock(&Pos.printk_lock);
 
     i = vsprintf(buf,fmt,args);  //返回字符串长度
     va_end(args);
@@ -385,7 +386,7 @@ int color_printk(unsigned int FRcolor,unsigned int BKcolor,const char* fmt,...){
         }
     }
 
-    if(get_rflags() & 0x200UL)
-        spin_unlock(&Pos.printk_lock);
+    set_intr_status(old_status);
+    spin_unlock(&Pos.printk_lock);
     return i;
 }

@@ -6,9 +6,17 @@
 #include <ptrace.h>
 #include <lib.h>
 #include <io.h>
+#include <stdbool.h>
+#include <flags.h>
 
 
 void interrupt_init(void);
+
+
+enum intr_status{
+    INTR_OFF,   //关中断状态
+    INTR_ON     //开中断状态
+};
 
 
 static __attribute__((always_inline))
@@ -33,6 +41,58 @@ void cli(void)
         :"memory"
     );
 }
+
+
+
+/*  检测当前IF位的状态  */
+static __attribute__((always_inline))
+enum intr_status get_intr_status(void)
+{
+    return ((get_rflags() & 0x200) ? INTR_ON:INTR_OFF);
+}
+
+
+
+static __attribute__((always_inline))
+enum intr_status intr_enable()
+{
+    enum intr_status old_status;
+    if(get_intr_status() == INTR_ON){
+        old_status = INTR_ON;
+    }else{
+        old_status = INTR_OFF;
+        sti();
+    }
+    return old_status;
+}
+
+
+
+static __attribute__((always_inline))
+enum intr_status intr_disable()
+{
+    enum intr_status old_status;
+    if(get_intr_status() == INTR_ON){
+        old_status = INTR_ON;
+        cli();
+    }else{
+        old_status = INTR_OFF;
+    }
+    return old_status;
+}
+
+
+
+static __attribute__((always_inline))
+void set_intr_status(enum intr_status status)
+{
+    if(status == INTR_ON){
+        intr_enable();
+    }else{
+        intr_disable();
+    }
+}
+
 
 
 #define NR_IRQS 24

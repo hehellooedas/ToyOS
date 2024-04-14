@@ -47,7 +47,7 @@ struct FAT32_BootSector{
     unsigned short BPB_SecPerTrk;       //每磁道扇区数
     unsigned short BPB_NumHeads;        //磁头数
     unsigned int BPB_hiddSec;           //隐藏扇区数
-    unsigned short BPB_TotSec32;        //总扇区数(若BPB_TotSec16=0,则由这个变量记录)
+    unsigned int BPB_TotSec32;        //总扇区数(若BPB_TotSec16=0,则由这个变量记录)
 
     unsigned int BPB_FATSz32;           //每FAT扇区数
     unsigned short BPB_ExtFlags;        //拓展标志

@@ -34,6 +34,7 @@ void __up(semaphore_T* semaphore)
     list_del(&wait->wait_list); //把要唤醒的进程从等待队列里删除
     wait->task->state = TASK_RUNNING; //设置为运行态
     insert_task_queue(wait->task);  //把进程插入到就绪队列里以待调度
+    current->flags |= NEED_SCHEDULE;
 }
 
 

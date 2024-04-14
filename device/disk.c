@@ -249,7 +249,7 @@ void end_request(struct block_buffer_node* node){
     }
     node->wait_queue.task->state = TASK_RUNNING;
     insert_task_queue(node->wait_queue.task);
-    node->wait_queue.task->flags |= NEED_SCHEDULE;  //从中断返回的时候就会schedule()
+    current->flags |= NEED_SCHEDULE;  //从中断返回的时候就会schedule()
 
     kfree((unsigned long *)disk_request.is_using);
     disk_request.is_using = NULL;
@@ -257,7 +257,7 @@ void end_request(struct block_buffer_node* node){
     if(disk_request.block_request_count){   //队列里还有任务则继续执行
         cmd_out();
     }
-    //sti();
+
 }
 
 
