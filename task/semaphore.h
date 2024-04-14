@@ -26,7 +26,7 @@ typedef struct{
 /*  信号量  */
 typedef struct{
     atomic_T counter;  //该信号量拥有资源的数量(原子变量)
-    wait_queue_T wait; //等待当前资源的任务队列
+    wait_queue_T wait; //等待当前资源的任务队列(信号量队列)
 } semaphore_T;
 
 

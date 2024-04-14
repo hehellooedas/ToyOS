@@ -33,7 +33,8 @@ void schedule(void)
     task = get_next_task();
     long cpu_id = SMP_cpu_id();
 
-    if(current->virtual_runtime >= task->virtual_runtime){
+
+    if(current->virtual_runtime >= task->virtual_runtime || current->state != TASK_RUNNING){
         if(current->state == TASK_RUNNING){
             insert_task_queue(current);
         }

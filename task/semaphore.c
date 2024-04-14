@@ -9,10 +9,10 @@
 void __down(semaphore_T *semaphore) 
 {
     wait_queue_T wait;
-    wait_queue_init(&wait,current);  //初始化当前进程的队列项
+    wait_queue_init(&wait,current);         //初始化当前进程的队列项
     current->state = TASK_UNINTERRUPTIBLE;  //设置为不可中断态
     list_add_to_before(&semaphore->wait.wait_list,&wait.wait_list);
-    schedule();  //让当前进程转让使用权
+    schedule();     //当前进程转让使用权
 }
 
 
@@ -20,7 +20,7 @@ void semaphore_down(semaphore_T* semaphore)
 {
     if(atomic_read(&semaphore->counter) > 0){  //如果资源足够,则分配资源
         atomic_dec(&semaphore->counter);
-    }else{  //反之,资源不足够则阻塞当前线程
+    }else{      //反之,资源不足够则阻塞当前线程
         __down(semaphore);
     }
 }

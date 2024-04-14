@@ -5,7 +5,7 @@
 #include <spinlock.h>
 #include <flags.h>
 #include <screen.h>
-
+#include <interrupt.h>
 
 char buf[4096] = {0};
 struct position Pos;
@@ -335,11 +335,13 @@ int color_printk(unsigned int FRcolor,unsigned int BKcolor,const char* fmt,...){
     /* 先格式化字符串  */
     va_list args;
     va_start(args, fmt);
+
+    if(get_rflags() & 0x200UL)      //判断调用者是否为中断程序
+        spin_lock(&Pos.printk_lock);
+
     i = vsprintf(buf,fmt,args);  //返回字符串长度
     va_end(args);
 
-    if(get_rflags() & 0x200UL)
-        spin_lock(&Pos.printk_lock);
     for(count=0;count<i||line;count++){
         if(line > 0){
             count--;
@@ -382,6 +384,7 @@ int color_printk(unsigned int FRcolor,unsigned int BKcolor,const char* fmt,...){
             Pos.YPosition--;
         }
     }
+
     if(get_rflags() & 0x200UL)
         spin_unlock(&Pos.printk_lock);
     return i;

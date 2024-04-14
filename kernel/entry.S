@@ -333,7 +333,7 @@ ENTRY(virtualization_exception)
 
 
 ENTRY(system_call) #执行sysenter的时候会进入到这里
-    sti
+    sti     /*  sysenter会复位IF,在指令结束后要再次使能中断  */
     subq $0x38,%rsp
     cld;
 
@@ -389,6 +389,7 @@ ENTRY(ret_system_call)
     movq %rax,%es; 
     popq %rax; 
     addq $0x38,%rsp; 
+    sti
     .byte 0x48
     sysexitq
 #sysexit只能ring0 -> ring3,跳转时不会进行段描述符检测,速度快

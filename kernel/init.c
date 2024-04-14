@@ -28,6 +28,7 @@
 
 extern unsigned long _stack_start;
 
+unsigned char buffer[512];
 
 void init_all(void){
     load_TR(10);
@@ -65,12 +66,13 @@ void init_all(void){
     disk_init();
     print_current_time();
     schedule_init();
-    SMP_init();
+    //SMP_init();
     softirq_init();
     timer_init();
     task_init();
     HPET_init();
 
     sti();
-    stop();
+
+    //stop();
 }

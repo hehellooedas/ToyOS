@@ -7,6 +7,12 @@
 #include <list.h>
 #include <lib.h>
 #include <printk.h>
+#include <semaphore.h>
+
+
+
+extern struct block_device_operation IDE_device_operation;
+
 
 /*  ATA控制命令(0X3F6)  */
 #define ATA_READ    0x24    //48位LBA寻址模式读取硬盘
@@ -53,9 +59,10 @@
 #define wait_when_disk0_busy()        while(in8(PORT_DISK0_STATUS) & DISK_STATUS_BUSY) nop()
 #define wait_when_disk0_not_ready()   while(!(in8(PORT_DISK0_DATA) & DISK_STATUS_READY)) nop()
 #define wait_when_disk0_not_req()     while(!(in8(PORT_DISK0_STATUS)& DISK_STATUS_REQ)) nop()
+
 #define wait_when_disk1_busy()        while(in8(PORT_DISK1_STATUS) & DISK_STATUS_BUSY) nop()
 #define wait_when_disk1_not_ready()   while(!(in8(PORT_DISK1_DATA) & DISK_STATUS_READY)) nop()
-
+#define wait_when_disk1_not_req()     while(!(in8(PORT_DISK1_STATUS)& DISK_STATUS_REQ)) nop()
 
 
 /*  诊断错误状态(错误端口0x1f1)  */
@@ -80,21 +87,21 @@ unsigned char generate_disk_work_mode(char access_mode,char hard_disk,char LBA_2
 
 /*  硬盘访问链上的节点  */
 struct block_buffer_node{
-    unsigned int count;     //当前硬盘访问几个扇区
+    unsigned int count;     //当前硬盘访问几个扇区(如果操作多个扇区,每准备好一个扇区就会发出一个中断)
     unsigned char cmd;      //硬盘访问的命令
     unsigned long LBA;      //访问硬盘的LBA地址(48)
     unsigned char* buffer;  //缓冲区地址
     void (*end_handler)(unsigned long nr,unsigned long parameter);  //回调函数
-    struct List list;      //用于标记当前节点在硬盘访问链上的位置
+    wait_queue_T wait_queue;
 };
 
 
 
 /*  硬盘访问(请求)链  */
 struct request_queue{
-    struct List queue_list;             //等待中的请求
-    struct block_buffer_node* is_using; //正在处理的硬盘请求
-    long block_request_count;           //剩余请求数
+    wait_queue_T wait_queue_list;
+    struct block_buffer_node* is_using;   //正在处理的硬盘请求
+    long block_request_count;             //剩余请求数
 } disk_request;
 
 
@@ -230,7 +237,7 @@ void submit(struct block_buffer_node* node);
 void wait_for_finish();
 void read_handler(unsigned long nr,unsigned long parameter);
 void write_handler(unsigned long nr,unsigned long parameter);
-void end_request();
+void end_request(struct block_buffer_node* node);
 void other_handler();
 
 
@@ -238,7 +245,7 @@ void other_handler();
 static __attribute__((always_inline))
 void add_request(struct block_buffer_node* node)
 {
-    list_add_to_before(&disk_request.queue_list, &node->list);
+    list_add_to_behind(&disk_request.wait_queue_list.wait_list, &node->wait_queue.wait_list);
     disk_request.block_request_count++;
 }
 
@@ -248,12 +255,12 @@ void add_request(struct block_buffer_node* node)
 static __attribute__((always_inline))
 void Device_mode_LBA28(unsigned int count,unsigned long LBA)
 {
-    out8(PORT_DISK0_DEVICE,generate_disk_work_mode(1,0 ,LBA >> 24 ) );
-    out8(PORT_DISK0_ERROR,0);
-    out8(PORT_DISK0_SECTOR_CNT,count );
-    out8(PORT_DISK0_SECTOR_LOW,LBA & 0xff );
-    out8(PORT_DISK0_SECTOR_MID,(LBA >> 8) & 0xff );
-    out8(PORT_DISK0_SECTOR_HIGH,(LBA >> 16) & 0xff );
+    out8(PORT_DISK1_DEVICE,generate_disk_work_mode(1,0 ,LBA >> 24 ) );
+    out8(PORT_DISK1_ERROR,0);
+    out8(PORT_DISK1_SECTOR_CNT,count );
+    out8(PORT_DISK1_SECTOR_LOW,LBA & 0xff );
+    out8(PORT_DISK1_SECTOR_MID,(LBA >> 8) & 0xff );
+    out8(PORT_DISK1_SECTOR_HIGH,(LBA >> 16) & 0xff );
 
 }
 
@@ -265,17 +272,17 @@ void Device_mode_LBA48(unsigned int count,unsigned long LBA)
 {
     out8(PORT_DISK0_DEVICE,DISK_WORK_MODE_LBA48);
 
-    out8(PORT_DISK0_ERROR,0);
-    out8(PORT_DISK0_SECTOR_CNT,(count >> 8) & 0xff );
-    out8(PORT_DISK0_SECTOR_LOW,(LBA >> 24) & 0xff );
-    out8(PORT_DISK0_SECTOR_MID,(LBA >> 32) & 0xff );
-    out8(PORT_DISK0_SECTOR_HIGH,(LBA >> 40) & 0xff );
+    out8(PORT_DISK1_ERROR,0);
+    out8(PORT_DISK1_SECTOR_CNT,(count >> 8) & 0xff );
+    out8(PORT_DISK1_SECTOR_LOW,(LBA >> 24) & 0xff );
+    out8(PORT_DISK1_SECTOR_MID,(LBA >> 32) & 0xff );
+    out8(PORT_DISK1_SECTOR_HIGH,(LBA >> 40) & 0xff );
 
-    out8(PORT_DISK0_ERROR,0);
-    out8(PORT_DISK0_SECTOR_CNT,count & 0xff );
-    out8(PORT_DISK0_SECTOR_LOW,LBA & 0xff );
-    out8(PORT_DISK0_SECTOR_MID,(LBA >> 8) & 0xff );
-    out8(PORT_DISK0_SECTOR_HIGH,(LBA >> 16) & 0xff );
+    out8(PORT_DISK1_ERROR,0);
+    out8(PORT_DISK1_SECTOR_CNT,count & 0xff );
+    out8(PORT_DISK1_SECTOR_LOW,LBA & 0xff );
+    out8(PORT_DISK1_SECTOR_MID,(LBA >> 8) & 0xff );
+    out8(PORT_DISK1_SECTOR_HIGH,(LBA >> 16) & 0xff );
 }
 
 

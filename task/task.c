@@ -10,6 +10,8 @@
 #include <random.h>
 #include <SMP.h>
 #include <spinlock.h>
+#include <interrupt.h>
+#include <fat32.h>
 
 
 extern char _data;
@@ -229,15 +231,19 @@ unsigned long do_fork(
 /*  进程切换的下半段  */
 void __attribute__((always_inline))
 __switch_to(struct task_struct *prev, struct task_struct *next) {
+    long cpu_id = SMP_cpu_id();
     unsigned int color = 0;
-    init_tss[SMP_cpu_id()].rsp0 = next->thread->rsp0; //更新rsp0
+    init_tss[cpu_id].rsp0 = next->thread->rsp0; //更新rsp0
 
-    set_tss64((unsigned int*)&init_tss[SMP_cpu_id()],init_tss[SMP_cpu_id()].rsp0, init_tss[SMP_cpu_id()].rsp1, init_tss[SMP_cpu_id()].rsp2,init_tss[SMP_cpu_id()].ist1, init_tss[SMP_cpu_id()].ist2, init_tss[SMP_cpu_id()].ist3,init_tss[SMP_cpu_id()].ist4, init_tss[SMP_cpu_id()].ist5, init_tss[SMP_cpu_id()].ist6,init_tss[SMP_cpu_id()].ist7);  //更新后写入到TSS
+    set_tss64((unsigned int*)&init_tss[cpu_id],init_tss[cpu_id].rsp0, init_tss[cpu_id].rsp1, init_tss[cpu_id].rsp2,init_tss[cpu_id].ist1, init_tss[cpu_id].ist2, init_tss[cpu_id].ist3,init_tss[cpu_id].ist4, init_tss[cpu_id].ist5, init_tss[cpu_id].ist6,init_tss[cpu_id].ist7);  //更新后写入到TSS
 
     wrmsr(0x175,next->thread->rsp0 );
-    if(SMP_cpu_id() == 0){
+    if(cpu_id == 0){
         color = WHITE;
-    }else{
+    }else if (cpu_id == 3) {
+        color = BLUE;
+    }
+    else{
         color = YELLOW;
     }
 
@@ -289,6 +295,7 @@ unsigned long do_execute(struct pt_regs *regs) {
     virtual = kmalloc(PAGE_4K_SIZE,0);
     set_pdpt(tmp,mk_pdpt(Virt_To_Phy(virtual),PAGE_USER_Dir ) );
 
+
     tmp = Phy_To_Virt((unsigned long*)(*tmp & (~0xfffUL)) + ((addr >> PAGE_2M_SHIFT) & 0x1ff));
     p = alloc_pages(ZONE_NORMAL,1,PG_PTable_Maped);
     set_pdt(tmp,mk_pdt(p->PHY_address,PAGE_USER_Page ) );
@@ -313,12 +320,13 @@ void user_level_function() {
         "sysenter           \n\t"
         "sysexit_return_address: \n\t"
         : "=a"(ret)
-        : "0"(1), "D"(__FUNCTION__) // 使用1号系统调用(打印字符串)
+        : "0"(1), "D"(__FUNCTION__) // 使用1号系统调用(sys_printf)
         : "memory"
     );
     // color_printk(RED,BLACK,"user_level_function task called
     // sysenter,ret:%ld\n",ret);
-    //print_cr0_info();无法在用户态执行该函数
+    //print_cr0_info();//无法在用户态执行该函数
+
     while (1);
 }
 
@@ -340,6 +348,9 @@ unsigned long default_system_call(struct pt_regs *regs) {
 
 /*  1号系统调用:打印指定字符串  */
 unsigned long sys_printf(struct pt_regs *regs) {
-    color_printk(BLACK, WHITE, (char *)(regs->rdi));
+    color_printk(BLACK, WHITE, (char *)(regs->rdi));    //函数调用的第一个参数放在rdi
+
+    Disk1_FAT32_FS_init();
+
     return 1;
 }

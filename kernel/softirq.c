@@ -58,5 +58,5 @@ void do_softirq(){
             softirq_status &= ~ (1 << i);
         }
     }
-    cli();
+    cli();  /*避免在返回的时候再次被打断*/
 }

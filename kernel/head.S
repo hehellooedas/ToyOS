@@ -206,7 +206,7 @@ ENTRY(_stack_start)
     .quad init_task_union + 32768 #内核栈(0x100000~0x120000)
 
 
-.align 8
+.align 8,0
 
 .org 0x1000  #.quad为64位
 __PML4E:

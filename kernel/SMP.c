@@ -155,7 +155,10 @@ void Start_SMP(void){
     current->preempt_count = 0;
     sti();
 
-    //task_init();
+    if(current->cpu_id == 3){
+        task_init();
+    }
+
 
 
 
@@ -181,6 +184,6 @@ void IPI_0x200(unsigned long nr,unsigned long parameter,struct pt_regs* regs){
             break;
     }
     if(task_schedule[SMP_cpu_id()].CPU_exec_task_jiffies <= 0){
-        //current->flags |= NEED_SCHEDULE;
+        current->flags |= NEED_SCHEDULE;
     }
 }

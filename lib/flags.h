@@ -47,8 +47,8 @@ unsigned long get_rflags(void)
 {
     unsigned long rflags;
     asm volatile (
-        "pushfq     \n\t"
-        "popq %0    \n\t"
+        "pushfq     \n\t" //rflags入栈
+        "popq %0    \n\t" //取出保存在栈里的rflags
         "mfence     \n\t"
         :"=g"(rflags)
         :

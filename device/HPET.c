@@ -65,9 +65,11 @@ void HPET_init(void)
 void HPET_handler(unsigned long nr,unsigned long parameter,struct pt_regs* regs)
 {
 
-    struct INT_CMD_REG icr_entry;
     jiffies++;
 
+    /*  把时钟中断发送给其他核心  */
+    /*
+    struct INT_CMD_REG icr_entry;
     memset(&icr_entry,0,sizeof(struct INT_CMD_REG));    //没赋值的参数就是0
     icr_entry.vector = 0xc8;
     icr_entry.dest_shorthand = ICR_SHORTHAND_ALL_NOT_SELF;
@@ -75,7 +77,7 @@ void HPET_handler(unsigned long nr,unsigned long parameter,struct pt_regs* regs)
     icr_entry.dest_mode = ICR_DEST_MODE_PHY;
     icr_entry.deliver_mode = ICR_DELIVER_MODE_FIXED;
     wrmsr(0x830,*(unsigned long*)&icr_entry );
-
+    */
 
     if((container_of(get_List_next(&timer_list_head.list),struct timer_list ,list )->expire_jiffies <= jiffies))
         set_softirq_status(TIMER_STRQ);
@@ -92,6 +94,6 @@ void HPET_handler(unsigned long nr,unsigned long parameter,struct pt_regs* regs)
             break;
     }
     if(task_schedule[SMP_cpu_id()].CPU_exec_task_jiffies <= 0){
-        //current->flags |= NEED_SCHEDULE;
+        current->flags |= NEED_SCHEDULE;
     }
 }
