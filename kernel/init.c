@@ -18,6 +18,7 @@
 #include <softirq.h>
 #include <schedule.h>
 #include <spinlock.h>
+#include <log.h>
 
 
 #if PIC_APIC

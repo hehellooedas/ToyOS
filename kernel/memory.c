@@ -5,7 +5,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <printk.h>
-#include <stdio.h>
+#include <log.h>
 
 
 
@@ -436,7 +436,7 @@ void* kmalloc(unsigned long size,unsigned long gfp_flages)
     }else{
         slab = kmalloc_create(kmalloc_cache_size[i].size);
         if(slab == NULL){
-            color_printk(BLUE,BLACK ,"kmalloc()->kmalloc_create=>slab == NULL\n" );
+            log_to_screen(WARNING,"kmalloc()->kmalloc_create=>slab == NULL");
             return NULL;
         }
         kmalloc_cache_size[i].total_free += slab->color_count;
@@ -460,8 +460,7 @@ void* kmalloc(unsigned long size,unsigned long gfp_flages)
             return (void*)((char *)slab->Vaddress + (kmalloc_cache_size[i].size * j));
         }
     }
-
-    color_printk(BLUE,BLACK ,"kmalloc() ERROR:no memory can alloc\n" );
+    log_to_screen(WARNING,"kmalloc() ERROR:no memory can alloc");
     return NULL;
 }
 
@@ -597,7 +596,7 @@ bool kfree(void* address)
         }while(slab != kmalloc_cache_size[i].cache_pool);
 
     }
-    color_printk(RED,BLACK ,"kfree() Error:can't free memory" );
+    log_to_screen(WARNING,"kfree() Error:can't free memory");
     return false;
 }
 
@@ -613,7 +612,7 @@ struct Slab_cache* slab_create(
     struct Slab_cache* slab_cache = NULL;
     slab_cache = (struct Slab_cache*)kmalloc(sizeof(struct Slab_cache),0); //从内核空间分配
     if(slab_cache == NULL){ //如果分配失败
-        color_printk(RED,BLACK ,"slab_create()->kmalloc()->slab_cache == NULL\n" );
+        log_to_screen(WARNING,"slab_create()->kmalloc()->slab_cache == NULL");
         return NULL;
     }
     memset(slab_cache,0 ,sizeof(struct Slab_cache));
@@ -624,7 +623,7 @@ struct Slab_cache* slab_create(
     slab_cache->cache_pool = (struct Slab*)kmalloc(sizeof(struct Slab),0);
 
     if(slab_cache->cache_pool == NULL){
-        color_printk(RED,BLACK ,"slab_create()->kmalloc()->slab_cache == NULL\n" );
+        log_to_screen(WARNING,"slab_create()->kmalloc()->slab_cache == NULL");
         kfree(slab_cache);
         return NULL;
     }
@@ -637,7 +636,7 @@ struct Slab_cache* slab_create(
 
     slab_cache->cache_pool->page = (struct Page*)alloc_pages(ZONE_NORMAL,1 ,0 );
     if(slab_cache->cache_pool->page == NULL){
-        color_printk(RED,BLACK ,"slab_create()->alloc_pages()->slab_cache=>cache_pool=>page == NULL\n" );
+        log_to_screen(WARNING,"slab_create()->alloc_pages()->slab_cache=>cache_pool=>page == NULL\n");
         kfree(slab_cache->cache_pool);
         kfree(slab_cache);
         return NULL;
@@ -654,7 +653,7 @@ struct Slab_cache* slab_create(
     slab_cache->cache_pool->color_map = (unsigned long*)kmalloc(slab_cache->cache_pool->color_length,0);
 
     if(slab_cache->cache_pool->color_map == NULL){
-        color_printk(RED,BLACK ,"slab_create()->kmalloc()=>slab_cache->cache_pool->color_map == NULL\n" );
+        log_to_screen(WARNING,"slab_create()->kmalloc()=>slab_cache->cache_pool->color_map == NULL");
         free_pages(slab_cache->cache_pool->page,1 );
         kfree(slab_cache->cache_pool);
         kfree(slab_cache);
@@ -674,7 +673,7 @@ bool slab_destroy(struct Slab_cache* slab_cache)
     struct Slab* slab_p = slab_cache->cache_pool;
     struct Slab* tmp_slab = NULL;
     if(slab_cache->total_using != 0){ //要想释放内存池,则池中的内存对象必须全部空闲
-        color_printk(RED,BLACK ,"slab_cache->total->using != 0!\n" );
+        log_to_screen(WARNING,"slab_cache->total->using != 0!");
         return false;
     }
     while(!list_is_empty(&slab_p->list)){ //递归删除slab链
@@ -712,7 +711,7 @@ void* slab_malloc(struct Slab_cache* slab_cache,unsigned long arg)
         list_init(&tmp_slab->list);
         tmp_slab->page = alloc_pages(ZONE_NORMAL,1 ,0 );
         if(tmp_slab->page == NULL){
-            color_printk(RED,BLACK ,"slab_malloc()->alloc_pages()=>tmp_slab->page == NULL\n" );
+            log_to_screen(WARNING,"slab_malloc()->alloc_pages()=>tmp_slab->page == NULL");
             kfree(tmp_slab);
             return NULL;
         }
@@ -825,7 +824,7 @@ bool slab_free(struct Slab_cache* slab_cache,void* address,unsigned long arg)
             continue;
         }
     }while(slab_p != slab_cache->cache_pool);
-    color_printk(RED,BLACK ,"slab_free() Error:address not in slab\n" );
+    log_to_screen(WARNING,"slab_free() Error:address not in slab");
     return false;
 }
 

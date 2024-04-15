@@ -12,6 +12,7 @@
 #include <spinlock.h>
 #include <interrupt.h>
 #include <fat32.h>
+#include <log.h>
 
 
 extern char _data;
@@ -259,7 +260,8 @@ __switch_to(struct task_struct *prev, struct task_struct *next) {
         : "memory"
     );
 
-    color_printk(color, BLACK, "[info] prev->thread->rsp0:%#lx\tnext->thread->rsp0:%#lx\tCPU:%d\n", prev->thread->rsp0,next->thread->rsp0,SMP_cpu_id());
+    log_to_screen(INFO,"prev->thread->rsp0:%#lx\tnext->thread->rsp0:%#lx\tCPU:%d",prev->thread->rsp0,next->thread->rsp0,SMP_cpu_id());
+
 }
 
 
@@ -349,8 +351,7 @@ unsigned long default_system_call(struct pt_regs *regs) {
 /*  1号系统调用:打印指定字符串  */
 unsigned long sys_printf(struct pt_regs *regs) {
     color_printk(BLACK, WHITE, (char *)(regs->rdi));    //函数调用的第一个参数放在rdi
-
-    Disk1_FAT32_FS_init();
+    //Disk1_FAT32_FS_init();
 
     return 1;
 }

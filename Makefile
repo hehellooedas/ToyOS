@@ -20,7 +20,8 @@ OBJS     =  $(BUILD_DIR)/head.o $(BUILD_DIR)/main.o $(BUILD_DIR)/printk.o \
 			$(BUILD_DIR)/APIC.o $(BUILD_DIR)/keyboard.o $(BUILD_DIR)/mouse.o \
 			$(BUILD_DIR)/disk.o $(BUILD_DIR)/SMP.o $(BUILD_DIR)/APU_boot.o \
 			$(BUILD_DIR)/time.o $(BUILD_DIR)/HPET.o $(BUILD_DIR)/softirq.o \
-			$(BUILD_DIR)/timer.o $(BUILD_DIR)/schedule.o $(BUILD_DIR)/fat32.o
+			$(BUILD_DIR)/timer.o $(BUILD_DIR)/schedule.o $(BUILD_DIR)/fat32.o \
+			$(BUILD_DIR)/log.o
 
 PIC := PIC_APIC
 
@@ -122,6 +123,11 @@ $(BUILD_DIR)/softirq.o:kernel/softirq.c kernel/softirq.h
 
 $(BUILD_DIR)/fat32.o:fs/fat32.c fs/fat32.h
 	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/log.o:lib/log.c lib/log.h
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+
 
 
 clean:
