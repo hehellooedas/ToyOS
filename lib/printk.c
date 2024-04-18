@@ -307,6 +307,7 @@ int vsprintf(char* buf,const char* fmt,va_list args){
 
 
 
+/*  打印一个ASCII字符  */
 void putchar(unsigned int* fb,int Xsize,int x,int y,unsigned int FRcolor,unsigned int BKcolor,char font){
     unsigned int* addr = NULL;
     unsigned char* fontp = NULL;
@@ -337,8 +338,8 @@ int color_printk(unsigned int FRcolor,unsigned int BKcolor,const char* fmt,...){
     va_list args;
     va_start(args, fmt);
 
-    enum intr_status old_status = intr_disable();;
-    spin_lock(&Pos.printk_lock);
+
+    enum intr_status old_status = spin_lock_irqsave(&Pos.printk_lock);
 
     i = vsprintf(buf,fmt,args);  //返回字符串长度
     va_end(args);
@@ -386,7 +387,6 @@ int color_printk(unsigned int FRcolor,unsigned int BKcolor,const char* fmt,...){
         }
     }
 
-    set_intr_status(old_status);
-    spin_unlock(&Pos.printk_lock);
+    spin_unlock_irqstore(&Pos.printk_lock,old_status);
     return i;
 }

@@ -44,9 +44,9 @@ vga:extension=cirrus,extension=vbe,update_freq=60,realtime=1
 #单CPU,每CPU4核心,每核心2线程
 #每秒种执行4000000条指令数
 #quantum:CPU在被暂停并让另一个CPU运行之前，可以连续执行的最大指令数
-cpu: count=1:4:2, ips=5000000, quantum=16, model=tigerlake, reset_on_triple_fault=1, cpuid_limit_winnt=0, ignore_bad_msrs=1, mwait_is_nop=0, msrs="msrs.def"
+cpu: count=1:4:2, ips=10000000, quantum=16, model=tigerlake, reset_on_triple_fault=1, cpuid_limit_winnt=0, ignore_bad_msrs=1, mwait_is_nop=0, msrs="msrs.def"
  
-cpuid: x86_64=1,level=6, mmx=1,sep=1, aes=1, movbe=1, xsave=1,apic=x2apic,sha=1,movbe=1,adx=1,xsaveopt=1,avx_f16c=1,avx_fma=1,bmi=bmi2,1g_pages=1,pcid=1,fsgsbase=1,smep=1,smap=1,mwait=1,vmx=1,svm=1
+cpuid: x86_64=1,level=6, mmx=1,sep=1, aes=1, movbe=1, xsave=1,apic=x2apic,sha=1,adx=1,xsaveopt=1,avx_f16c=1,avx_fma=1,bmi=bmi2,1g_pages=1,pcid=1,fsgsbase=1,smep=1,smap=1,mwait=1,vmx=1,svm=1
 cpuid: family=6, model=0x1a, stepping=5, vendor_string="GenuineIntel", brand_string="11th Gen Intel(R) Core(TM) i5-1135G7 (TigerLake)"
  
 

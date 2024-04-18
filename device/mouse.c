@@ -112,7 +112,7 @@ unsigned char get_mousecode()
 {
     if(mouse_queue->count == 0){  //说明循环队列里没有数据
         while (!mouse_queue->count) { //那就等到有数据进来
-            nop();
+            pause();
         }
     }
     return ioqueue_consumer(mouse_queue);

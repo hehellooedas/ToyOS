@@ -5,7 +5,7 @@
 #include <disk.h>
 #include <APIC.h>
 #include <memory.h>
-
+#include <log.h>
 
 
 
@@ -262,5 +262,5 @@ void end_request(struct block_buffer_node* node){
 
 
 void other_handler(){
-    color_printk(RED,BLACK ,"Sorry to tell you the dirver accept error cmd!\n" );
+    log_to_screen(WARNING,"Sorry to tell you the dirver accept error cmd!");
 }

@@ -1,17 +1,19 @@
 #include <log.h>
-
+#include <string.h>
 
 
 
 void _log_to_screen(enum log_level level,char* filename,char* func,int line,char* condition,...)
 {
-    char log[50];
+    char log[100];
     va_list args;
     va_start(args,condition );
-    vsprintf(log,condition ,args );
+    int len = vsprintf(log,condition ,args );
+    int str_len = strlen(log);
+    va_end(args);
     switch (level) {
         case INFO:
-            color_printk(WHITE,BLACK ,"[info] %s\n",log );
+            color_printk(WHITE,BLACK ,"[info] %s\n",log);
             break;
         case WARNING:
             color_printk(YELLOW,BLACK ,"[warning] [%s %s %d] %s\n",filename,func,line,log );

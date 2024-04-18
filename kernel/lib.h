@@ -14,9 +14,10 @@
 #include <stdbool.h>
 
 
-#define nop()   asm volatile("nop   \n\t")
-#define hlt()   asm volatile("hlt   \n\t")
-#define stop()  asm volatile("jmp . \n\t")
+#define nop()   asm volatile("nop       \n\t")
+#define hlt()   asm volatile("hlt       \n\t")
+#define stop()  asm volatile("jmp .     \n\t")
+#define pause() asm volatile("pause     \n\t")
 
 
 

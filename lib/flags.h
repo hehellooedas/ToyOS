@@ -16,59 +16,76 @@
 其中CF标志位可以使用stc clc cmc指令进行操作
 */
 
-#define flag_CF     0x01      //进位标志位(未发生/发生)
-#define flag_PF     0x04      //奇偶标志位(奇数个1/偶数个1)
-#define flag_AF     0x10      //辅助标志位(用于BCD运算)
-#define flag_ZF     0x40      //零值标志位(结果为1/结果为0)
-#define flag_SF     0x80      //符号标志位(正数/负数)
-#define flag_TF     0x100     //跟踪标志位(开启单步调试)
-#define flag_IF     0x200     //中断使能标志位(开启可屏蔽中断)
-#define flag_DF     0x400     //方向标志位(正向/逆向)
-#define flag_OF     0x800     //溢出标志位(未发生溢出/发生了溢出)
-#define flag_RF     0x8000    //恢复标志位(允许调试异常)
-#define flag_AC     0x20000   //对齐检测标志位(数据对齐检测)
-#define flag_VIF    0x40000   //虚拟中断标志位(虚拟的IF)
-#define flag_VIP    0x80000   //虚拟中断挂起标志位
-#define flag_ID     0x100000  //ID标志位(检测CPUID指令)
 
-
-struct flag_struct{
-    char flag_Name[14][4];
-    unsigned int flag_Value[14];
+struct rflag_struct{
+    unsigned int
+        CF:1,           //进位标志位(未发生/发生)
+        res_1:1,        //保留
+        PF:1,           //奇偶标志位(奇数个1/偶数个1)
+        res_2:1,        //保留
+        AF:1,           //辅助标志位(用于BCD运算)
+        res_3:1,        //保留
+        ZF:1,           //zero零值标志位(结果为1/结果为0)
+        SF:1,           //sign符号标志位(正数/负数)
+        TF:1,           //跟踪标志位(开启单步调试)
+        IF:1,           //中断使能标志位(开启可屏蔽中断)
+        DF:1,           //方向标志位(正向/逆向)
+        OF:1,           //溢出标志位(未发生溢出/发生了溢出)
+        IOPL:2,         //当前IO操作的特权级
+        NF:1,           //任务嵌套标志位(长模式不使用)
+        res_4:1,        //保留
+        RF:1,           //恢复标志位(允许调试异常)
+        VM:1,           //虚拟8086模式标志位(不使用)
+        AC:1,           //对齐检测标志位(数据对齐检测)
+        VIF:1,          //虚拟中断标志位(虚拟的IF)
+        VIP:1,          //虚拟中断挂起标志位
+        ID:1,           //ID标志位
+        res_5:10;
+    unsigned int res;
 };
 
-const struct flag_struct flag_data = {
-    .flag_Name = {"CF","PF","AF","ZF","SF","TF","IF","DF","OF","RF","AC","VIF","VIP","ID"},
-    .flag_Value = {flag_CF,flag_PF,flag_AF,flag_ZF,flag_SF,flag_TF,flag_IF,flag_DF,flag_OF,flag_RF,flag_AC,flag_VIF,flag_VIF,flag_ID},
-};
+
+
 
 static __attribute__((always_inline))
-unsigned long get_rflags(void)
+struct rflag_struct get_rflags(void)
 {
     unsigned long rflags;
     asm volatile (
-        "pushfq     \n\t" //rflags入栈
+        "pushfq     \n\t" //rflags入栈(r表示flags,q表示尺寸)
         "popq %0    \n\t" //取出保存在栈里的rflags
         "mfence     \n\t"
         :"=g"(rflags)
         :
         :"memory"
     );
-    return rflags;
+    return *(struct rflag_struct*)&rflags;
 }
+
 
 
 static __attribute__((always_inline))
 void print_current_rflags(void)
 {
-    unsigned long rflags = get_rflags();
-    color_printk(RED,BLACK,\
-    "current rflags is %#b\n",rflags);
-    for(int i=0;i<14;i++){
-        if(rflags & flag_data.flag_Value[i]){
-            color_printk(RED,BLACK,"%s = 1\t",flag_data.flag_Name[i]);
-        }
-    }
+    struct rflag_struct rflags = get_rflags();
+    color_printk(GREEN,BLACK ,"current rflags is " );
+
+    if(rflags.CF) color_printk(GREEN,BLACK ,"CF " );
+    if(rflags.PF) color_printk(GREEN,BLACK ,"PF " );
+    if(rflags.AF) color_printk(GREEN,BLACK ,"AF " );
+    if(rflags.ZF) color_printk(GREEN,BLACK ,"ZF " );
+    if(rflags.SF) color_printk(GREEN,BLACK ,"SF " );
+    if(rflags.TF) color_printk(GREEN,BLACK ,"TF " );
+    if(rflags.IF) color_printk(GREEN,BLACK ,"IF " );
+    if(rflags.DF) color_printk(GREEN,BLACK ,"DF " );
+    if(rflags.OF) color_printk(GREEN,BLACK ,"OF " );
+    if(rflags.RF) color_printk(GREEN,BLACK ,"RF " );
+    if(rflags.AC) color_printk(GREEN,BLACK ,"AC " );
+    if(rflags.VIF) color_printk(GREEN,BLACK ,"VIF " );
+    if(rflags.VIP) color_printk(GREEN,BLACK ,"VIP " );
+    if(rflags.ID) color_printk(GREEN,BLACK ,"ID " );
+
+
     color_printk(RED,BLACK,"\n");
 }
 

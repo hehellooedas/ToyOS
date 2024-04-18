@@ -48,7 +48,7 @@ void cli(void)
 static __attribute__((always_inline))
 enum intr_status get_intr_status(void)
 {
-    return ((get_rflags() & 0x200) ? INTR_ON:INTR_OFF);
+    return ((get_rflags().IF) ? INTR_ON:INTR_OFF);
 }
 
 

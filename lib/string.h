@@ -4,7 +4,6 @@
 
 
 
-
 static __attribute__((always_inline))
 int strlen(char* String) 
 {
@@ -27,7 +26,7 @@ int strlen(char* String)
 
 
 
-static __attribute__((always_inline))\
+static __attribute__((always_inline))
 void* memset(void* ptr,int value,unsigned long size){
     char* p = (char*)ptr;
     while(size--){
@@ -38,7 +37,15 @@ void* memset(void* ptr,int value,unsigned long size){
 
 
 
+char* itoa(char** str,int value,int base);
 void* memcpy(void* dest,void* src,unsigned long size);
 void* memmove(void* dest,const void* src,unsigned long size);
+int strcmp(char* a,char* b);
+char* strcpy(char* dst,char* src);
+char* strncpy(char* dst,char* src,unsigned int size);
+char* strchr(char* str,char c);
+char* strcat(char* dst,const char* src);
+char* strncat(char* dst,const char* src,unsigned int size);
+
 
 #endif // !__LIB_STRING_H

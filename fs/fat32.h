@@ -100,10 +100,10 @@ struct FAT32_FSInfo{
 
 
 
-/*  FAT32目录项  */
+/*  FAT32目录项(32B)  */
 struct FAT32_Directory{
     unsigned char Dir_Name[11];     //目录名
-    unsigned char Dir_Attr;         //文件属性
+    unsigned char Dir_Attr;         //文件属性(短目录项和长目录项的Attr在同一个地方)
     unsigned char Dir_NTRes;        //保留
     unsigned char Dir_CrtTimeTenth; //文件创建时的时间戳
     unsigned short Dir_CrtTime;     //文件创建的时间
@@ -114,22 +114,23 @@ struct FAT32_Directory{
     unsigned short Dir_WrtDate;     //最后写入日期
     unsigned short Dir_FatClusLO;   //起始簇号(低位)
     unsigned int Dir_FileSize;      //文件大小
-};
+}__attribute__((packed));
 
 
 
 
-/*  长目录项  */
+/*  长目录项(32B)  */
 struct FAT32_LongDirectory{
     unsigned char LDIR_Ord;         //长目录项的序号
-    unsigned short LDIR_Name1[5];   //长文件名的1-5个字符
+    unsigned short LDIR_Name1[5];   //长文件名的1-5个字符(名称的第一部分)
     unsigned char LDIR_Attr;        //属性必须为ATTR_LONG_NAME
     unsigned char LDIR_Type;        //如果为0,说明是长目录项的子项
     unsigned char LDIR_Chksum;      //短文件名的校验和
-    unsigned short LDIR_Name2[6];   //6-11
-    unsigned short LDIR_FstClusLO;  // =0
-    unsigned short LDIR_Name3[2];   //12-13
-};
+    unsigned short LDIR_Name2[6];   //6-11(第二部分)
+    unsigned short LDIR_FstClusLO;  //必须为0
+    unsigned short LDIR_Name3[2];   //12-13(第三部分)
+}__attribute__((packed));
+
 
 
 void Disk1_FAT32_FS_init();

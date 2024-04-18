@@ -19,16 +19,30 @@
 #define is_digit(x)     ((x) >= '0' && (x) <= '9')
 
 
+
 /*  定义一些颜色  */
-#define WHITE 	0x00ffffff		//白
-#define BLACK 	0x00000000		//黑
-#define RED	    0x00ff0000		//红
-#define ORANGE	0x00ff8000		//橙
-#define YELLOW	0x00ffff00		//黄
-#define GREEN	0x0000ff00		//绿
-#define BLUE	0x000000ff		//蓝
-#define INDIGO	0x0000ffff		//靛
-#define PURPLE	0x008000ff		//紫
+#define WHITE 	0x00ffffff		//白色
+#define BLACK 	0x00000000		//黑色
+#define RED	    0x00ff0000		//红色
+#define ORANGE	0x00ff8000		//橙色
+#define YELLOW	0x00ffff00		//黄色
+#define GREEN	0x0000ff00		//绿色
+#define BLUE	0x000000ff		//蓝色
+#define INDIGO	0x0000ffff		//靛色
+#define PURPLE	0x008000ff		//紫色
+#define PINK    0x00ffc0cb      //粉色
+#define SNOW    0x00fffafa      //雪色
+#define SKY     0x00f0ffff      //天蓝色
+
+
+
+static __attribute__((always_inline))
+unsigned int gen_color(unsigned char Red,unsigned char Green,unsigned char Blue)
+{
+    return ((Red << 16) & 0xff0000) | ((Green << 8) & 0xff00) | (Blue & 0xff);
+}
+
+
 
 
 /* 返回余数 */

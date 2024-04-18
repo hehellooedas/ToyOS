@@ -15,7 +15,7 @@ RDRAND指令可以生成高质量的随机数，并提供的随机性具有很�
 在首次使用rdrand指令的时候会初始化相关硬件
 */
 static __attribute__((always_inline)) 
-bool rdrand_long(unsigned long* value) {
+long rdrand_long(unsigned long* value) {
     bool ok;
     unsigned int retry = RANDOM_RETRY_LOOPS;
     do{
@@ -41,7 +41,7 @@ bool rdrand_long(unsigned long* value) {
 Intel第七代处理器引入该指令(调用该函数前必须进行判断)
 */
 static __attribute__((always_inline))
-bool rdseed_long(unsigned long* value)
+long rdseed_long(unsigned long* value)
 {
     bool ok = false;
     asm volatile (

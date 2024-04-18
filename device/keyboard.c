@@ -176,7 +176,7 @@ unsigned char get_scancode()
 {
     if(keyboard_queue->count == 0){  //说明循环队列里没有数据
         while (!keyboard_queue->count) { //那就等到有数据进来
-            nop();
+            pause();
         }
     }
 

@@ -10,6 +10,7 @@
 #include <ptrace.h>
 #include <interrupt.h>
 #include <screen.h>
+#include <log.h>
 
 
 /*  ESR错误内容记录在这里  */
@@ -22,6 +23,12 @@
 */
 void Local_APIC_init(void)
 {
+    /*  判断当前CPU是否有x2APIC指令集的支持  */
+    if(Extened_set.X2APIC){
+        log_to_screen(INFO,"x2APIC supported!!");
+    }else{
+        log_to_screen(ERROR,"NO x2APIC support!!");
+    }
     unsigned long msr = rdmsr(IA32_APIC_BASE_MSR);
     color_printk(GREEN,BLACK ,"%#lx\n",msr );
     msr |= 0b110000000000;  //开启x2APIC模式
@@ -135,8 +142,7 @@ void APIC_IOAPIC_init(void)
     out8(0x23,0x01 );
 
     Local_APIC_init();
-    screen_clear();
-    //SMP_init();
+
     IOAPIC_init();
 
     memset(interrupt_desc,0,sizeof(irq_desc_T) *NR_IRQS);

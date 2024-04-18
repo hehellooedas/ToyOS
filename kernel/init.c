@@ -56,7 +56,7 @@ void init_all(void){
     IC_8259A_init();
 
 #if PIC_APIC
-    color_printk(RED,BLACK,"current PIC is APIC\n",APIC);
+    color_printk(RED,BLACK,"current PIC is APIC\n");
     APIC_IOAPIC_init();
 #else
     color_printk(RED,BLACK,"current PIC is 8259A\n");

@@ -3,6 +3,8 @@
 
 #include <preempt.h>
 #include <task.h>
+#include <interrupt.h>
+
 
 /*
  * 自旋锁是一种忙式等待锁
@@ -10,6 +12,7 @@
  * 直到有资源空闲时,继续才会运行
  * 使用场景:短时间内持有锁的场景
  * 自旋锁更加底层,适合给中断处理使用
+ * 自旋锁不可递归,否则会陷入死锁
  */
 
 
@@ -79,6 +82,26 @@ long spin_trylock(spinlock_T* lock)
         preempt_enable();
     }
     return tmp_value;
+}
+
+
+
+static __attribute__((always_inline))
+enum intr_status spin_lock_irqsave(spinlock_T* lock)
+{
+    enum intr_status old_status = intr_disable();
+    spin_lock(lock);
+    return old_status;
+}
+
+
+
+
+static __attribute__((always_inline))
+void spin_unlock_irqstore(spinlock_T* lock,enum intr_status old_status)
+{
+    spin_unlock(lock);
+    set_intr_status(old_status);
 }
 
 
