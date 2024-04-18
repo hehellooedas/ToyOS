@@ -97,4 +97,17 @@ void aotomic_clear_mask(atomic_T* atomic,long mask)
 
 
 
+static __attribute__((always_inline))
+int atomic_sub_and_test(atomic_T* atomic,int i)
+{
+    atomic_sub(atomic,i);
+    if(atomic_read(atomic) == 0) return 1;
+    return 0;
+}
+
+
+
+
+
+
 #endif // !__TASK_ATOMIC_H

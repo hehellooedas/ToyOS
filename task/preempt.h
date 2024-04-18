@@ -16,4 +16,8 @@ do{                             \
 
 
 
+#define preempt_count()  current->preempt_count
+
+
+
 #endif

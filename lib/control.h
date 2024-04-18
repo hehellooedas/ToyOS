@@ -75,7 +75,7 @@ void print_cr0_info(void)
 
     if(cr0.NW)     color_printk(RED,BLACK ,"NW " );
     if(cr0.CD)     color_printk(RED,BLACK ,"CD " );
-    if(cr0.PG)     color_printk(RED,BLACK ,"PG\n" );
+    if(cr0.PG)     color_printk(RED,BLACK ,"PG\n" );    //在调用该函数时分页机制必然已经开启
 
     //color_printk(RED,BLACK,"cr0=%#x\n",*(unsigned int*)&cr0);
 }
@@ -100,8 +100,8 @@ void cr0_Set(struct cr0_struct cr0)
 
 
 /*  cr3记录页目录的信息  */
-#define control_PWT     0x08
-#define control_PCD     0x10
+#define control_PWT     0x08        //页写穿标志位
+#define control_PCD     0x10        //页禁止缓存标志位
 static __attribute__((always_inline))
 void print_cr3_info(void)
 {
@@ -118,7 +118,7 @@ void print_cr3_info(void)
 
 
 
-
+/*  cr4总是控制一些功能/指令集的开启或关闭  */
 struct cr4_struct{
     unsigned int
         VME:1,      //Virtual 8086 mode extensions
@@ -126,15 +126,88 @@ struct cr4_struct{
         TSD:1,      //Time Stamp Disable 限制RDTSC等指令的使用权限
         DE:1,       //Debugging Extensions使能DR4、DR5调试器
         PSE:1,      //Page Size Extensions允许32位分页模式使用4MB物理页
-
-
-
+        PAE:1,      //开启页管理机制的物理地址寻址扩展(允许访问超过4GB的物理地址,把原有的二级页表映射为三级)
+        MCE:1,      //开启机器检测异常
+        PGE:1,      //开启全局页表功能
+        PCE:1,      //限制RDPMC指令的执行权限
+        OSFXSB:1,   //限制FXAVE,FXSTORE指令的功能
+        OSXMMEXCPT:1,   //允许处理器执行SIMD浮点异常
+        res_1:2,    //保留
+        VMXE:1,     //开启VMX功能
+        SMXE:1,     //开启SMX功能
+        res_2:1,    //保留
+        FSGSBASE:1, //使能RDFSBASE等指令
+        PCIDE:1,    //开启PCID功能
+        OSXSAVE:1,  //开启XSAVE、XSTORE等指令的增强功能
+        res_3:1,    //保留
+        SMEP:1,     //限制超级权限对用户进程的执行
+        SMAP:1,     //限制超级权限对用户数据的访问
 
         res_4:10;   //保留
-    unsigned int res_5;
+    unsigned int res;
 };
 
 
+
+static __attribute__((always_inline))
+struct cr4_struct cr4_Get(void)
+{
+    unsigned long cr4;
+    asm volatile (
+        "movq %%cr4,%0  \n\t"
+        :"=r"(cr4)
+        :
+        :"memory"
+    );
+    return *(struct cr4_struct*)&cr4;
+}
+
+
+
+static __attribute__((always_inline))
+void cr4_Set(struct cr4_struct cr4)
+{
+    if(cr4.res !=0 || cr4.res_1 != 0 || cr4.res_2 !=0 || cr4.res_3 != 0 || cr4.res_4 != 0){
+        log_to_screen(ERROR,"cr4 Set ERROR!!!");
+    }
+    asm volatile(
+        "movq %0,%%cr0      \n\t"
+        :
+        :"a"(*(unsigned long*)&cr4)
+    );
+}
+
+
+
+static __attribute__((always_inline))
+void print_cr4_info(void)
+{
+    struct cr4_struct cr4 = cr4_Get();
+    if(cr4.VME)     color_printk(RED,BLACK ,"VME " );
+    if(cr4.PVI)     color_printk(RED,BLACK ,"PVI " );
+    if(cr4.TSD)     color_printk(RED,BLACK ,"TSD " );
+    if(cr4.DE)     color_printk(RED,BLACK ,"DE " );
+    if(cr4.PSE)     color_printk(RED,BLACK ,"PSE " );
+    if(cr4.PAE)     color_printk(RED,BLACK ,"PAE " );
+    if(cr4.MCE)     color_printk(RED,BLACK ,"MCE " );
+    if(cr4.PGE)     color_printk(RED,BLACK ,"PGE " );
+    if(cr4.PCE)     color_printk(RED,BLACK ,"PCE " );
+    if(cr4.OSFXSB)     color_printk(RED,BLACK ,"OSFXSB " );
+    if(cr4.OSXMMEXCPT)     color_printk(RED,BLACK ,"OSXMMEXCPT " );
+
+    if(cr4.VMXE)    color_printk(RED,BLACK ,"VMXE " );
+    if(cr4.SMXE)    color_printk(RED,BLACK ,"SMXE " );
+
+    if(cr4.FSGSBASE)    color_printk(RED,BLACK ,"FSGSBASE " );
+    if(cr4.PCIDE)       color_printk(RED,BLACK ,"PCIDE " );
+    if(cr4.OSXSAVE)     color_printk(RED,BLACK ,"OSXSAVE " );
+
+    if(cr4.SMEP)    color_printk(RED,BLACK ,"SMEP " );
+    if(cr4.SMAP)    color_printk(RED,BLACK ,"SMAP " );
+
+    color_printk(RED,BLACK ,"\n" );
+    //color_printk(RED,BLACK,"cr0=%#x\n",*(unsigned int*)&cr0);
+}
 
 
 

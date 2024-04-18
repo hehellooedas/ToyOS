@@ -504,19 +504,19 @@ Go_To_TMP_Protect:  ;进入临时保护模式
     jz no_support 
 
     ;处理器支持64位
-    ;初始化页表模板
+    ;初始化页表模板,三级分页
     ;PDPT页目录指针表
     mov dword [0x90000],0x91007
     mov dword [0x90004],0x00000
 	mov	dword [0x90800],0x91007
     mov dword [0x90804],0x00000 
 
-    ;PDT页目录项
+    ;PDT页目录表
 	mov	dword [0x91000],0x92007
     mov dword [0x91004],0x00000
 
 
-    ;PT页表项
+    ;PT页表
 	mov	dword [0x92000],0x000083
     mov dword [0x92004],0x000000
 
@@ -552,7 +552,7 @@ Go_To_TMP_Protect:  ;进入临时保护模式
 
     ;打开cr4寄存器里的PAE标志位
     mov eax,cr4
-    bts eax,5  ;三级分页(PAE)
+    bts eax,5  ;物理地址寻址扩展,三级分页
     mov cr4,eax
 
     ;加载cr3 设置分页的物理基地址
