@@ -39,7 +39,7 @@ struct mouse_packet{
 
 
 /*  鼠标图形  */
-static char cursor[16][16] = {
+static const char cursor[16][16] = {
     "**************..",     //1
     "*00000000000*...",     //2
     "*0000000000*....",     //3

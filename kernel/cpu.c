@@ -5,6 +5,10 @@
 
 struct Basic_set_struct Basic_set;
 struct Extened_set_struct Extened_set;
+struct EAX6_ECX0_EAX_set_struct EAX6_ECX0_EAX_set;
+struct EAX7_ECX0_EBX_set_struct EAX7_ECX0_EBX_set;
+struct EAX7_ECX0_ECX_set_struct EAX7_ECX0_ECX_set;
+struct EAX7_ECX0_EDX_set_struct EAX7_ECX0_EDX_set;
 
 
 void cpu_init(void)
@@ -48,6 +52,8 @@ Model Number:%#lx,Entended Model:%#lx,Processer Type:%#lx,Stepping ID:%#lx\n",
         (CpuFacName[0] >> 4 & 0xf), (CpuFacName[0] >> 16 & 0xf),
         (CpuFacName[0] >> 12 & 0x3), (CpuFacName[0] & 0xf));
 
+    color_printk(YELLOW,BLACK ,"init APIC ID:%d\n",(CpuFacName[1] >> 24 & 0xff) );
+
     /*  ECX和EDX存储处理器支持的机能信息  */
 
     /*  基础指令集信息  */
@@ -89,7 +95,7 @@ Model Number:%#lx,Entended Model:%#lx,Processer Type:%#lx,Stepping ID:%#lx\n",
 
     /*  扩展指令集信息  */
     color_printk(YELLOW,BLACK ,"\nextended set support:" );
-    Extened_set = *(struct Extened_set_struct*)&CpuFacName[3];
+    Extened_set = *(struct Extened_set_struct*)&CpuFacName[2];
     if(Extened_set.SSE3)      color_printk(GREEN,BLACK ,"SSE3 " );
     if(Extened_set.PCLMULQDQ) color_printk(GREEN,BLACK ,"PCLMULQDQ " );
     if(Extened_set.DTES64)    color_printk(GREEN,BLACK ,"DTES64 " );
@@ -142,5 +148,27 @@ Linear Address size:%08d\n",
         Max_Basic_Number, Max_Entend_Number);
 
 
+    /*  查询电源管理功能  */
+    get_cpuid(6, 0, &CpuFacName[0], &CpuFacName[1], &CpuFacName[2],
+              &CpuFacName[3]);
+    EAX6_ECX0_EAX_set = *(struct EAX6_ECX0_EAX_set_struct*)&CpuFacName[0];
 
+
+
+
+    /*  查询CPU支持的先进指令集信息  */
+    get_cpuid(7, 0, &CpuFacName[0], &CpuFacName[1], &CpuFacName[2],
+              &CpuFacName[3]);
+    EAX7_ECX0_EBX_set = *(struct EAX7_ECX0_EBX_set_struct*)&CpuFacName[1];
+    if(EAX7_ECX0_EBX_set.RDSEED) color_printk(GREEN,BLACK ,"RDSEED support!\n" );
+
+    EAX7_ECX0_ECX_set = *(struct EAX7_ECX0_ECX_set_struct*)&CpuFacName[2];
+    EAX7_ECX0_EDX_set = *(struct EAX7_ECX0_EDX_set_struct*)&CpuFacName[3];
+
+
+
+    /*  查询Cache和TLB信息  */
+    get_cpuid(2, 0, &CpuFacName[0], &CpuFacName[1], &CpuFacName[2],
+              &CpuFacName[3]);
+    color_printk(YELLOW,BLACK ,"%#x,%#x,%#x,%#x\n",CpuFacName[0],CpuFacName[1],CpuFacName[2],CpuFacName[3]);
 }

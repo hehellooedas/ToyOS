@@ -14,7 +14,7 @@
 
 extern struct schedule task_schedule[NR_CPUS];
 
-extern unsigned long jiffies;
+
 
 hw_int_controller HPET_int_controller = {
     .enable = IOAPIC_enbale,

@@ -136,6 +136,8 @@ struct FAT32_LongDirectory{
 void Disk1_FAT32_FS_init();
 struct FAT32_Directory* path_walk(char* name,unsigned long flags);
 struct FAT32_Directory* lookup(char* name,int namelen,struct FAT32_Directory* dentry,int flags);
+unsigned int DISK1_FAT32_read_FAT_Entry(unsigned int fat_entry);
+unsigned int DISK1_FAT32_write_FAT_Entry(unsigned int fat_entry,unsigned int value);
 
 
 #endif

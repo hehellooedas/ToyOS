@@ -13,6 +13,7 @@
 #include <interrupt.h>
 #include <fat32.h>
 #include <log.h>
+#include <timer.h>
 
 
 extern char _data;
@@ -321,7 +322,7 @@ void user_level_function() {
         "movq %%rsp,%%rcx   \n\t"
         "sysenter           \n\t"
         "sysexit_return_address: \n\t"
-        : "=a"(ret)
+        : "=a"(ret)                 //rax存储系统调用号和返回值
         : "0"(1), "D"(__FUNCTION__) // 使用1号系统调用(sys_printf)
         : "memory"
     );
@@ -352,5 +353,6 @@ unsigned long default_system_call(struct pt_regs *regs) {
 unsigned long sys_printf(struct pt_regs *regs) {
     color_printk(BLACK, WHITE, (char *)(regs->rdi));    //函数调用的第一个参数放在rdi
     //Disk1_FAT32_FS_init();
+
     return 1;
 }

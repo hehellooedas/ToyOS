@@ -1,6 +1,6 @@
-#include "SMP.h"
-#include "lib.h"
-#include "task.h"
+#include <SMP.h>
+#include <lib.h>
+#include <task.h>
 #include <schedule.h>
 #include <string.h>
 #include <printk.h>

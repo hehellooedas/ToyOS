@@ -39,7 +39,7 @@ struct rflag_struct{
         AC:1,           //对齐检测标志位(数据对齐检测)
         VIF:1,          //虚拟中断标志位(虚拟的IF)
         VIP:1,          //虚拟中断挂起标志位
-        ID:1,           //ID标志位
+        ID:1,           //ID标志位(表明当前CPU是否支持CPUID指令)
         res_5:10;
     unsigned int res;
 };

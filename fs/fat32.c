@@ -179,3 +179,26 @@ next_cluster:
     return NULL;
 }
 
+
+
+unsigned int DISK1_FAT32_read_FAT_Entry(unsigned int fat_entry)
+{
+    unsigned int buf[128];      //每扇区有128个FAT表项(4B)
+    memset(buf,0,512);
+    IDE_device_operation.transfer(ATA_READ,FirstFAT1Sector + (fat_entry >> 7),1,(unsigned char*)buf);
+    color_printk(GREEN,BLACK ,"" );
+    return buf[fat_entry & 0x70] & 0xffffffff;
+}
+
+
+
+unsigned int DISK1_FAT32_write_FAT_Entry(unsigned int fat_entry,unsigned int value)
+{
+    unsigned int buf[128];
+    memset(buf,0,512);
+    IDE_device_operation.transfer(ATA_READ,FirstFAT1Sector + (fat_entry >> 7),1,(unsigned char*)buf);
+    return 1;
+}
+
+
+
