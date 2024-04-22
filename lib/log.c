@@ -3,7 +3,7 @@
 
 
 
-void _log_to_screen(enum log_level level,char* filename,char* func,int line,char* condition,...)
+void _log_to_screen(enum log_level level,const char* filename,const char* func,int line,char* condition,...)
 {
     char log[100];
     va_list args;
@@ -32,7 +32,7 @@ void _log_to_screen(enum log_level level,char* filename,char* func,int line,char
 
 
 
-void _log_to_file()
+static void _log_to_file()
 {
 
 }

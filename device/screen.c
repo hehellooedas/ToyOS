@@ -2,6 +2,7 @@
 #include <memory.h>
 #include <string.h>
 #include <printk.h>
+#include <spinlock.h>
 
 
 void frame_buffer_init(void){
@@ -44,6 +45,14 @@ void screen_init(void){
     Pos.XCharSize = 8;
     Pos.YCharSize = 16;
 
+    Pos.XCursorSize = 16;
+    Pos.YCursorSize = 16;
+
+    Pos.XCursorPosition = 0;
+    Pos.YCursorPosition = 0;
+
+    memset(Pos.pixel_cache,0,sizeof(Pos.pixel_cache));
+
     Pos.FB_addr = (unsigned int*)addr;
     Pos.FB_length = ((Pos.XResolution * Pos.YResolution) * 4 + PAGE_4K_SIZE - 1) & PAGE_4K_MASK; //当前分辨率情况下需要的总字节数
 
@@ -53,13 +62,13 @@ void screen_init(void){
 
 /*  清屏  */
 void screen_clear(void){
-    spin_lock(&Pos.printk_lock);
+    enum intr_status old_status = spin_lock_irqsave(&Pos.printk_lock);
     /*  设置当前位置为左上角  */
     Pos.XPosition = 0;
     Pos.YPosition = 0;
     /*  把数据清零  */
     memset(Pos.FB_addr,0 ,Pos.FB_length);
-    spin_unlock(&Pos.printk_lock);
+    spin_unlock_irqstore(&Pos.printk_lock,old_status);
 }
 
 
@@ -67,7 +76,7 @@ void screen_clear(void){
 
 /*  模拟Windows蓝屏(blue screen death)的效果  */
 void set_screen_blue(void){
-    spin_lock(&Pos.printk_lock);
+    enum intr_status old_status = spin_lock_irqsave(&Pos.printk_lock);
     Pos.XPosition = 0;
     Pos.YPosition = 0;
     for(int i=0;i<Pos.XResolution * Pos.YResolution;i++){
@@ -75,11 +84,11 @@ void set_screen_blue(void){
     }
     Pos.XPosition = 0;
     Pos.YPosition = 0;
-    spin_unlock(&Pos.printk_lock);
+    spin_unlock_irqstore(&Pos.printk_lock,old_status);
 }
 
 
-/*  滚屏  */
+/*  滚屏(由printk调用,本身已经上锁)  */
 void screen_roll_row(void){
     char* video_memory_start = (char *)Pos.FB_addr;
     unsigned int step = Pos.XResolution * Pos.YCharSize * 4;

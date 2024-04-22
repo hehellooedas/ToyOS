@@ -20,6 +20,9 @@
 
 
 
+typedef unsigned int Color ;    //四字节表示一个像素
+
+
 /*  定义一些颜色  */
 #define WHITE 	0x00ffffff		//白色
 #define BLACK 	0x00000000		//黑色
@@ -36,8 +39,10 @@
 
 
 
+
+
 static __attribute__((always_inline))
-unsigned int gen_color(unsigned char Red,unsigned char Green,unsigned char Blue)
+Color gen_color(unsigned char Red,unsigned char Green,unsigned char Blue)
 {
     return ((Red << 16) & 0xff0000) | ((Green << 8) & 0xff00) | (Blue & 0xff);
 }
@@ -56,7 +61,7 @@ unsigned int gen_color(unsigned char Red,unsigned char Green,unsigned char Blue)
 
 int skip_atoi(const char** s);
 int vsprintf(char* buf,const char* fmt,va_list args);
-int color_printk(unsigned int FRcolor,unsigned int BKcolor,const char* fmt,...);
+int color_printk(Color FRcolor,Color BKcolor,const char* fmt,...);
 
 #endif // !__LIB_PRINTK_H
 

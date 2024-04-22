@@ -26,7 +26,7 @@ enum log_level{
 
 
 
-void _log_to_screen(enum log_level level,char* filename,char* func,int line,char* condition,...);
+void _log_to_screen(enum log_level level,const char* filename,const char* func,int line,char* condition,...);
 
 
 #define log_to_screen(level,...) _log_to_screen(level,__FILE__,__func__,__LINE__,__VA_ARGS__)

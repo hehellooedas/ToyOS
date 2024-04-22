@@ -3,7 +3,7 @@
 
 #include <keyboard.h>
 #include <ptrace.h>
-#include <printk.h>
+#include <screen.h>
 
 
 /*
@@ -22,20 +22,28 @@
 #define MOUSE_SET_RATE      0xf3    //设置鼠标采样率
 #define MOUSE_ENABLE        0xf4    //允许鼠标发送数据包
 #define MOUSE_DISABLE       0xf5    //禁止鼠标发送数据包
-#define MOUSE_SET_DEF       0xf6
+#define MOUSE_SET_DEF       0xf6    //设置默认采样率100Hz,分辨率4 pixel/mm
 #define MOUSE_RESEND        0xfe    //重新发送上一条数据包
 #define MOUSE_REBOOT        0xff    //重启鼠标设备
 
 
 
+
 /*  3B的数据包  */
 struct mouse_packet{
+/* |  Y溢出  | X溢出 | Y符号位 | X符号位 | 1 | 鼠标中键 | 鼠标右键 | 鼠标左键 |
+ * 如果发生了溢出,则丢弃整个数据包
+ * 符号位代表了鼠标在平面直角坐标系的移动方向
+ * 保留位右侧是按键状态
+ */
     unsigned char Byte0;
 
-    char Byte1;     //x轴坐标
-    char Byte2;     //y轴坐标
-}mouse;
+    char Byte1;     //x轴移动值
+    char Byte2;     //y轴移动值
+};
 
+
+extern struct mouse_packet mouse;
 
 
 /*  鼠标图形  */
@@ -70,4 +78,5 @@ unsigned char get_mousecode(void);
 void analysis_mousecode(void);
 void mouse_exit(void);
 
+void print_cursor_to_screen(unsigned int* fb);
 #endif

@@ -81,7 +81,7 @@ Label_Search_In_Root_Dir_Begin:
     jz Label_No_LoaderBin  ;如果根目录没有占用扇区,说明loader不可能存在
     dec word [RootDirSizeForLoop]    ;每找一次就-1
 
-    mov ax,0
+    xor ax,ax
     mov es,ax
     mov bx,0x8000      ;读出来的扇区放置在内存中的地址
     mov ax,[SectorNo]  ;当前检查的是第几个扇区

@@ -100,8 +100,9 @@ void cr0_Set(struct cr0_struct cr0)
 
 
 /*  cr3记录页目录的信息  */
-#define control_PWT     0x08        //页写穿标志位
-#define control_PCD     0x10        //页禁止缓存标志位
+#define control_PWT     0x08        //页写穿标志位(为1则可以写穿否则回绕)
+#define control_PCD     0x10        //页禁止缓存标志位(为1则禁止缓存否则允许)
+/*  一般来说都是回绕+允许缓存(通常不需要更改)  */
 static __attribute__((always_inline))
 void print_cr3_info(void)
 {

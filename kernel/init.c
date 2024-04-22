@@ -19,6 +19,7 @@
 #include <schedule.h>
 #include <spinlock.h>
 #include <log.h>
+#include <control.h>
 
 
 #if PIC_APIC
@@ -72,8 +73,9 @@ void init_all(void){
     timer_init();
     task_init();
     HPET_init();
-
+    screen_clear();
     sti();
+
 
     //stop();
 }

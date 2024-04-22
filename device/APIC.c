@@ -44,9 +44,8 @@ void Local_APIC_init(void)
 
 
     unsigned long APIC_ID = rdmsr(IA32_APIC_ID_MSR );
-    color_printk(GREEN,BLACK ,"APIC ID:%#lx\n",APIC_ID );
     unsigned long APIC_VERSION = rdmsr(IA32_APIC_VERSION_MSR);
-    color_printk(GREEN,BLACK ,"APIC VERSION:%#lx  ",APIC_VERSION );
+    log_to_screen(INFO,"APIC ID:%#lx,APIC VERSION:%#lx",APIC_ID,APIC_VERSION);
     if((APIC_VERSION & 0xff) > 0x10){
         color_printk(GREEN,BLACK ,"Integrated APIC\n" );
     }

@@ -2,8 +2,10 @@
 #define __FS_FAT32_H
 
 
+#include <printk.h>
 
-/*  硬盘分区表项  */
+
+/*  硬盘分区表项(16B)  */
 struct Disk_Patition_Table_Entry{
     unsigned char flags;
     unsigned char start_head;
@@ -25,7 +27,7 @@ struct Disk_Patition_Table_Entry{
 /*  硬盘分区表  */
 struct Disk_Partition_Table{
     unsigned char BS_Reserved[446];     //主引导记录MBR
-    struct Disk_Patition_Table_Entry DPTE[4];
+    struct Disk_Patition_Table_Entry DPTE[4];   //4个分区表项
     unsigned short BS_TrailSig;         //0x55aa标记
 }__attribute__((packed));
 
@@ -47,12 +49,12 @@ struct FAT32_BootSector{
     unsigned short BPB_SecPerTrk;       //每磁道扇区数
     unsigned short BPB_NumHeads;        //磁头数
     unsigned int BPB_hiddSec;           //隐藏扇区数
-    unsigned int BPB_TotSec32;        //总扇区数(若BPB_TotSec16=0,则由这个变量记录)
+    unsigned int BPB_TotSec32;          //总扇区数(若BPB_TotSec16=0,则由这个变量记录)
 
     unsigned int BPB_FATSz32;           //每FAT扇区数
     unsigned short BPB_ExtFlags;        //拓展标志
     unsigned short BPB_FSVer;           //FAT32文件系统的版本号
-    unsigned int BPB_RootClus;          //根目录起始簇号
+    unsigned int BPB_RootClus;          //根目录起始簇号(位于数据区的起始簇中)
     unsigned short BPB_FSInfo;          //FSInfo结构体所在的扇区号
     unsigned short BPB_BKBootSec;       //引导扇区的备份扇区号
     unsigned char BPB_Reserved[12];     //保留使用
@@ -72,9 +74,10 @@ struct FAT32_BootSector{
 
 
 /*
- * 在FAT32文件系统的保留区域里加入的辅助性的扇区结构FSInfo
+ * 在FAT32文件系统的(保留区域)里加入的辅助性的扇区结构FSInfo
  * 参考值不是实时更新的准确数值,只是辅助计算和索引空闲簇
  * 当参考值为0xffffffff 则必须重新计算
+ * 占用一整个扇区,但大多数空间不使用
  */
 struct FAT32_FSInfo{
     unsigned int FSI_LeadSig;           //标识符 0x41615252
@@ -102,7 +105,7 @@ struct FAT32_FSInfo{
 
 /*  FAT32目录项(32B)  */
 struct FAT32_Directory{
-    unsigned char Dir_Name[11];     //目录名
+    unsigned char Dir_Name[11];     //目录名(文件名最多8,扩展名最多3,不足使用空格补充)
     unsigned char Dir_Attr;         //文件属性(短目录项和长目录项的Attr在同一个地方)
     unsigned char Dir_NTRes;        //保留
     unsigned char Dir_CrtTimeTenth; //文件创建时的时间戳
@@ -132,12 +135,27 @@ struct FAT32_LongDirectory{
 }__attribute__((packed));
 
 
+#define LOWERCASE_BASE  (8)
+#define LOWERCASE_EXT   (16)
+
 
 void Disk1_FAT32_FS_init();
 struct FAT32_Directory* path_walk(char* name,unsigned long flags);
 struct FAT32_Directory* lookup(char* name,int namelen,struct FAT32_Directory* dentry,int flags);
 unsigned int DISK1_FAT32_read_FAT_Entry(unsigned int fat_entry);
-unsigned int DISK1_FAT32_write_FAT_Entry(unsigned int fat_entry,unsigned int value);
+unsigned long DISK1_FAT32_write_FAT_Entry(unsigned int fat_entry,unsigned int value);
+
+
+
+/*  打印硬盘分区表信息  */
+static __attribute__((always_inline))
+void print_DPTE_info(struct Disk_Patition_Table_Entry T)
+{
+    color_printk(GREEN,BLACK ,"flags:%d,type:%d,start_head:%d,\
+start_sector:%d,start_cylinder:%d,end_head:%d,end_sector:%d,\
+end_cylinder:%d,start_LBA:%d,sectors_limit:%d\n",T.flags,T.type,T.start_head,T.start_sector,T.start_cylinder,\
+T.end_head,T.end_sector,T.end_cylinder,T.start_LBA,T.sectors_limit );
+}
 
 
 #endif

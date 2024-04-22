@@ -10,11 +10,10 @@
 #include <disk.h>
 
 
-struct Global_Memory_Descriptor memory_management_struct = {{0},0};
 
 extern struct ioqueue* keyboard_queue;
 extern struct ioqueue* mouse_queue;
-extern struct block_device_operation IDE_device_operation;
+
 
 void Start_Kernel(void){
     init_all();

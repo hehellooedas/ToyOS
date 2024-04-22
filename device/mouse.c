@@ -6,6 +6,7 @@
 #include <printk.h>
 
 
+struct mouse_packet mouse;
 struct ioqueue* mouse_queue = NULL;
 static int mouse_count = 0;
 
@@ -83,21 +84,25 @@ void mouse_handler(unsigned long irq,unsigned long parameter,struct pt_regs* reg
 
 void analysis_mousecode(void)
 {
-    unsigned char x = get_mousecode();
+    unsigned char code = get_mousecode();
     switch (mouse_count) {
-        case 0:
+        case 0:     //跳过控制命令返回的应答数据0xfa
             mouse_count++;
             break;
         case 1:
-            mouse.Byte0 = x;
-            mouse_count++;
+            if((code & 0xc8) == 0x08){
+                mouse.Byte0 = code;
+                mouse_count++;
+            }else{  //丢弃整个数据包
+                return;
+            }
             break;
         case 2:
-            mouse.Byte1 = (char)x;
+            mouse.Byte1 = (char)code;
             mouse_count++;
             break;
         case 3:     //只有凑足了三个字节才是一个完整的数据包
-            mouse.Byte2 = (char)x;
+            mouse.Byte2 = -(char)code;
             mouse_count = 1;
             color_printk(RED,BLACK,"(M:%#x,X:%3d,Y:%3d)\n",mouse.Byte0,mouse.Byte1,mouse.Byte2);
             break;
@@ -116,4 +121,25 @@ unsigned char get_mousecode()
         }
     }
     return ioqueue_consumer(mouse_queue);
+}
+
+
+
+
+
+
+void print_cursor_to_screen(unsigned int* fb){
+    unsigned int* addr = NULL;
+    for(int i=0;i<16;i++){   //每个字符16行
+        addr = fb + Pos.XResolution * (Pos.YPosition * 16 + i) + Pos.XPosition * 16;
+        for(int j=0;j<16;j++){
+            Pos.pixel_cache[i][j] = *addr;  //在覆盖之前保存
+            if(cursor[i][j] == '0'){
+                *addr = WHITE;
+            }else{
+                *addr = BLACK;
+            }
+            addr++;
+        }
+    }
 }

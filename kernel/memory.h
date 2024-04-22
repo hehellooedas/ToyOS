@@ -5,6 +5,7 @@
 #include <list.h>
 #include <printk.h>
 #include <stdbool.h>
+#include <log.h>
 
 /*
 地址范围描述符(ARDS Address Range Descriptior Sturcture)
@@ -15,7 +16,7 @@
 12           LengthHigh     内存长度的高32位
 16           Type           决定了本段的性质
 |----------------------------------------------------|
-Type=1意味着该段是可被利用的(其余则不可利用)
+Type=1 意味着该段是可被利用的(其余则不可利用)
 Type=2 保留值(ROM映射区)
 Type=3 ACPI的回收内存(可以在必要时向固件请求回收这部分内存)
 Type=4 ACPINVS内存
@@ -74,19 +75,19 @@ typedef struct{
 
 /*  用一个统一的结构来描述物理内存分布情况  */
 struct Global_Memory_Descriptor{
-    struct E820 e820[32];        //每个ARDS描述符的具体情况
-    unsigned long e820_length;   //ARDS结构体的数量
+    struct E820 e820[32];         //每个ARDS描述符的具体情况
+    unsigned long e820_length;    //ARDS结构体的数量
 
-    unsigned long*  bits_map;    //物理地址空间页映射位图指针
-    unsigned long   bits_size;   //页图的数量
-    unsigned long   bits_length; //位图长度
+    unsigned long*  bits_map;     //物理地址空间页映射位图指针
+    unsigned long   bits_size;    //页图的数量
+    unsigned long   bits_length;  //位图长度
 
-    struct Page* pages_struct;   //指向全局page结构的指针
-    unsigned long   pages_size;  //page结构的个数
-    unsigned long   page_length; //page结构长度
+    struct Page* pages_struct;    //指向全局page结构的指针
+    unsigned long   pages_size;   //page结构的个数
+    unsigned long   page_length;  //page结构长度
 
-    struct Zone* zones_struct;   //指向全局zone结构的指针
-    unsigned long   zones_size;  //zone结构的个数
+    struct Zone* zones_struct;    //指向全局zone结构的指针
+    unsigned long   zones_size;   //zone结构的个数
     unsigned long   zones_length; //zone结构长度
 
     unsigned long start_code,end_code,end_data,end_brk; //链接器中设定的重要参数
@@ -94,7 +95,7 @@ struct Global_Memory_Descriptor{
     unsigned long end_of_struct; //内存页管理结构的结尾地址(重要位置)
 };
 
-extern struct Global_Memory_Descriptor memory_management_struct;  //定义在main.c里
+extern struct Global_Memory_Descriptor memory_management_struct;
 
 
 
@@ -153,26 +154,27 @@ struct Page{
 #define PAGE_PAT    (unsigned long)0x1000     //页属性(MSR中设置)
 
 
-#define PAGE_KERNEL_GDT (PAGE_R_W | PAGE_Present)
-
+#define PAGE_KERNEL_GDT  (PAGE_R_W | PAGE_Present)
 #define PAGE_KERNEL_Dir  (PAGE_R_W | PAGE_Present)
 #define PAGE_KERNEL_Page (PAGE_PS | PAGE_R_W | PAGE_Present)
+
 #define PAGE_USER_GDT    (PAGE_U_S | PAGE_R_W | PAGE_Present)
 #define PAGE_USER_Dir    (PAGE_U_S| PAGE_R_W | PAGE_Present)
 #define PAGE_USER_Page   (PAGE_PS | PAGE_U_S| PAGE_R_W | PAGE_Present)
 
+/*  页标记  */
 #define PG_PTable_Maped	(1 << 0)    //已在页表中映射
 #define PG_Kernel_Init	(1 << 1)    //内核初始化程序
-#define PG_Device	     (1 << 2)   //设备内存
+#define PG_Device	    (1 << 2)    //设备内存
 #define PG_Kernel       (1 << 3)    //内核层空间
 #define PG_Shared       (1 << 4)    //已被共享的内存页
 
 
 
-/*  一个区域中有多个页,一页可以属于某一个区域  */
+/*  一个区域中有多个页,一页属于某一个区域  */
 struct Zone{
      struct Page*   pages_group;    //数组指针
-     unsigned long  pages_length;   //page结构体数量(有几页)
+     unsigned long  pages_length;   //page结构体数量(当前区域能给出几页)
 
      unsigned long  zone_start_address;  //起始页对齐地址
      unsigned long  zone_end_address;    //结束页对齐地址
@@ -196,12 +198,13 @@ struct Zone{
 
 
 /*
-Slab是内存管理的基本单位,Slab_cache是管理Slab的数据结构
+ * Slab是内存管理的基本单位,Slab_cache是管理Slab的数据结构
 */
+
 /*
-内存池:管理具体内存对象
-管理每个以物理页为单位的内存空间
-每个物理页包含了若干个待分配的内存对象
+ * 内存池:管理具体内存对象
+ * 管理每个以物理页为单位的内存空间
+ * 每个物理页包含了若干个待分配的内存对象
  */
 struct Slab{
     struct List list;
@@ -335,7 +338,7 @@ static __attribute__((always_inline))
 unsigned long get_page_attribute(struct Page* page)
 {
     if(page == NULL){  //页不存在则不能不能查看和设定
-        color_printk(RED,BLACK ,"get_page_attribute() ERROR:page == NULL!\n" );
+        log_to_screen(ERROR,"Get page attr fail!");
         return 0;
     }else{
         return page->attribute;
@@ -363,7 +366,7 @@ static __attribute__((always_inline))
 bool set_page_attribute(struct Page* page,unsigned long flags)
 {
     if(page == NULL){
-        color_printk(RED,BLACK ,"set_page_attribute() ERROR:page == NULL!\n" );
+        log_to_screen(ERROR,"Set page attr fail!");
         return false;
     }else{
         page->attribute = flags;
@@ -383,6 +386,7 @@ bool page_clean(struct Page* page)
     }
     return true;
 }
+
 
 /*  函数声明  */
 void memory_init(void);

@@ -352,7 +352,7 @@ unsigned long default_system_call(struct pt_regs *regs) {
 /*  1号系统调用:打印指定字符串  */
 unsigned long sys_printf(struct pt_regs *regs) {
     color_printk(BLACK, WHITE, (char *)(regs->rdi));    //函数调用的第一个参数放在rdi
-    //Disk1_FAT32_FS_init();
+    Disk1_FAT32_FS_init();
 
     return 1;
 }

@@ -308,7 +308,7 @@ int vsprintf(char* buf,const char* fmt,va_list args){
 
 
 /*  打印一个ASCII字符  */
-void putchar(unsigned int* fb,int Xsize,int x,int y,unsigned int FRcolor,unsigned int BKcolor,char font){
+void putchar(unsigned int* fb,int Xsize,int x,int y,Color FRcolor,Color BKcolor,char font){
     unsigned int* addr = NULL;
     unsigned char* fontp = NULL;
     int testval = 0;
