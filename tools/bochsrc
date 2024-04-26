@@ -34,8 +34,12 @@ ata1-master:type=none
 ata1-slave:type=disk,path="./tools/hd60M.img",mode="flat",translation=lba
 
 
-ata2:enabled=0
-ata3:enabled=0
+ata2: enabled=0
+
+
+ata3: enabled=0
+
+
 
 pci:enabled=1,chipset=i440fx
 vga:extension=cirrus,extension=vbe,update_freq=75,realtime=1,ddc=file:monitor.bin

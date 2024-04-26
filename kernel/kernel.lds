@@ -29,7 +29,7 @@ SECTIONS
 	}
 	. = ALIGN(32768); #32KB对齐(0x8000)
 
-	.data.init_task : #对齐后的新段就在(0x118000~0x120000)
+	.data.init_task :
 	{
 		*(.data.init_task)
 	}

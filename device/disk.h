@@ -38,11 +38,11 @@ extern struct block_device_operation IDE_device_operation;
 /*  磁盘1  */
 #define PORT_DISK1_DATA         0x170
 #define PORT_DISK1_ERROR        0x171
-#define PORT_DISK1_SECTOR_CNT   0x172  
-#define PORT_DISK1_SECTOR_LOW   0x173 
-#define PORT_DISK1_SECTOR_MID   0x174 
-#define PORT_DISK1_SECTOR_HIGH  0x175 
-#define PORT_DISK1_DEVICE       0x176     
+#define PORT_DISK1_SECTOR_CNT   0x172
+#define PORT_DISK1_SECTOR_LOW   0x173
+#define PORT_DISK1_SECTOR_MID   0x174
+#define PORT_DISK1_SECTOR_HIGH  0x175
+#define PORT_DISK1_DEVICE       0x176
 #define PORT_DISK1_CMD          0x177
 #define PORT_DISK1_STATUS       0x376
 

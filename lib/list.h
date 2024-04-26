@@ -7,8 +7,7 @@
 
 
 /*  
-双向链表的基本结构
-只需在结构体中定义一个List变量则可加入到队列之中
+循环队列的基本结构
 */
 struct List{
     struct List* prev;
@@ -16,7 +15,8 @@ struct List{
 };
 
 
-/*  队列初始化  */
+
+/*  队列初始化(前后项都初始化为自己)  */
 static void __attribute__((always_inline))
 list_init(struct List* list){
     list->prev = list;

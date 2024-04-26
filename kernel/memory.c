@@ -82,7 +82,7 @@ void memory_init(void){
     memory_management_struct.bits_size = TotalMem >> PAGE_2M_SHIFT;  //总共有几页就需要几个bit
     color_printk(RED,BLACK,"TotalMem = %x,size = %x\n",TotalMem,TotalMem >> PAGE_2M_SHIFT);
     memory_management_struct.bits_length = (((unsigned long)(TotalMem >> PAGE_2M_SHIFT) + sizeof(long) * 8 - 1) / 8) & (~(sizeof(long) - 1));  //需要的位数要用多大的空间来存储
-    memset(memory_management_struct.bits_map,0xff,memory_management_struct.bits_length);
+    memset(memory_management_struct.bits_map,0xff,memory_management_struct.bits_length); //暂时设置为分配状态
 
 
 
@@ -326,7 +326,7 @@ find_free_pages:
 void free_pages(struct Page* page,int number)
 {
     if(page == NULL){  //页不存在,无需释放
-        color_printk(RED,BLACK ,"free_pages() ERROR:page is invalid\n" );
+        log_to_screen(ERROR,"free_pages() ERROR:page is invalid");
         return;
     }
     if(number >= 64 || number < 0){ //要释放的页数不合理
@@ -422,7 +422,7 @@ void* kmalloc(unsigned long size,unsigned long gfp_flages)
     int i,j;
     struct Slab* slab = NULL;
     if(size > 1048576){  //1MB(slab内存池数组最大支持1MB)
-        color_printk(RED,BLACK ,"kmalloc() ERROR:kmalloc size too long:%d\n",size );
+        log_to_screen(ERROR,"kmalloc() ERROR:kmalloc size too long:%d",size);
         return NULL;
     }
     for(i=0;i<16;i++){

@@ -14,6 +14,7 @@
 
 extern struct schedule task_schedule[NR_CPUS];
 
+struct GCAP_ID_REG GCAP_ID;
 
 
 hw_int_controller HPET_int_controller = {
@@ -43,7 +44,9 @@ void HPET_init(void)
 
     register_irq(34,&entry ,&HPET_handler ,0 ,&HPET_int_controller ,"HPET" );
 
-    color_printk(GREEN,BLACK,"HPET - GCAP_ID:%#lx\n",*(unsigned long*)HPET_addr);
+
+    GCAP_ID = *((struct GCAP_ID_REG*)(HPET_addr + HPET_GCAP_ID));
+    color_printk(GREEN,BLACK,"HPET:OEM ID:%#x,counter_count:%d\n",GCAP_ID.OEM_ID,GCAP_ID.counter_count);
 
 
     *(unsigned long*)(HPET_addr + HPET_GEN_CONF) = 3;
@@ -53,7 +56,8 @@ void HPET_init(void)
 
     mfence();
 
-    *(unsigned long*)(HPET_addr + HPET_TIM0_COMP) = 14318179;
+    *(unsigned long*)(HPET_addr + HPET_TIM0_COMP) = 1000000 / (GCAP_ID.accuracy / 1000000) * HPET_frequency;     //1s一次的时钟中断
+
     mfence();
 
     *(unsigned long*)(HPET_addr + HPET_MAIN_CNT) = 0;

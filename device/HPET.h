@@ -15,6 +15,8 @@
 */
 
 
+#define HPET_frequency 1000     //设置时间片为1000ms
+
 
 #define HPET_GCAP_ID        0x00    //整体机能寄存器
 #define HPET_GEN_CONF       0x10    //整体配置寄存器
@@ -70,6 +72,17 @@ unsigned long gen_time_conf(unsigned short conf)
     return (((unsigned long)(conf & Timer_Conf_Mask) )& ~(0xffffffffffff0000));
 }
 
+
+struct GCAP_ID_REG{
+    unsigned int
+        version:8,          //修订版本号
+        counter_count:5,    //定时器数
+        counter_bit:1,      //置位说明其位宽为1
+        res:1,              //保留
+        old_device:1,       //兼容8259A中断控制器的中断请求链路
+        OEM_ID:16;          //供应商ID
+    unsigned int accuracy;  //主计数器时间精度
+};
 
 
 #endif
