@@ -68,7 +68,8 @@ void init_all(void){
     disk_init();
     print_current_time();
     schedule_init();
-    //SMP_init();
+    screen_clear();
+    SMP_init();
     softirq_init();
     timer_init();
     task_init();

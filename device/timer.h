@@ -3,6 +3,7 @@
 
 #include <list.h>
 #include <lib.h>
+#include <HPET.h>
 
 
 /*  定时任务队列  */
@@ -24,14 +25,18 @@ void del_timer(struct timer_list* timer);
 void test_timer(void* data);
 
 
+
+/*  睡眠指定秒数  */
 static __attribute__((always_inline))
-void busy_sleep(unsigned long second)
+void busy_sleep_second(unsigned long second)
 {
+    unsigned long delta_jiffies = second * 1000 / HPET_frequency;
     unsigned long start_jiffies = jiffies;
-    while(jiffies - start_jiffies < second){
-        pause();
+    while(jiffies - start_jiffies < delta_jiffies){
+        pause();    //忙式等待
     }
 }
+
 
 
 
