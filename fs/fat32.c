@@ -1,4 +1,5 @@
 #include "fat32.h"
+#include <VFS.h>
 #include <memory.h>
 #include <lib.h>
 #include <disk.h>
@@ -18,6 +19,16 @@ unsigned long FirstDataSector = 0;  //数据区起始扇区
 unsigned long BytesPerClus = 0;     //每簇字节数
 unsigned long FirstFAT1Sector = 0;  //FAT1表起始扇区
 unsigned long FirstFAT2Sector = 0;  //FAT2表起始扇区
+
+
+
+struct file_system_type FAT32_fs_type = {
+    .name = "FAT32",
+    .fs_flags = 0,
+    .read_superblock = fat32_read_superblock,
+    .next = NULL
+};
+
 
 
 void Disk1_FAT32_FS_init()
@@ -370,4 +381,51 @@ unsigned long DISK1_FAT32_write_FAT_Entry(unsigned int fat_entry,unsigned int va
 }
 
 
+
+
+void fat32_put_inode(struct super_block* sb)
+{
+
+}
+
+
+
+void fat32_write_inode(struct index_node* inode)
+{
+
+}
+
+
+void fat32_write_superblock(struct super_block* sb)
+{
+
+}
+
+
+
+
+struct super_block_operations fat32_sb_ops = {
+    .put_superblock = fat32_put_inode,
+    .write_superblock = fat32_write_superblock,
+    .write_inode = fat32_write_inode,
+};
+
+
+
+struct super_block* fat32_read_superblock(struct Disk_Partition_Table_Entry* DPTE,void* buf)
+{
+    struct super_block* sbp = NULL;
+    struct FAT32_inode_info* finode = NULL;
+    struct FAT32_BootSector* FBS = NULL;
+
+
+    sbp = (struct super_block*)kmalloc(sizeof(struct super_block),0);
+    memset(sbp,0,sizeof(struct super_block));
+
+    sbp->sb_ops = &fat32_sb_ops;
+
+
+
+    return sbp;
+}
 

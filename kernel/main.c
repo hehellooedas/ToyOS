@@ -17,6 +17,7 @@ extern struct ioqueue* mouse_queue;
 
 void Start_Kernel(void){
     init_all();
+    int x = 5;
 
     while(1){
         if(keyboard_queue->count){

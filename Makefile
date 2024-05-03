@@ -27,6 +27,8 @@ PIC := PIC_APIC
 
 .PHONY: clean build disk bochs qemu default
 
+.DEFAULT_GOAL := default
+
 compile: $(OBJS)
 
 link: compile

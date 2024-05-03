@@ -133,7 +133,6 @@ void print_cursor_to_screen(unsigned int* fb){
     for(int i=0;i<16;i++){   //每个字符16行
         addr = fb + Pos.XResolution * (Pos.YPosition * 16 + i) + Pos.XPosition * 16;
         for(int j=0;j<16;j++){
-            Pos.pixel_cache[i][j] = *addr;  //在覆盖之前保存
             if(cursor[i][j] == '0'){
                 *addr = WHITE;
             }else{

@@ -6,7 +6,7 @@
 
 
 /*  硬盘分区表项(16B)  */
-struct Disk_Patition_Table_Entry{
+struct Disk_Partition_Table_Entry{
     unsigned char flags;
     unsigned char start_head;
     unsigned short
@@ -27,7 +27,7 @@ struct Disk_Patition_Table_Entry{
 /*  硬盘分区表  */
 struct Disk_Partition_Table{
     unsigned char BS_Reserved[446];     //主引导记录MBR
-    struct Disk_Patition_Table_Entry DPTE[4];   //4个分区表项
+    struct Disk_Partition_Table_Entry DPTE[4];   //4个分区表项
     unsigned short BS_TrailSig;         //0x55aa标记
 }__attribute__((packed));
 
@@ -149,13 +149,54 @@ unsigned long DISK1_FAT32_write_FAT_Entry(unsigned int fat_entry,unsigned int va
 
 /*  打印硬盘分区表信息  */
 static __attribute__((always_inline))
-void print_DPTE_info(struct Disk_Patition_Table_Entry T)
+void print_DPTE_info(struct Disk_Partition_Table_Entry T)
 {
     color_printk(GREEN,BLACK ,"flags:%d,type:%d,start_head:%d,\
 start_sector:%d,start_cylinder:%d,end_head:%d,end_sector:%d,\
 end_cylinder:%d,start_LBA:%d,sectors_limit:%d\n",T.flags,T.type,T.start_head,T.start_sector,T.start_cylinder,\
 T.end_head,T.end_sector,T.end_cylinder,T.start_LBA,T.sectors_limit );
 }
+
+
+
+
+/*  FAT32文件系统特有的超级快信息  */
+struct FAT32_sb_info{
+    unsigned long start_sector; //起始扇区
+    unsigned long sector_count;
+
+    long sector_per_cluster;    //每簇扇区数
+    long bytes_per_cluster;     //每簇字节数
+    long bytes_per_sector;      //每扇区字节数
+
+    unsigned long Data_firstsector;     //数据区起始扇区
+    unsigned long FAT1_firstsector;     //fat1表起始扇区
+    unsigned long sector_per_FAT;       //每个FAT表占用几个扇区
+    unsigned long NumFATs;
+
+    unsigned long fsinfo_sector_infat;
+    unsigned long bootsector_bk_infat;
+
+    struct FAT32_FSInfo* fat_fsinfo;
+};
+
+
+
+/*  FAT32特有的inode信息  */
+struct FAT32_inode_info{
+    unsigned long first_cluster;
+    unsigned long dentry_location;
+    unsigned long dentry_position;
+
+    unsigned short create_date;
+    unsigned short create_time;
+    unsigned short write_date;
+    unsigned short write_time;
+
+};
+
+
+struct super_block* fat32_read_superblock(struct Disk_Partition_Table_Entry* DPTE,void* buf);
 
 
 #endif

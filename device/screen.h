@@ -26,7 +26,6 @@ struct position{
     int XCursorPosition;    //光标所在的行数
     int YCursorPosition;    //光标所在的列数
 
-    unsigned int pixel_cache[16][16];
 
     unsigned int* FB_addr;   //帧缓冲区起始地址(frame buffer)
     unsigned long FB_length; //帧缓冲区容量大小

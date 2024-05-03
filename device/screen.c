@@ -51,8 +51,6 @@ void screen_init(void){
     Pos.XCursorPosition = 0;
     Pos.YCursorPosition = 0;
 
-    memset(Pos.pixel_cache,0,sizeof(Pos.pixel_cache));
-
     Pos.FB_addr = (unsigned int*)addr;
     Pos.FB_length = ((Pos.XResolution * Pos.YResolution) * 4 + PAGE_4K_SIZE - 1) & PAGE_4K_MASK; //当前分辨率情况下需要的总字节数
 
@@ -93,7 +91,8 @@ void screen_roll_row(void){
     char* video_memory_start = (char *)Pos.FB_addr;
     unsigned int step = Pos.XResolution * Pos.YCharSize * 4;
     for(unsigned int row=0;row<(Pos.YResolution / Pos.YCharSize);row++){
-        memcpy(video_memory_start+row*step,video_memory_start+(row+1)*step ,step );
+        //memcpy(video_memory_start+row*step,video_memory_start+(row+1)*step ,step );
+        __builtin_memcpy(video_memory_start+row*step,video_memory_start+(row+1)*step,step);
     }
 }
 

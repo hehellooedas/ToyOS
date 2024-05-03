@@ -340,6 +340,7 @@ int color_printk(unsigned int FRcolor,unsigned int BKcolor,const char* fmt,...){
 
 
     enum intr_status old_status = spin_lock_irqsave(&Pos.printk_lock);
+    __builtin_prefetch(&Pos,1,3);
 
     i = vsprintf(buf,fmt,args);  //返回字符串长度
     va_end(args);

@@ -3,7 +3,7 @@
 
 
 /*
-* lib.h为内核通用库文件
+* lib.h为x86内核通用库文件
 * 内核程序都可以引入lib.h
 */
 
@@ -21,9 +21,30 @@
 
 
 
+/*  GNU c内建函数  */
 /*  编译器分支预测提示  */
-#define LIKELY(x)   __builtin_expect(!!(x),1)   //结果很有可能为真
-#define UNLIKELY(x) __builtin_expect(!!(x),0)   //结果很有可能为假
+#define LIKELY(x)    __builtin_expect(!!(x),1)   //结果很有可能为真
+#define UNLIKELY(x)  __builtin_expect(!!(x),0)   //结果很有可能为假
+
+#define IS_CONST(x)  __builtin_constant_p(x)     //判断是否为常量
+
+/*
+ * 数据预取(在数据使用前提前放入cache里) 适用于数据访问有较大随机性的场景。
+ * __builtin_prefetch(const void* addr,int rw,int locality)
+ * locality表示数据在缓存中的时间局部性
+ * 0:读取完addr的值之后不用保留在缓存中
+ * 1:保留在L3 cache
+ * 2:保留在L2/L3 cache
+ * 3:保留在L1/L2/L3 cache
+ * 数组的二分查找，此时，数组访问具有较大的随机性。
+ * 用来加快各种结构的迭代速度：链表、树、堆、哈希等。
+ * Vpp bihash预读bucket和data。
+ *
+ */
+#define prefetch(x)  __builtin_prefetch(x)      //传入的是变量的地址
+#define prefetchw(x) __builtin_prefetch(x,1)
+
+
 
 
 

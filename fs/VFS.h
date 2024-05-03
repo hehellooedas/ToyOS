@@ -5,6 +5,7 @@
 #include <list.h>
 
 
+
 /*
  * VFS虚拟文件系统是一个抽象层,对用户提供一组固定的API
  * 对应用程序而言文件系统变得透明,用户程序无需关心底层到底是哪一种文件系统
@@ -28,7 +29,10 @@ struct dir_entry{
 
 
 struct dir_entry_options{
-
+    long (*compare)(struct dir_entry* parent_dentry,char* source_filename,char* destination_filename);
+    long (*hash)(struct dir_entry* parent_dentry,char* filename);
+    long (*release)(struct dir_entry* dentry);
+    long (*iput)(struct dir_entry* dentry,struct index_node* inode);
 };
 
 
@@ -42,7 +46,7 @@ struct dir_entry_options{
 struct super_block{
     struct dir_entry* root;     //为了方便搜索而抽象出来的
     struct super_block_optiopns* sb_ops;
-    void* private_sb_info;
+    void* private_sb_info;      //保存各类文件系统特有的数据结构
 };
 
 
@@ -51,6 +55,8 @@ struct super_block_operations{
     void (*put_superblock)(struct super_block* sb);
     void (*write_inode)(struct index_node* inode);
 };
+
+
 
 
 
@@ -66,13 +72,20 @@ struct index_node{
     struct super* sb;
     struct file_operations* f_opa;
     struct index_node_operations* inode_ops;
-    void* private_index_info;
+    void* private_index_info;   //文件系统特有的inode信息
 };
 
 
 struct index_node_operations{
-
+    long (*create)(struct index_node* inode,struct dir_entry* dentry);
+    struct dir_entry* (*lookup)(struct index_node* parent_inode,struct dir_entry* destination_dentry);
+    long (*mkdir)(struct index_node* inode,struct dir_entry* dentry,int mode);
+    long (*rmdir)(struct index_node* inode,struct dir_entry* dentry);
+    long (*rename)(struct index_node* old_inode,struct dir_entry* old_dentry,struct index_node* new_inode,struct dir_entry* new_dentry);
+    long (*getattr)(struct dir_entry* dentry,unsigned long* attr);
+    long (*setattr)(struct dir_entry* dentry,unsigned long* attr);
 };
+
 
 
 
@@ -89,10 +102,16 @@ struct file{
 };
 
 
-
+/*  文件操作的函数集合(方法)  */
 struct file_operations{
-
+    long (*open)(struct index_node* inode,struct file* filep);
+    long (*close)(struct index_node* inode,struct file* filep);
+    long (*read)(struct file* filep,unsigned char* buf,unsigned long count,long* position);
+    long (*write)(struct file* filep,unsigned char* buf,unsigned long count,long* position);
+    long (*lssek)(struct file* filep,long offset,long origin);
+    long (*ioctl)(struct index_node* inode,struct file* filep,unsigned long cmd,unsigned long arg);
 };
+
 
 
 
@@ -100,7 +119,7 @@ struct file_operations{
 struct file_system_type{
     char* name;
     int fs_flags;
-    struct super_block* (*read_superblock)(struct Disk_Patition_Table_Entry* DPTE,void* buf); //解析文件系统引导扇区的方法
+    struct super_block* (*read_superblock)(struct Disk_Partition_Table_Entry* DPTE,void* buf); //解析文件系统引导扇区的方法
     struct file_system_type* next;
 };
 
@@ -110,7 +129,7 @@ struct file_system_type{
 
 
 /*  函数声明  */
-struct super_block* mount_fs(char* name,struct Disk_Patition_Table_Entry* DPTE,void* buf);
+struct super_block* mount_fs(char* name,struct Disk_Partition_Table_Entry* DPTE,void* buf);
 unsigned long register_filesystem(struct file_system_type* fs);
 
 
