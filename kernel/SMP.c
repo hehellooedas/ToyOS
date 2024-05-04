@@ -153,13 +153,10 @@ void Start_SMP(void){
     spin_unlock(&SMP_lock);
 
     current->preempt_count = 0;
+
+    task_init();
+
     sti();
-
-    if(current->cpu_id == 3){
-        task_init();
-    }
-
-
 
 
     while(1){

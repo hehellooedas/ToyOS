@@ -45,7 +45,7 @@ struct dir_entry_options{
  */
 struct super_block{
     struct dir_entry* root;     //为了方便搜索而抽象出来的
-    struct super_block_optiopns* sb_ops;
+    struct super_block_operations* sb_ops;
     void* private_sb_info;      //保存各类文件系统特有的数据结构
 };
 
