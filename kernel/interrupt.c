@@ -26,7 +26,6 @@ void do_IRQ(struct pt_regs* regs,unsigned long nr){
             }
             break;
         case 0x80:
-            //color_printk(YELLOW,BLACK ,"currect->thread->rsp0=%#lx\n",current->thread->rsp0 );
             Local_APIC_edge_level_ack(nr);
             {
                 irq_desc_T* irq = &SMP_IPI_desc[nr - 200];

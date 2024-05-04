@@ -124,9 +124,9 @@ void Start_SMP(void){
     wrmsr(IA32_APIC_SVR_MSR,msr );
 
     unsigned long APIC_ID = rdmsr(IA32_APIC_ID_MSR );
-    color_printk(GREEN,BLACK ,"APIC ID:%#lx\n",APIC_ID );
+    //color_printk(GREEN,BLACK ,"APIC ID:%#lx\n",APIC_ID );
 
-    color_printk(GREEN,BLACK ,"CPU%d is running!\n",global_i - 1 );
+    //color_printk(GREEN,BLACK ,"CPU%d is running!\n",global_i - 1 );
 
     interrupt_init();
 

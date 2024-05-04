@@ -17,7 +17,7 @@ void timer_init(void)
     init_timer(&timer_list_head,NULL ,NULL ,-1UL );
     register_softirq(0,&do_timer ,NULL );
     init_timer(tmp,&test_timer ,NULL ,10 );
-    add_timer(tmp);
+    //add_timer(tmp);
 }
 
 
@@ -30,7 +30,7 @@ void do_timer(void* data)
         tmp->func(tmp->data);
         tmp = container_of(get_List_next(&timer_list_head.list),struct timer_list,list);
     }
-    color_printk(RED,BLACK ,"(HPET:%#lx)\t",jiffies );
+    //color_printk(RED,BLACK ,"(HPET:%#lx)\t",jiffies );
 }
 
 
@@ -66,5 +66,5 @@ void del_timer(struct timer_list* timer){
 
 
 void test_timer(void* data){
-    color_printk(GREEN,BLACK ,"test_timer\n" );
+    color_printk(GREEN,BLACK ,"timer.c test_timer\n" );
 }
