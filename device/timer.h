@@ -30,7 +30,7 @@ void test_timer(void* data);
 static __attribute__((always_inline))
 void busy_sleep_second(unsigned long second)
 {
-    unsigned long delta_jiffies = second * 1000 / HPET_frequency;
+    unsigned long delta_jiffies = second * HPET_frequency;
     unsigned long start_jiffies = jiffies;
     while(jiffies - start_jiffies < delta_jiffies){
         pause();    //忙式等待

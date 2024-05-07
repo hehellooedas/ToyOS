@@ -130,7 +130,7 @@ unsigned long* Global_CR3 = NULL;
 
 
 
-/*  每一个物理页都由该结构来管理  */
+/*  每一个物理页都由该结构来管理(描述物理内存本身)  */
 struct Page{
     struct Zone* zone_struct;      //本页所属的区域结构体
     unsigned long PHY_address;     //页的物理地址

@@ -6,9 +6,14 @@
 #include <stddef.h>
 #include <printk.h>
 #include <log.h>
+#include <spinlock.h>
 
 
 struct Global_Memory_Descriptor memory_management_struct = {{0},0};
+
+
+static spinlock_T Page_lock;
+static spinlock_T Slab_lock;
 
 
 extern char _text;   //代码段起始地址
@@ -195,6 +200,8 @@ void memory_init(void){
         //*(Phy_To_Virt(Global_CR3) + i) = 0UL;
     }
     flush_tlb();
+
+    spin_init(&Page_lock);
 }
 
 
@@ -203,7 +210,6 @@ void memory_init(void){
 /*  页表初始化函数  */
 void pagetable_init(void)
 {
-
     unsigned long* tmp;
     Global_CR3 = Get_gdt();
     tmp = (unsigned long*)((unsigned long)(Phy_To_Virt(((unsigned long)Global_CR3) & (~ 0xfffUL))) + 8 * 256);
@@ -247,11 +253,12 @@ void pagetable_init(void)
 
 /*  页申请函数(能申请的页数1~63)  */
 struct Page* alloc_pages(int zone_select,int number,unsigned long page_flags){
+
     if(number >= 64 || number <= 0){
         log_to_screen(ERROR,"alloc_pages() Error:number is invalid");
         return NULL;
     }
-
+    spin_lock(&Page_lock);
     unsigned long page = 0;
     int zone_start = 0;
     int zone_end = 0;
@@ -314,8 +321,10 @@ struct Page* alloc_pages(int zone_select,int number,unsigned long page_flags){
         }
     }
     log_to_screen(ERROR,"alloc pages fail!");
+    spin_unlock(&Page_lock);
     return NULL;
 find_free_pages:    
+    spin_unlock(&Page_lock);
     return (struct Page*)(memory_management_struct.pages_struct + page);
 }
 
@@ -333,12 +342,14 @@ void free_pages(struct Page* page,int number)
         log_to_screen(ERROR,"free_pages() ERROR:number is invalid");
         return;
     }
+    spin_lock(&Page_lock);
     for(int i=0;i<number;i++,page++){
         *(memory_management_struct.bits_map + ((page->PHY_address >> PAGE_2M_SHIFT) >> 6)) &= ~(1UL << (page->PHY_address >> PAGE_2M_SHIFT) % 64);
         page->zone_struct->page_free_count++;
         page->zone_struct->page_using_count--;
         page->attribute = 0;
     }
+    spin_unlock(&Page_lock);
 }
 
 
@@ -410,6 +421,7 @@ bool slab_init(void)
 
     color_printk(ORANGE,BLACK ,"start_code:%lx,end_code:%lx,end_data:%lx,end_brk:%lx,end_of_struct:%lx\n",memory_management_struct.start_code,memory_management_struct.end_code,memory_management_struct.end_data,memory_management_struct.end_brk,memory_management_struct.end_of_struct );
 
+    spin_init(&Slab_lock);
     return true;
 }
 
@@ -446,7 +458,7 @@ void* kmalloc(unsigned long size,unsigned long gfp_flages)
             return NULL;
         }
         kmalloc_cache_size[i].total_free += slab->color_count;
-        color_printk(BLUE,BLACK ,"kmalloc()->kmalloc_create()<=size:%#010x\n",kmalloc_cache_size[i].size );
+        log_to_screen(WARNING,"kmalloc()->kmalloc_create()<=size:%#010x\n",kmalloc_cache_size[i].size);
         list_add_to_before(&kmalloc_cache_size[i].cache_pool->list,&slab->list );
     }
 
@@ -484,7 +496,7 @@ struct Slab* kmalloc_create(unsigned long size)
 
     page = alloc_pages(ZONE_NORMAL,1 ,0 );
     if(page == NULL){  //内存分配失败
-        color_printk(RED,BLACK ,"kmalloc_create()->alloc_pages()=>page == NULL\n" );
+        log_to_screen(WARNING,"kmalloc_create()->alloc_pages()=>page == NULL");
         return NULL;
     }
     page_init(page,PG_Kernel );
@@ -730,7 +742,7 @@ void* slab_malloc(struct Slab_cache* slab_cache,unsigned long arg)
         tmp_slab->color_length = ((slab_cache->cache_pool->color_count + sizeof(unsigned long) * 8 - 1) >> 6) << 3;
         tmp_slab->color_map = (unsigned long*)kmalloc(tmp_slab->color_length,0 );
         if(tmp_slab->color_map == NULL){
-            color_printk(BLUE,BLACK ,"slab_malloc()->kmalloc()=>tmp_cache->color_map == NULL\n" );
+            log_to_screen(WARNING,"slab_malloc()->kmalloc()=>tmp_cache->color_map == NULL");
             kfree(tmp_slab);
             return NULL;
         }

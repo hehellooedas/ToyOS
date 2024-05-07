@@ -15,7 +15,7 @@
 
 
 struct INT_CMD_REG  icr_entry;
-spinlock_T SMP_lock;
+static spinlock_T SMP_lock;
 
 int global_i = 0;
 

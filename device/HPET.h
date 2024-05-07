@@ -15,7 +15,8 @@
 */
 
 
-#define HPET_frequency 1000     //设置时间片为1000ms
+#define HPET_cycle     1000                    //时钟周期(ms)
+#define HPET_frequency (1000 / HPET_cycle)     //时钟频率(HZ)
 
 
 #define HPET_GCAP_ID        0x00    //整体机能寄存器

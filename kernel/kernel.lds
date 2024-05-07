@@ -31,7 +31,7 @@ SECTIONS
 
 	.data.init_task :
 	{
-		*(.data.init_task)
+		*(.data.init_task)  #init_task_union变量被绑定到这个区域
 	}
 	
 	.bss :

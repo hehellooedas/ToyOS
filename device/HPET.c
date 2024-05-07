@@ -56,7 +56,7 @@ void HPET_init(void)
 
     mfence();
 
-    *(unsigned long*)(HPET_addr + HPET_TIM0_COMP) = 1000000 / (GCAP_ID.accuracy / 1000000) * HPET_frequency;     //1s一次的时钟中断
+    *(unsigned long*)(HPET_addr + HPET_TIM0_COMP) = 1000000 / (GCAP_ID.accuracy / 1000000) * HPET_cycle;     //1s一次的时钟中断
 
     mfence();
 

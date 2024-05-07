@@ -65,6 +65,7 @@ void task_init(void) {
     init_mm.start_brk = 0;
     init_mm.end_brk = memory_management_struct.end_brk;
     init_mm.start_stack = (unsigned long)&_stack_start;
+
     if(SMP_cpu_id() == 0){
 
         list_init(&init_task_union.task.list);  //初始化init进程的链表结构
