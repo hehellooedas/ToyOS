@@ -383,19 +383,52 @@ unsigned long DISK1_FAT32_write_FAT_Entry(unsigned int fat_entry,unsigned int va
 
 
 
-void fat32_put_inode(struct super_block* sb)
+void fat32_put_superblock(struct super_block* sb)
 {
-
+    kfree(sb->private_sb_info);
+    kfree(sb->root->dir_inode->private_index_info);
+    kfree(sb->root->dir_inode);
+    kfree(sb->root);
+    kfree(sb);
 }
 
 
 
+/*  将修改后的inode结构写回到硬盘扇区中(inode携带新信息)  */
 void fat32_write_inode(struct index_node* inode)
 {
+    struct FAT32_Directory* fdentry = NULL;
+    struct FAT32_Directory* buf = NULL;
+    struct FAT32_inode_info* finode = inode->private_index_info;
+    struct FAT32_sb_info* fsbi = inode->sb->private_sb_info;
+    unsigned long sector = 0;
 
+    if(finode->dentry_location == 0){
+        log_to_screen(WARNING,"FS ERROR:write root inode!");
+        return;
+    }
+    sector = fsbi->Data_firstsector = (finode->dentry_location - 2) *fsbi->sector_per_cluster;
+
+    buf = (struct FAT32_Directory *)kmalloc(fsbi->bytes_per_cluster,0);
+    memset(buf,0,fsbi->bytes_per_cluster);
+
+    IDE_device_operation.transfer(ATA_READ,sector,fsbi->bytes_per_cluster,(unsigned char*)buf);
+    fdentry = buf + finode->dentry_position;    //刚读出来的待修改的数据
+
+    /*  对旧数据进行修改  */
+    fdentry->Dir_FileSize = inode->file_size;
+    fdentry->Dir_FatClusLO = (finode->first_cluster & 0xffff);
+    fdentry->Dir_FatClusHI = (fdentry->Dir_FatClusHI & 0xf000) | (finode->first_cluster >> 16);
+
+
+    IDE_device_operation.transfer(ATA_WRITE,sector,fsbi->sector_per_cluster,(unsigned char*)buf);
+    kfree(buf);
 }
 
 
+
+
+/*  将修改后的superblock结构写回到硬盘中  */
 void fat32_write_superblock(struct super_block* sb)
 {
 
@@ -404,10 +437,59 @@ void fat32_write_superblock(struct super_block* sb)
 
 
 
-struct super_block_operations fat32_sb_ops = {
-    .put_superblock = fat32_put_inode,
+struct super_block_operations FAT32_sb_ops = {
+    .put_superblock = fat32_put_superblock,
     .write_superblock = fat32_write_superblock,
     .write_inode = fat32_write_inode,
+};
+
+
+
+
+
+
+long FAT32_open(struct index_node* inode,struct file* filep){
+    return 1;
+}
+
+
+
+long FAT32_close(struct index_node* inode,struct file* filep){
+    return 1;
+}
+
+
+long FAT32_read(struct file* filep,unsigned char* buf,unsigned long count,long * position)
+{
+    return 1;
+}
+
+
+long FAT32_write(struct file* filep,unsigned char* buf,unsigned long count,long* position)
+{
+    return 1;
+}
+
+
+long FAT32_lseek(struct file* filep,long offset,long origin){
+    return 1;
+}
+
+
+
+long FAT32_ioctl(struct index_node* inode,struct file* filep,unsigned long cmd,unsigned long arg)
+{
+    return 1;
+}
+
+
+struct file_operations FAT32_file_ops = {
+    .open = FAT32_open,
+    .close = FAT32_close,
+    .read = FAT32_read,
+    .write = FAT32_write,
+    .lseek = FAT32_lseek,
+    .ioctl = FAT32_ioctl
 };
 
 
@@ -422,7 +504,7 @@ struct super_block* fat32_read_superblock(struct Disk_Partition_Table_Entry* DPT
     sbp = (struct super_block*)kmalloc(sizeof(struct super_block),0);
     memset(sbp,0,sizeof(struct super_block));
 
-    sbp->sb_ops = &fat32_sb_ops;
+    sbp->sb_ops = &FAT32_sb_ops;
 
 
 

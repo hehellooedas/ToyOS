@@ -203,8 +203,8 @@ struct Zone{
 
 /*
  * 内存池:管理具体内存对象
- * 管理每个以物理页为单位的内存空间
- * 每个物理页包含了若干个待分配的内存对象
+ * 管理每个以物理页为单位的内存空间(拆分一页)
+ * 每个物理页包含了若干个待分配的内存块
  */
 struct Slab{
     struct List list;
@@ -232,6 +232,7 @@ struct Slab_cache{
     struct Slab* cache_pool;
     struct Slab* cache_dma_pool;  //用于索引DMA内存池存储空间结构
 
+    /*  下面是对slab对象的操作  */
     void* (*constructor)(void* Vaddress,unsigned long arg);  //内存池构造函数(分配内存块时初始化内存块的内容)
     void* (*destructor)(void* Vaddress,unsigned long arg);   //内存池析构(对象生命周期结束时的清理过程)函数(释放内存块时清理内存块的内容)
 };

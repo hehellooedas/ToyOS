@@ -13,7 +13,7 @@ RM = rm -rf
 LIB      = -I kernel -I lib -I device -I task -I fs -I task
 CFLAGS   = -g -nostdlib -mcmodel=large -march=x86-64 -fno-builtin -m64 -fno-stack-protector -w -fno-pic -fno-pie -fdiagnostics-color=always $(LIB)
 LDFLAGS  = -b elf64-x86-64 -z muldefs -T kernel/kernel.lds
-OBJS     =  $(BUILD_DIR)/head.o $(BUILD_DIR)/main.o $(BUILD_DIR)/printk.o \
+OBJS     =   $(BUILD_DIR)/main.o $(BUILD_DIR)/printk.o \
 			$(BUILD_DIR)/init.o $(BUILD_DIR)/screen.o $(BUILD_DIR)/string.o \
 			$(BUILD_DIR)/trap.o $(BUILD_DIR)/entry.o $(BUILD_DIR)/memory.o \
 			$(BUILD_DIR)/interrupt.o $(BUILD_DIR)/cpu.o $(BUILD_DIR)/task.o \
@@ -21,7 +21,7 @@ OBJS     =  $(BUILD_DIR)/head.o $(BUILD_DIR)/main.o $(BUILD_DIR)/printk.o \
 			$(BUILD_DIR)/disk.o $(BUILD_DIR)/SMP.o $(BUILD_DIR)/APU_boot.o \
 			$(BUILD_DIR)/time.o $(BUILD_DIR)/HPET.o $(BUILD_DIR)/softirq.o \
 			$(BUILD_DIR)/timer.o $(BUILD_DIR)/schedule.o $(BUILD_DIR)/fat32.o \
-			$(BUILD_DIR)/log.o $(BUILD_DIR)/VFS.o
+			$(BUILD_DIR)/log.o $(BUILD_DIR)/VFS.o $(BUILD_DIR)/head.o
 
 PIC := PIC_APIC
 

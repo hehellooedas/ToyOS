@@ -355,7 +355,7 @@ void free_pages(struct Page* page,int number)
 
 
 
-/*  初始化内存池数组  */
+/*  初始化内存池数组(kmalloc_cache_size)  */
 bool slab_init(void)
 {
     struct Page* page = NULL;
@@ -366,7 +366,7 @@ bool slab_init(void)
     for(i=0;i<16;i++){
         /*  确定cache_pool的位置  */
         kmalloc_cache_size[i].cache_pool = (struct Slab*)memory_management_struct.end_of_struct;  //slab放置到末尾
-        /* 保留一段内存间隙防止出意外  */
+        /* 保留一段内存间隙防止出意外(end_of_struct也要跟着后移)  */
         memory_management_struct.end_of_struct += (sizeof(struct Slab) + sizeof(long) * 10);
 
         list_init(&kmalloc_cache_size[i].cache_pool->list);
@@ -380,7 +380,7 @@ bool slab_init(void)
 
         kmalloc_cache_size[i].cache_pool->color_map = (unsigned long*)memory_management_struct.end_of_struct;
 
-        memory_management_struct.end_of_struct += (kmalloc_cache_size[i].cache_pool->color_length + sizeof(long) * 10) & (~(sizeof(long) - 1));
+        memory_management_struct.end_of_struct += (kmalloc_cache_size[i].cache_pool->color_length + sizeof(long) * 10) & (~(sizeof(long) - 1)); //如法炮制继续后移
 
         memset(kmalloc_cache_size[i].cache_pool->color_map,0xff,kmalloc_cache_size[i].cache_pool->color_length);
 
@@ -392,6 +392,7 @@ bool slab_init(void)
         kmalloc_cache_size[i].total_using = 0;
     }
 
+    /*  如果说后移到了一个新页,那么标记这个页为已使用  */
     i = Virt_To_Phy(memory_management_struct.end_of_struct) >> PAGE_2M_SHIFT;
     for(j=PAGE_2M_ALIGN(Virt_To_Phy(tmp_address)) >> PAGE_2M_SHIFT;j <= i;j++){
         page = memory_management_struct.pages_struct + j;
@@ -447,7 +448,7 @@ void* kmalloc(unsigned long size,unsigned long gfp_flages)
         do{
             if(slab->free_count == 0){  //当前Slab没有空闲了
                 slab = container_of(get_List_next(&slab->list),struct Slab ,list ); //去找下一个Slab
-            }else{
+            }else{  //slab有空闲就退出
                 break;
             }
         }while(slab != kmalloc_cache_size[i].cache_pool);
@@ -559,7 +560,7 @@ struct Slab* kmalloc_create(unsigned long size)
 
 
         default:
-            color_printk(RED,BLACK ,"" );
+            log_to_screen(ERROR,"kmalloc_create() Error:worng size:%#lx",size);
             free_pages(page,1);
             return NULL;
     }

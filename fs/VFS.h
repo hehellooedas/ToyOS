@@ -69,7 +69,7 @@ struct index_node{
     unsigned long blocks;       //
     unsigned long attribute;    //用自己的方式描述文件的属性
 
-    struct super* sb;
+    struct super_block* sb;
     struct file_operations* f_opa;
     struct index_node_operations* inode_ops;
     void* private_index_info;   //文件系统特有的inode信息
@@ -108,7 +108,7 @@ struct file_operations{
     long (*close)(struct index_node* inode,struct file* filep);
     long (*read)(struct file* filep,unsigned char* buf,unsigned long count,long* position);
     long (*write)(struct file* filep,unsigned char* buf,unsigned long count,long* position);
-    long (*lssek)(struct file* filep,long offset,long origin);
+    long (*lseek)(struct file* filep,long offset,long origin);
     long (*ioctl)(struct index_node* inode,struct file* filep,unsigned long cmd,unsigned long arg);
 };
 
