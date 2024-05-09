@@ -1,45 +1,58 @@
 OUTPUT_FORMAT("elf64-x86-64","elf64-x86-64","elf64-x86-64")
 OUTPUT_ARCH(i386:x86-64)
 ENTRY(_start) #设置程序的入口地址
+
+
+
+
 SECTIONS
 {
 
 	. = 0xffff800000000000 + 0x100000;
 	.text :
 	{
-		_text = .;
+		PROVIDE(_text = .);
+
 		*(.text)
 
-		_etext = .;
+		PROVIDE(_etext = .);
 	}
+
 	. = ALIGN(8);
+
 	.data :
 	{
-		_data = .;
+		PROVIDE(_data = .);
+
 		*(.data)
-		
-		_edata = .;
+
+		PROVIDE(_edata = .);
 	}
+
 	.rodata :
 	{
-		_rodata = .;
+		PROVIDE(_rodata = .);
+
 		*(.rodata)
 
-		_erodata = .;
+		PROVIDE(_erodata = .);
 	}
+
 	. = ALIGN(32768); #32KB对齐(0x8000)
 
 	.data.init_task :
 	{
 		*(.data.init_task)  #init_task_union变量被绑定到这个区域
 	}
-	
+
 	.bss :
 	{
-		_bss = .;
+		PROVIDE(_bss = .);
+
 		*(.bss)
-		_ebss = .;
+
+		PROVIDE(_ebss = .);
 	}
 
-	_end = .;  #表示整个程序的结束
+	PROVIDE(_end = .);
 }
