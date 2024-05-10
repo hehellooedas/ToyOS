@@ -358,17 +358,21 @@ ENTRY(system_call) #执行sysenter的时候会进入到这里
     pushq %r14
     pushq %r15
 
-    movq $0x10,%rdx
-    movq %rdx,%ds
-    movq %rdx,%es
-    movq %rsp,%rdi  #regs
+    movq $0x10,%rax
+    movq %rax,%ds
+    movq %rax,%es
 
-    callq system_call_function #执行完成后会返回
-    # 从用户态程序返回后就往下执行ret_system_call(回到内核态)
+    movq RAX(%rsp),%rax
+    leaq system_call_table(%rip),%rbx
+    callq *(%rbx,%rax,8)
+    movq %rax,RAX(%rsp)
+
+
+
 
 
 ENTRY(ret_system_call)
-    movq %rax,0x80(%rsp)  #保存系统调用的返回值rax到regs->rax
+
     popq %r15;
     popq %r14;
     popq %r13;
@@ -389,6 +393,10 @@ ENTRY(ret_system_call)
     movq %rax,%es; 
     popq %rax; 
     addq $0x38,%rsp; 
+
+    xchgq %rdx,%r10
+    xchgq %rcx,%r11
+
     sti
     .byte 0x48
     sysexitq

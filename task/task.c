@@ -15,6 +15,7 @@
 #include <log.h>
 #include <timer.h>
 
+#define __NR_putstring      1
 
 extern char _data;
 extern char _rodata;
@@ -43,12 +44,6 @@ struct thread_struct init_thread = {
     .error_code = 0
 };
 
-
-system_call_t system_call_table[MAX_SYSTEM_CALL_NR] = {
-    [0] = default_system_call,
-    [1] = sys_printf,
-    [2 ...(MAX_SYSTEM_CALL_NR - 1)] = default_system_call
-};
 
 
 
@@ -282,8 +277,8 @@ unsigned long do_execute(struct pt_regs *regs) {
     struct Page* p = NULL;
 
 
-    regs->rdx = 0x800000; // rip
-    regs->rcx = 0xa00000; // rsp
+    regs->r10 = 0x800000; // rip
+    regs->r11 = 0xa00000; // rsp
     regs->rax = 1;
     regs->ds = 0;
     regs->es = 0;
@@ -316,43 +311,30 @@ unsigned long do_execute(struct pt_regs *regs) {
 
 
 void user_level_function() {
-    long ret = 0;
+    int errno = 0;
+
     asm volatile(
-        "leaq sysexit_return_address(%%rip),%%rdx      \n\t"
-        "movq %%rsp,%%rcx   \n\t"
+        "pushq %%r10        \n\t"
+        "pushq %%r11        \n\t"
+
+        "leaq sysexit_return_address(%%rip),%%r10      \n\t"
+        "movq %%rsp,%%r11   \n\t"
         "sysenter           \n\t"
         "sysexit_return_address: \n\t"
-        : "=a"(ret)                 //rax存储系统调用号和返回值
+
+        "xchgq %%rdx,%%r10      \n\t"
+        "xchgq %%rcx,%%r11      \n\t"
+
+        "popq %%r11         \n\t"
+        "popq %%r10         \n\t"
+        : "=a"(errno)                 //rax存储系统调用号和返回值
         : "0"(1), "D"(__FUNCTION__) // 使用1号系统调用(sys_printf)
         : "memory"
     );
-    // color_printk(RED,BLACK,"user_level_function task called
-    // sysenter,ret:%ld\n",ret);
+
+    //color_printk(RED,BLACK,"user_level_function task called sysenter,errno:%ld\n",errno);
     //print_cr0_info();//无法在用户态执行该函数
 
     while (1);
 }
 
-
-
-
-/*  以下是system call API  */
-/*  通过这个函数进入系统调用的实际函数,rax存储系统调用号  */
-unsigned long system_call_function(struct pt_regs *regs) {
-    return system_call_table[regs->rax](regs);
-}
-
-/*  0号系统调用:默认(打印固定字符串)  */
-unsigned long default_system_call(struct pt_regs *regs) {
-    color_printk(RED, BLACK, "default system call is calling,NR:%#04x\n",
-            regs->rax);
-    return -1;
-}
-
-/*  1号系统调用:打印指定字符串  */
-unsigned long sys_printf(struct pt_regs *regs) {
-    color_printk(BLACK, WHITE, (char *)(regs->rdi));    //函数调用的第一个参数放在rdi
-    //Disk1_FAT32_FS_init();
-
-    return 1;
-}

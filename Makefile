@@ -14,14 +14,15 @@ LIB      = -I kernel -I lib -I device -I task -I fs -I task
 CFLAGS   = -g -nostdlib -mcmodel=large -march=x86-64 -fno-builtin -m64 -fno-stack-protector -w -fno-pic -fno-pie -fdiagnostics-color=always $(LIB)
 LDFLAGS  = -b elf64-x86-64 -z muldefs -T kernel/kernel.lds
 OBJS     =   $(BUILD_DIR)/main.o $(BUILD_DIR)/printk.o \
-			$(BUILD_DIR)/init.o $(BUILD_DIR)/screen.o $(BUILD_DIR)/string.o \
-			$(BUILD_DIR)/trap.o $(BUILD_DIR)/entry.o $(BUILD_DIR)/memory.o \
-			$(BUILD_DIR)/interrupt.o $(BUILD_DIR)/cpu.o $(BUILD_DIR)/task.o \
-			$(BUILD_DIR)/APIC.o $(BUILD_DIR)/keyboard.o $(BUILD_DIR)/mouse.o \
-			$(BUILD_DIR)/disk.o $(BUILD_DIR)/SMP.o $(BUILD_DIR)/APU_boot.o \
-			$(BUILD_DIR)/time.o $(BUILD_DIR)/HPET.o $(BUILD_DIR)/softirq.o \
-			$(BUILD_DIR)/timer.o $(BUILD_DIR)/schedule.o $(BUILD_DIR)/fat32.o \
-			$(BUILD_DIR)/log.o $(BUILD_DIR)/VFS.o $(BUILD_DIR)/head.o
+		$(BUILD_DIR)/init.o      $(BUILD_DIR)/screen.o   $(BUILD_DIR)/string.o \
+		$(BUILD_DIR)/trap.o      $(BUILD_DIR)/entry.o    $(BUILD_DIR)/memory.o \
+		$(BUILD_DIR)/interrupt.o $(BUILD_DIR)/cpu.o      $(BUILD_DIR)/task.o \
+		$(BUILD_DIR)/APIC.o      $(BUILD_DIR)/keyboard.o $(BUILD_DIR)/mouse.o \
+		$(BUILD_DIR)/disk.o      $(BUILD_DIR)/SMP.o      $(BUILD_DIR)/APU_boot.o \
+		$(BUILD_DIR)/time.o      $(BUILD_DIR)/HPET.o     $(BUILD_DIR)/softirq.o \
+		$(BUILD_DIR)/timer.o     $(BUILD_DIR)/schedule.o $(BUILD_DIR)/fat32.o \
+		$(BUILD_DIR)/log.o       $(BUILD_DIR)/VFS.o      $(BUILD_DIR)/head.o \
+		$(BUILD_DIR)/syscall.o   $(BUILD_DIR)/sys.o
 
 PIC := PIC_APIC
 
@@ -132,6 +133,14 @@ $(BUILD_DIR)/log.o:lib/log.c lib/log.h
 
 $(BUILD_DIR)/VFS.o:fs/VFS.c fs/VFS.h
 	@$(CC) $(CFLAGS) -c $< -o $@
+
+
+$(BUILD_DIR)/syscall.o:user/syscall.c user/syscall.h
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/sys.o:user/sys.c
+	@$(CC) $(CFLAGS) -c $< -o $@
+
 
 
 clean:

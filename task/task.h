@@ -194,14 +194,6 @@ extern struct thread_struct init_thread;
 
 extern struct tss_struct init_tss[NR_CPUS];
 
-#define MAX_SYSTEM_CALL_NR 128
-typedef unsigned long (*system_call_t)(struct pt_regs *regs);
-
-unsigned long default_system_call(struct pt_regs *regs);
-unsigned long sys_printf(struct pt_regs *regs);
-
-extern system_call_t system_call_table[MAX_SYSTEM_CALL_NR];
-
 
 
 /*  函数声明  */

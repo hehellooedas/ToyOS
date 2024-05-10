@@ -1,0 +1,2 @@
+SYSCALL_COMMON(0,default_system_call)
+SYSCALL_COMMON(1,sys_putstring)

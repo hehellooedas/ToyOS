@@ -151,6 +151,7 @@ struct FAT32_Directory* path_walk(char* name,unsigned long flags)
 
 
 
+
 /*  从指定目录里搜索与目标名匹配的目录项  */
 struct FAT32_Directory* lookup(char* name,int namelen,struct FAT32_Directory* dentry,int flags)
 {
@@ -505,6 +506,9 @@ struct super_block* fat32_read_superblock(struct Disk_Partition_Table_Entry* DPT
     memset(sbp,0,sizeof(struct super_block));
 
     sbp->sb_ops = &FAT32_sb_ops;
+    sbp->private_sb_info = (struct FAT32_sb_info*)kmalloc(sizeof(struct FAT32_sb_info),0);
+    memset(sbp->private_sb_info,0,sizeof(struct FAT32_sb_info));
+
 
 
 
