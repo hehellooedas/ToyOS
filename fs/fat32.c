@@ -6,6 +6,7 @@
 #include <string.h>
 #include <time.h>
 #include <log.h>
+#include <list.h>
 
 
 struct Disk_Partition_Table DPT;        //硬盘分区表
@@ -495,11 +496,13 @@ struct file_operations FAT32_file_ops = {
 
 
 
+/*  从FAT32中获取信息并构造超级块  */
 struct super_block* fat32_read_superblock(struct Disk_Partition_Table_Entry* DPTE,void* buf)
 {
     struct super_block* sbp = NULL;
     struct FAT32_inode_info* finode = NULL;
-    struct FAT32_BootSector* FBS = NULL;
+    struct FAT32_BootSector* fbs = NULL;
+    struct FAT32_sb_info* fsbi = NULL;
 
 
     sbp = (struct super_block*)kmalloc(sizeof(struct super_block),0);
@@ -509,6 +512,31 @@ struct super_block* fat32_read_superblock(struct Disk_Partition_Table_Entry* DPT
     sbp->private_sb_info = (struct FAT32_sb_info*)kmalloc(sizeof(struct FAT32_sb_info),0);
     memset(sbp->private_sb_info,0,sizeof(struct FAT32_sb_info));
 
+    /*  超级块存储的信息  */
+    fbs = (struct FAT32_BootSector*)buf;
+    fsbi = sbp->private_sb_info;
+    fsbi->start_sector = DPTE->start_sector;
+    fsbi->sector_count = DPTE->sectors_limit;
+    fsbi->sector_per_cluster = fbs->BPB_SecPerClus;
+    fsbi->bytes_per_cluster = fbs->BPB_SecPerClus * fbs->BPB_BytesPerSec;
+    fsbi->bytes_per_sector = fbs->BPB_BytesPerSec;
+
+    /*
+     * 数据区的第一个扇区
+     * 第一个分区的起始扇区 保留扇区 FAT表1 FAT表2 数据区
+     */
+    fsbi->Data_firstsector = DPTE->start_sector + fbs->BPB_RsvdSecCnt + fbs->BPB_FATSz32 * fbs->BPB_NumFATs;
+    fsbi->FAT1_firstsector = DPTE->start_sector + fbs->BPB_RsvdSecCnt;
+    fsbi->sector_per_FAT = fbs->BPB_FATSz32;
+    fsbi->NumFATs = fbs->BPB_NumFATs;
+    fsbi->fsinfo_sector_infat = fbs->BPB_FSInfo;
+    fsbi->bootsector_bk_infat = fbs->BPB_BKBootSec;
+
+
+
+    list_init(&sbp->root->child_node);
+    list_init(&sbp->root->subdirs_list);
+    sbp->root->parent = sbp->root;
 
 
 

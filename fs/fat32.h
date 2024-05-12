@@ -34,7 +34,7 @@ struct Disk_Partition_Table{
 
 
 
-/*  引导扇区  */
+/*  引导扇区(MBR)  */
 struct FAT32_BootSector{
     unsigned char BS_jmpBoot[3];        //跳转指令
     unsigned char BS_OEMName[8];        //OEM厂商名
@@ -160,7 +160,7 @@ T.end_head,T.end_sector,T.end_cylinder,T.start_LBA,T.sectors_limit );
 
 
 
-/*  FAT32文件系统特有的超级快信息  */
+/*  FAT32文件系统特有的超级块信息  */
 struct FAT32_sb_info{
     unsigned long start_sector; //起始扇区
     unsigned long sector_count;

@@ -10,7 +10,7 @@ RM = rm -rf
 
 
 
-LIB      = -I kernel -I lib -I device -I task -I fs -I task
+LIB      = -I kernel -I lib -I device -I task -I fs -I task -I posix -I user
 CFLAGS   = -g -nostdlib -mcmodel=large -march=x86-64 -fno-builtin -m64 -fno-stack-protector -w -fno-pic -fno-pie -fdiagnostics-color=always $(LIB)
 LDFLAGS  = -b elf64-x86-64 -z muldefs -T kernel/kernel.lds
 OBJS     =   $(BUILD_DIR)/main.o $(BUILD_DIR)/printk.o \
@@ -146,6 +146,7 @@ $(BUILD_DIR)/sys.o:user/sys.c
 clean:
 	$(RM) $(RMFLAGS) kernel/head.s tools/boot.img build/* tools/*.lock
 
+
 disk: copy $(BUILD_DIR)/loader.bin $(BUILD_DIR)/boot.bin
 	cp ./disk/hard.img tools/boot.img
 	dd if=$(BUILD_DIR)/boot.bin of=tools/boot.img bs=512 count=1 conv=notrunc
@@ -154,6 +155,7 @@ disk: copy $(BUILD_DIR)/loader.bin $(BUILD_DIR)/boot.bin
 	sudo cp $(BUILD_DIR)/kernel.bin ./disk
 	sudo sync
 	sudo umount ./disk
+
 
 bochs:clean compile link disk
 	@read -p "请输入平台类型(Intel/AMD): " platform; \
@@ -182,6 +184,7 @@ qemu:clean compile link disk
 	-display gtk,gl=on \
 	-s -S \
 	-name "ToyOS Development Platform for x86_64"
+
 
 default: compile link
 	@echo "构建成功"
