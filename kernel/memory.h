@@ -79,8 +79,8 @@ struct Global_Memory_Descriptor{
     unsigned long e820_length;    //ARDS结构体的数量
 
     unsigned long*  bits_map;     //物理地址空间页映射位图指针
-    unsigned long   bits_size;    //页图的数量
-    unsigned long   bits_length;  //位图长度
+    unsigned long   bits_size;    //页位图的数量
+    unsigned long   bits_length;  //位图长度(bitmap总共占用几个字节)
 
     struct Page* pages_struct;    //指向全局page结构的指针
     unsigned long   pages_size;   //page结构的个数
@@ -142,16 +142,16 @@ struct Page{
 
 #define PAGE_XD     (unsigned long)0x1000000000000000   //禁止执行标志位
 
-#define PAGE_Present (unsigned long) 0x001    //页是否存在(不存在/存在)(在最末端的位置)
-#define PAGE_R_W    (unsigned long)0x0002     //页的读写属性(只读/可读可写)
-#define PAGE_U_S    (unsigned long)0x0004     //页的访问模式(超级/用户)
-#define PAGE_PWT    (unsigned long)0x0008     //页级写穿标志(回写/写穿)
-#define PAGE_PCD    (unsigned long)0x0010     //页禁止缓存标志(允许/禁止)
-#define PAGE_Accessed (unsigned long)0x0020   //访问标志位(未访问/已访问)
-#define PAGE_Dirty  (unsigned long)0x0040     //页脏位(干净/被修改)
-#define PAGE_PS     (unsigned long)0x0080     //页尺寸(小页/大页)
-#define PAGE_Global (unsigned long)0x0100     //全局页标志位(局部/全局)
-#define PAGE_PAT    (unsigned long)0x1000     //页属性(MSR中设置)
+#define PAGE_Present  (unsigned long) 0x001     //页是否存在(不存在/存在)
+#define PAGE_R_W      (unsigned long)0x0002     //页的读写属性(只读/可读可写)
+#define PAGE_U_S      (unsigned long)0x0004     //页的访问模式(超级/用户)
+#define PAGE_PWT      (unsigned long)0x0008     //页级写穿标志(回写/写穿)
+#define PAGE_PCD      (unsigned long)0x0010     //页禁止缓存标志(允许/禁止)
+#define PAGE_Accessed (unsigned long)0x0020     //访问标志位(未访问/已访问)
+#define PAGE_Dirty    (unsigned long)0x0040     //页脏位(干净/被修改)
+#define PAGE_PS       (unsigned long)0x0080     //页尺寸(小页/大页)
+#define PAGE_Global   (unsigned long)0x0100     //全局页标志位(局部/全局)
+#define PAGE_PAT      (unsigned long)0x1000     //页属性(MSR中设置)
 
 
 #define PAGE_KERNEL_GDT  (PAGE_R_W | PAGE_Present)
@@ -400,6 +400,7 @@ bool slab_free(struct Slab_cache* slab_cache,void* address,unsigned long arg);
 void* kmalloc(unsigned long size,unsigned long gfp_flages);
 bool kfree(void* address);
 struct Slab* kmalloc_create(unsigned long size);
+void page_check();
 
 
 #endif // !__KERNEL_MEMORY_H

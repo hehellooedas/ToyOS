@@ -65,7 +65,7 @@ void memory_init(void){
             continue;
         } 
         
-        TotalMem += (end - start) >> PAGE_2M_SHIFT;  //该段内存能提供几个页
+        TotalMem += ((end - start) >> PAGE_2M_SHIFT);  //该段内存能提供几个页
     }
     color_printk(ORANGE,BLACK,"OS can used Total 2M Pages:%#lx=%ld\n",TotalMem,TotalMem);
     
@@ -351,6 +351,17 @@ void free_pages(struct Page* page,int number)
     }
     spin_unlock(&Page_lock);
 }
+
+
+
+/*  页面检查  */
+void page_check()
+{
+
+    color_printk(RED,BLACK ,"bitmap_size = %d\n",memory_management_struct.bits_size );
+    color_printk(RED,BLACK ,"bitmap_length = %d\n",memory_management_struct.bits_length );
+}
+
 
 
 

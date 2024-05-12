@@ -14,6 +14,7 @@
 
 /*
  * dentry结构用于描述文件/目录在文件系统中的层级关系
+ * 代表一个目录项,是路径的一个组成部分
  */
 struct dir_entry{
     char* name;
@@ -42,6 +43,7 @@ struct dir_entry_options{
 /*
  * 超级块记录着目标文件系统的引导扇区信息
  * 还有OS为文件系统分配的资源信息
+ * 代表了一个具体的已安装的文件系统
  */
 struct super_block{
     struct dir_entry* root;     //为了方便搜索而抽象出来的
@@ -63,6 +65,7 @@ struct super_block_operations{
 /*
  * inode节点是VFS的核心
  * inode记录着文件在文件系统中的物理信息和文件在OS的抽象信息
+ * 代表了一个具体文件/目录
  */
 struct index_node{
     unsigned long file_size;    //文件大小
@@ -91,6 +94,7 @@ struct index_node_operations{
 
 /*
  * file结构是进程连接VFS的纽带,它是一种抽象结构
+ * 代表由进程打开的文件
  */
 struct file{
     long position;
@@ -116,9 +120,10 @@ struct file_operations{
 
 
 
+/*  每个注册的文件系统都由该结构体来表示  */
 struct file_system_type{
-    char* name;
-    int fs_flags;
+    char* name;     //文件系统的名字
+    int fs_flags;   //文件系统的类型标志
     struct super_block* (*read_superblock)(struct Disk_Partition_Table_Entry* DPTE,void* buf); //解析文件系统引导扇区的方法
     struct file_system_type* next;
 };
