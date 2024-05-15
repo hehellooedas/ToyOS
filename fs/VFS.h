@@ -12,6 +12,10 @@
  */
 
 
+#define FS_ATTR_FILE    (1UL << 0)
+#define FS_ATTR_DIR     (1UL << 1)
+
+
 /*
  * dentry结构用于描述文件/目录在文件系统中的层级关系
  * 代表一个目录项,是路径的一个组成部分
@@ -73,7 +77,7 @@ struct index_node{
     unsigned long attribute;    //用自己的方式描述文件的属性
 
     struct super_block* sb;
-    struct file_operations* f_opa;
+    struct file_operations* f_ops;
     struct index_node_operations* inode_ops;
     void* private_index_info;   //文件系统特有的inode信息
 };

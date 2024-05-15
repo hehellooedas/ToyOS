@@ -430,6 +430,7 @@ void fat32_write_inode(struct index_node* inode)
 
 
 
+
 /*  将修改后的superblock结构写回到硬盘中  */
 void fat32_write_superblock(struct super_block* sb)
 {
@@ -438,12 +439,76 @@ void fat32_write_superblock(struct super_block* sb)
 
 
 
+long FAT32_compare(struct dir_entry* parent_dentry,char* source_filename,char* destination_filename)
+{
 
-struct super_block_operations FAT32_sb_ops = {
-    .put_superblock = fat32_put_superblock,
-    .write_superblock = fat32_write_superblock,
-    .write_inode = fat32_write_inode,
-};
+}
+
+
+
+long FAT32_hash(struct dir_entry* parent_dentry,char* filename)
+{
+
+}
+
+
+
+long FAT32_release(struct dir_entry* dentry)
+{
+
+}
+
+
+long FAT32_iput(struct dir_entry* dentry,struct index_node* inode)
+{
+
+}
+
+
+
+
+long FAT32_create(struct index_node* inode,struct dir_entry* dentry)
+{
+
+}
+
+
+
+struct dir_entry* FAT32_lookup(struct index_node* parent_inode,struct dir_entry* destination_dentry)
+{
+
+}
+
+
+long FAT32_mkdir(struct index_node* inode,struct dir_entry* dentry,int mode)
+{
+
+}
+
+
+long FAT32_rmdir(struct index_node* inode,struct dir_entry* dentry)
+{
+
+}
+
+
+
+long FAT32_rename(struct index_node* old_inode,struct dir_entry* old_dentry,struct index_node* new_inode,struct dir_entry* new_dentry)
+{
+
+}
+
+
+long FAT32_getattr(struct dir_entry* dentry,unsigned long* attr)
+{
+
+}
+
+
+long FAT32_setattr(struct dir_entry* dentry,unsigned long* attr)
+{
+
+}
 
 
 
@@ -485,6 +550,36 @@ long FAT32_ioctl(struct index_node* inode,struct file* filep,unsigned long cmd,u
 }
 
 
+
+
+struct super_block_operations FAT32_sb_ops = {
+    .put_superblock = fat32_put_superblock,
+    .write_superblock = fat32_write_superblock,
+    .write_inode = fat32_write_inode,
+};
+
+
+
+struct dir_entry_options FAT32_dentry_ops = {
+    .compare = FAT32_compare,
+    .hash = FAT32_hash,
+    .release = FAT32_release,
+    .iput = FAT32_iput
+};
+
+
+
+struct index_node_operations FAT32_inode_ops = {
+    .create = FAT32_create,
+    .lookup = FAT32_lookup,
+    .mkdir = FAT32_mkdir,
+    .getattr = FAT32_getattr,
+    .setattr = FAT32_setattr,
+    .rename = FAT32_rename
+};
+
+
+
 struct file_operations FAT32_file_ops = {
     .open = FAT32_open,
     .close = FAT32_close,
@@ -499,12 +594,13 @@ struct file_operations FAT32_file_ops = {
 /*  从FAT32中获取信息并构造超级块  */
 struct super_block* fat32_read_superblock(struct Disk_Partition_Table_Entry* DPTE,void* buf)
 {
-    struct super_block* sbp = NULL;
+    struct super_block* sbp = NULL;         //超级块
     struct FAT32_inode_info* finode = NULL;
-    struct FAT32_BootSector* fbs = NULL;
+    struct FAT32_BootSector* fbs = NULL;    //引导扇区
     struct FAT32_sb_info* fsbi = NULL;
 
 
+    /*  fat32超级块  */
     sbp = (struct super_block*)kmalloc(sizeof(struct super_block),0);
     memset(sbp,0,sizeof(struct super_block));
 
@@ -512,7 +608,8 @@ struct super_block* fat32_read_superblock(struct Disk_Partition_Table_Entry* DPT
     sbp->private_sb_info = (struct FAT32_sb_info*)kmalloc(sizeof(struct FAT32_sb_info),0);
     memset(sbp->private_sb_info,0,sizeof(struct FAT32_sb_info));
 
-    /*  超级块存储的信息  */
+
+    /*  fat32引导扇区  */
     fbs = (struct FAT32_BootSector*)buf;
     fsbi = sbp->private_sb_info;
     fsbi->start_sector = DPTE->start_sector;
@@ -532,13 +629,49 @@ struct super_block* fat32_read_superblock(struct Disk_Partition_Table_Entry* DPT
     fsbi->fsinfo_sector_infat = fbs->BPB_FSInfo;
     fsbi->bootsector_bk_infat = fbs->BPB_BKBootSec;
 
+    fsbi->fat_fsinfo = (struct FAT32_FSInfo*)kmalloc(sizeof(struct FAT32_FSInfo),0);
+    memset(fsbi->fat_fsinfo,0,512);
+    IDE_device_operation.transfer(ATA_READ,DPTE->start_LBA + fbs->BPB_FSInfo,1,(unsigned char*)fsbi->fat_fsinfo);
 
+
+    /*  目录项  */
+    sbp->root = (struct dir_entry*)kmalloc(sizeof(struct dir_entry),0);
+    memset(sbp->root,0,sizeof(struct dir_entry));
 
     list_init(&sbp->root->child_node);
     list_init(&sbp->root->subdirs_list);
     sbp->root->parent = sbp->root;
+    sbp->root->dir_ops = &FAT32_dentry_ops;
+    sbp->root->name = (char*)kmalloc(2,0 );
+    sbp->root->name[0] = '/';
+    sbp->root->name_length = 1;
 
 
+
+    /*  index node  */
+    sbp->root->dir_inode = (struct index_node*)kmalloc(sizeof(struct index_node),0);
+    memset(sbp->root->dir_inode,0,sizeof(struct index_node));
+    sbp->root->dir_inode->inode_ops = &FAT32_inode_ops;
+    sbp->root->dir_inode->f_ops = &FAT32_file_ops;
+    sbp->root->dir_inode->file_size = 0;
+    sbp->root->dir_inode->blocks = (sbp->root->dir_inode->file_size + fsbi->bytes_per_cluster - 1) / fsbi->bytes_per_cluster;  //该文件需要占用多少个簇(向上取整)
+    sbp->root->dir_inode->attribute = FS_ATTR_DIR;
+    sbp->root->dir_inode->sb = sbp;
+
+
+
+
+    /*  fat32 root inode  */
+    sbp->root->dir_inode->private_index_info = (struct FAT32_inode_info*)kmalloc(sizeof(struct FAT32_inode_info),0);
+    memset(sbp->root->dir_inode->private_index_info,0,sizeof(struct FAT32_inode_info));
+    finode = (struct FAT32_inode_info*)sbp->root->dir_inode->private_index_info;
+    finode->first_cluster = fbs->BPB_RootClus;
+    finode->dentry_location = 0;
+    finode->dentry_position = 0;
+    finode->create_date = 0;
+    finode->create_time = 0;
+    finode->write_date = 0;
+    finode->write_time = 0;
 
     return sbp;
 }

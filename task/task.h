@@ -82,6 +82,9 @@ struct task_struct {
   long pid;      // 进程ID
   long priority; // 进程优先级
   long virtual_runtime;
+
+  struct task_struct* next;
+  struct task_struct* parent;
 };
 
 
@@ -212,6 +215,7 @@ extern void system_call(void);
 unsigned long system_call_function(struct pt_regs *regs);
 unsigned long do_execute(struct pt_regs *regs);
 void user_level_function();
+struct task_struct* get_task(long pid);
 
 
 

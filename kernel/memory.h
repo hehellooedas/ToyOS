@@ -240,7 +240,7 @@ struct Slab_cache{
 
 
 /*  内存池数组  */
-struct Slab_cache kmalloc_cache_size[16] = {
+static struct Slab_cache kmalloc_cache_size[16] = {
     {32,     0,0,NULL,NULL,NULL,NULL},
     {64,     0,0,NULL,NULL,NULL,NULL},
     {128,    0,0,NULL,NULL,NULL,NULL},

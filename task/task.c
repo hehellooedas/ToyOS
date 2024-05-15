@@ -23,6 +23,9 @@ extern char _erodata;
 extern char _stack_start;
 
 
+static long global_pid;
+
+
 struct tss_struct init_tss[NR_CPUS] = {[0 ... (NR_CPUS - 1)] = INIT_TSS};
 
 union task_union init_task_union __attribute__((
@@ -338,3 +341,23 @@ void user_level_function() {
     while (1);
 }
 
+
+
+
+/*  根据pid查找进程的pcb  */
+struct task_struct* get_task(long pid){
+    struct task_struct* task = NULL;
+    for(task=init_task_union.task.next;task!=&init_task_union.task;task=task->next){
+        if(task->pid == pid){
+            return task;
+        }
+    }
+    return NULL;
+}
+
+
+
+void wokeup_process(struct task_struct* task){
+    task->state = TASK_RUNNING;
+    insert_task_queue(task);
+}
