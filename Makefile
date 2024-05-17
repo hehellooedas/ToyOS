@@ -55,11 +55,11 @@ $(BUILD_DIR)/head.o: kernel/head.S kernel/linkage.h
 
 $(BUILD_DIR)/entry.o: kernel/entry.S
 	@gcc -E kernel/entry.S > $(BUILD_DIR)/entry.s
-	@$(AS)  build/entry.s -o $@
+	@$(AS)  $(BUILD_DIR)/entry.s -o $@
 
 $(BUILD_DIR)/APU_boot.o: kernel/APU_boot.S
 	@gcc -E kernel/APU_boot.S > $(BUILD_DIR)/APU_boot.s
-	@$(AS)  build/APU_boot.s -o $@
+	@$(AS)  $(BUILD_DIR)/APU_boot.s -o $@
 
 
 
@@ -143,11 +143,25 @@ $(BUILD_DIR)/sys.o:user/sys.c
 
 
 
+
+check:
+	@if command -v bochs &> /dev/null; then \
+		echo "bochs is exist!"; \
+	else \
+		echo "bochs is not exist!"; \
+		echo "Please visit https://github.com/hehellooedas/ToyOS/releases/tag/Kernel to download bochs"; \
+	fi
+
+
 clean:
-	$(RM) $(RMFLAGS) kernel/head.s tools/boot.img build/* tools/*.lock
+	if [ ! -d $(BUILD_DIR) ]; then  \
+		mkdir $(BUILD_DIR);	\
+	fi
+	$(RM) $(RMFLAGS) kernel/head.s tools/boot.img $(BUILD_DIR)/* tools/*.lock
 
 
 disk: copy $(BUILD_DIR)/loader.bin $(BUILD_DIR)/boot.bin
+	cp ./disk/hard.img tools/hd60M.img
 	cp ./disk/hard.img tools/boot.img
 	dd if=$(BUILD_DIR)/boot.bin of=tools/boot.img bs=512 count=1 conv=notrunc
 	sudo mount tools/boot.img ./disk -t vfat -o loop
