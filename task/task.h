@@ -12,26 +12,31 @@
 
 #define STACK_SIZE 32768 // 32K(暂且如此设定)
 
+#define TASK_FILE_MAX   10    //进程打开的文件超过这个值就会引入动态指针数组
+
 
 
 /*  进程状态  */
-#define TASK_RUNNING (1 << 0)         // 运行态
-#define TASK_INTERRUPTIBLE (1 << 1)   // 可以响应中断的等待态
-#define TASK_UNINTERRUPTIBLE (1 << 2) // 不响应中断的等待态
-#define TASK_ZOMBIE (1 << 3)          // 僵尸进程
-#define TASK_STOPPED (1 << 4)         // 进程的执行暂停
+#define TASK_RUNNING          (1 << 0)         // 运行态
+#define TASK_INTERRUPTIBLE    (1 << 1)         // 可以响应中断的等待态
+#define TASK_UNINTERRUPTIBLE  (1 << 2)         // 不响应中断的等待态
+#define TASK_ZOMBIE           (1 << 3)         // 僵尸进程
+#define TASK_STOPPED          (1 << 4)         // 进程的执行暂停
 
 #define PF_KTHREAD    (1UL << 0)
 #define NEED_SCHEDULE (1UL << 1)    //标记当前进程是否可被调度
+#define PF_VFORK      (1UL << 2)    //在调用exec类函数时,明确是否要为进程再开辟独立的资源空间
+
 
 #define KERNEL_CS 0x08    // 内核代码段选择子
 #define KERNEL_DS 0x10    // 内核数据段选择子
 #define USER_CS   0x28    // 用户代码段选择子
 #define USER_DS   0x30    // 用户数据段选择子
 
-#define CLONE_FS (1 << 0)
-#define CLONE_FILES (1 << 1)
-#define CLONE_SIGNAL (1 << 2)
+
+#define CLONE_VM     (1 << 0)   //进程间共享虚拟内存
+#define CLONE_FS     (1 << 1)   //进程间共享文件系统信息(打开的文件)
+#define CLONE_SIGNAL (1 << 2)   //进程间共享信号
 
 
 
@@ -54,6 +59,7 @@ struct mm_struct {
   unsigned long start_code, end_code;     // 代码段区域
   unsigned long start_data, end_data;     // 数据段区域
   unsigned long start_rodata, end_rodata; // 只读数据段区域
+  unsigned long start_bss,end_bss;
   unsigned long start_brk, end_brk;       // 堆区域
   unsigned long start_stack;              // 应用层栈基地址
 };
@@ -82,6 +88,8 @@ struct task_struct {
   long pid;      // 进程ID
   long priority; // 进程优先级
   long virtual_runtime;
+
+  struct file* file_struct[TASK_FILE_MAX];
 
   struct task_struct* next;
   struct task_struct* parent;
@@ -149,7 +157,7 @@ struct tss_struct {
 extern struct mm_struct init_mm;
 
 /*  初始化为内核进程(填写pcb信息)  */
-#define INIT_TASK(tsk)                                                         \
+#define INIT_TASK(task)                                                         \
   {                                                                            \
     .state = TASK_UNINTERRUPTIBLE, .flags = PF_KTHREAD, .mm = &init_mm,        \
     .thread = &init_thread, .addr_limit = 0xffff800000000000, .pid = 0,        \
@@ -157,7 +165,10 @@ extern struct mm_struct init_mm;
     .priority = 2,                                  \
     .cpu_id = 0,                                   \
     .preempt_count = 0,                             \
-    .virtual_runtime = 0                            \
+    .virtual_runtime = 0,                            \
+    .file_struct = {0},                               \
+    .next = &task,                                  \
+    .parent = &task                               \
   }
 
 
@@ -216,6 +227,9 @@ unsigned long system_call_function(struct pt_regs *regs);
 unsigned long do_execute(struct pt_regs *regs);
 void user_level_function();
 struct task_struct* get_task(long pid);
+void wokeup_process(struct task_struct* task);
+unsigned long copy_flags(unsigned long clone_flags,struct task_struct* task);
+
 
 
 
@@ -263,6 +277,20 @@ switch_to为进程切换的前半段
                    "S"(next)                                                   \
                  : "memory");                                                  \
   } while (0)
+
+
+
+
+static __attribute__((always_inline))
+void switch_mm(struct task_struct* prev,struct task_struct* next)
+{
+    asm volatile(
+        "movq %0,cr3    \n\t"
+        :
+        :"r"(next->mm->pgd)
+        :"memory"
+    );
+}
 
 
 #endif // !__Task_Task_H

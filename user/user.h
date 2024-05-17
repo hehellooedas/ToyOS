@@ -1,6 +1,7 @@
 #ifndef __USER_USER_H
 #define __USER_USER_H
 
+#include <string.h>
 
 
 
@@ -42,6 +43,33 @@ long copy_to_user(void* from_addr,void* to_addr,unsigned long size)
     return size;
 }
 
+
+
+/*  用户空间的拷贝  */
+static __attribute__((always_inline))
+long strncpy_from_user(void* from,void* to,unsigned long size)
+{
+    if (!verify_user_area(from,size )) {
+        return 0;
+    }
+    strncpy(to,from,size);
+    return size;
+
+}
+
+
+
+
+/**/
+static __attribute__((always_inline))
+long strnlen_user(void* src,unsigned long maxlen)
+{
+    unsigned long size = strlen(src);
+    if(!verify_user_area(src,size )){
+        return 0;
+    }
+    return size <= maxlen ? size:maxlen;
+}
 
 
 #endif

@@ -15,7 +15,8 @@
 #include <log.h>
 #include <timer.h>
 
-#define __NR_putstring      1
+
+
 
 extern char _data;
 extern char _rodata;
@@ -82,7 +83,7 @@ void task_init(void) {
     //color_printk(YELLOW,BLACK ,"currect->thread->rsp0=%#lx\n",current->thread->rsp0 );
     color_printk(YELLOW,BLACK ,"current=%#lx\n",current );
     kernel_thread(init, 10,
-                CLONE_FS | CLONE_FILES | CLONE_SIGNAL); // 创建init进程(非内核线程)
+                CLONE_FS | CLONE_SIGNAL); // 创建init进程(非内核线程)
 
 }
 
@@ -360,4 +361,43 @@ struct task_struct* get_task(long pid){
 void wokeup_process(struct task_struct* task){
     task->state = TASK_RUNNING;
     insert_task_queue(task);
+}
+
+
+
+unsigned long copy_flags(unsigned long clone_flags,struct task_struct* task){
+    if(clone_flags & CLONE_VM){
+        task->flags |= PF_VFORK;
+    }
+    return 0;
+}
+
+
+
+unsigned long copy_files(unsigned long clone_flags,struct task_struct* task){
+    return 0;
+}
+
+
+
+unsigned long copy_mm(unsigned long clone_flags,struct task_struct* task){
+    return 0;
+}
+
+
+
+unsigned long copy_thread(
+    unsigned long clone_flags,
+    unsigned long stack_start,
+    unsigned long stack_size,
+    struct task_struct* task,
+    struct pt_regs* regs
+){
+    return 0;
+}
+
+
+
+void exit_thread(struct task_struct* task){
+
 }

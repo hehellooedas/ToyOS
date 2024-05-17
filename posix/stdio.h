@@ -8,4 +8,8 @@
 #define SEEK_MAX    3
 
 
+
+int sprintf(char* buf,const char* fmt,...);
+int printf(const char* fmt,...);
+
 #endif

@@ -1,7 +1,7 @@
 #ifndef __FS_VFS_H
 #define __FS_VFS_H
 
-#include <fat32.h>
+#include "fat32.h"
 #include <list.h>
 
 
