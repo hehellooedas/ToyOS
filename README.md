@@ -2,7 +2,7 @@
 
 
 
-### How to run Tos OS
+### How to run Toy OS
 
 You need install the bochs with debugger first.
 
