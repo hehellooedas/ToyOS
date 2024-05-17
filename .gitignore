@@ -1,2 +1,4 @@
 build/
 tools/bochs.log
+tools/boot.img
+tools/hd60M.img

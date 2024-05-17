@@ -9,7 +9,11 @@ You need install the bochs with debugger first.
 
 
 ```shell
-mkdir build
-make bochs
+make check #To check you have debug environment or not
 ```
 
+If you have passed the test,You can directly run the following script to start the kernel.
+
+```
+make bochs
+```
