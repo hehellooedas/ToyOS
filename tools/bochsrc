@@ -46,7 +46,6 @@ vga:extension=cirrus,extension=vbe,update_freq=75,realtime=1,ddc=file:monitor.bi
 
 
 #单CPU,每CPU4核心,每核心2线程
-#每秒种执行4000000条指令数
 #quantum:CPU在被暂停并让另一个CPU运行之前，可以连续执行的最大指令数
 cpu: count=1:4:2, ips=10000000, quantum=16, model=tigerlake, reset_on_triple_fault=1, cpuid_limit_winnt=0, ignore_bad_msrs=1, mwait_is_nop=0, msrs="msrs.def"
  

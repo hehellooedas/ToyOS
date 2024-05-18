@@ -24,7 +24,9 @@ make bochs
 
 
 
-![image-20240518175847618](/home/april_zhao/.var/app/io.typora.Typora/config/Typora/typora-user-images/image-20240518175847618.png)
+
+[after run bochs](./doc/photo/bochs.png)
+
 
 Choose to use Intel or AMD CPU. (But AMD CPU cannot get the full experience)
 
