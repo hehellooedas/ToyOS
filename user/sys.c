@@ -112,6 +112,13 @@ unsigned long sys_exit(int exit_code)
 
 
 
+unsigned long sys_reboot(unsigned long cmd,void* arg)
+{
+    return 0;
+}
+
+
+
 
 #define SYSFUNC_DEF(name)       _SYSFUNC_DEF_(name,__NR_##name)
 #define _SYSFUNC_DEF_(name,nr)  __SYSFUNC_DEF__(name,nr)

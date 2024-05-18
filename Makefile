@@ -36,7 +36,7 @@ USER_OBJS = $(BUILD_DIR_USER)/stdio.o
 
 PIC := PIC_APIC
 
-.PHONY: clean build disk bochs qemu default
+.PHONY: check clean build disk bochs qemu default
 
 .DEFAULT_GOAL := default
 
