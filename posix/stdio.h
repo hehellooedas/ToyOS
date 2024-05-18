@@ -8,7 +8,7 @@
 #define SEEK_MAX    3
 
 
-
+extern void putstring(char *string);
 int sprintf(char* buf,const char* fmt,...);
 int printf(const char* fmt,...);
 

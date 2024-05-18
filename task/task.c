@@ -266,8 +266,13 @@ __switch_to(struct task_struct *prev, struct task_struct *next) {
 
 
 
-unsigned long do_exit(unsigned long code) {
-    color_printk(RED, BLACK, "exit task is running,arg:%#018x\n", code);
+unsigned long do_exit(unsigned long exit_code) {
+    color_printk(RED, BLACK, "exit task is running,arg:%#018x\n", exit_code);
+    struct task_struct* task = current;
+    cli();
+    task->exit_code = exit_code;
+    task->state = TASK_ZOMBIE;
+    sti();
     while (1);
 }
 
@@ -335,7 +340,6 @@ void user_level_function() {
         : "0"(1), "D"(__FUNCTION__) // 使用1号系统调用(sys_printf)
         : "memory"
     );
-
     //color_printk(RED,BLACK,"user_level_function task called sysenter,errno:%ld\n",errno);
     //print_cr0_info();//无法在用户态执行该函数
 

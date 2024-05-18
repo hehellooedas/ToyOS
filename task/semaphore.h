@@ -1,10 +1,9 @@
 #ifndef __TASK_SEMAPHORE_H
 
 #include <list.h>
-#include <task.h>
 #include <atomic.h>
+#include <task.h>
 #include <schedule.h>
-
 
 
 /*

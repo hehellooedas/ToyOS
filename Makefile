@@ -1,5 +1,7 @@
 SHELL = /bin/sh
-BUILD_DIR = build
+BUILD_DIR_BOOT 	 = build/boot
+BUILD_DIR_KERNEL = build/kernel
+BUILD_DIR_USER   = build/user
 MAKE = make
 NASM = nasm
 AS = as
@@ -13,16 +15,24 @@ RM = rm -rf
 LIB      = -I kernel -I lib -I device -I task -I fs -I task -I posix -I user
 CFLAGS   = -g -nostdlib -mcmodel=large -march=x86-64 -fno-builtin -m64 -fno-stack-protector -w -fno-pic -fno-pie -fdiagnostics-color=always $(LIB)
 LDFLAGS  = -b elf64-x86-64 -z muldefs -T kernel/kernel.lds
-OBJS     =   $(BUILD_DIR)/main.o $(BUILD_DIR)/printk.o \
-		$(BUILD_DIR)/init.o      $(BUILD_DIR)/screen.o   $(BUILD_DIR)/string.o \
-		$(BUILD_DIR)/trap.o      $(BUILD_DIR)/entry.o    $(BUILD_DIR)/memory.o \
-		$(BUILD_DIR)/interrupt.o $(BUILD_DIR)/cpu.o      $(BUILD_DIR)/task.o \
-		$(BUILD_DIR)/APIC.o      $(BUILD_DIR)/keyboard.o $(BUILD_DIR)/mouse.o \
-		$(BUILD_DIR)/disk.o      $(BUILD_DIR)/SMP.o      $(BUILD_DIR)/APU_boot.o \
-		$(BUILD_DIR)/time.o      $(BUILD_DIR)/HPET.o     $(BUILD_DIR)/softirq.o \
-		$(BUILD_DIR)/timer.o     $(BUILD_DIR)/schedule.o $(BUILD_DIR)/fat32.o \
-		$(BUILD_DIR)/log.o       $(BUILD_DIR)/VFS.o      $(BUILD_DIR)/head.o \
-		$(BUILD_DIR)/syscall.o   $(BUILD_DIR)/sys.o
+OBJS     =   	$(BUILD_DIR_KERNEL)/main.o 	$(BUILD_DIR_KERNEL)/printk.o  \
+		$(BUILD_DIR_KERNEL)/init.o      $(BUILD_DIR_KERNEL)/screen.o  \
+		$(BUILD_DIR_KERNEL)/string.o 	$(BUILD_DIR_KERNEL)/trap.o    \
+		$(BUILD_DIR_KERNEL)/entry.o    	$(BUILD_DIR_KERNEL)/memory.o  \
+		$(BUILD_DIR_KERNEL)/interrupt.o $(BUILD_DIR_KERNEL)/cpu.o     \
+		$(BUILD_DIR_KERNEL)/task.o  	$(BUILD_DIR_KERNEL)/APIC.o    \
+		$(BUILD_DIR_KERNEL)/keyboard.o 	$(BUILD_DIR_KERNEL)/mouse.o   \
+		$(BUILD_DIR_KERNEL)/disk.o      $(BUILD_DIR_KERNEL)/SMP.o     \
+		$(BUILD_DIR_KERNEL)/APU_boot.o 	$(BUILD_DIR_KERNEL)/time.o    \
+		$(BUILD_DIR_KERNEL)/HPET.o     	$(BUILD_DIR_KERNEL)/softirq.o \
+		$(BUILD_DIR_KERNEL)/timer.o     $(BUILD_DIR_KERNEL)/schedule.o \
+		$(BUILD_DIR_KERNEL)/fat32.o 	$(BUILD_DIR_KERNEL)/log.o     \
+		$(BUILD_DIR_KERNEL)/VFS.o      	$(BUILD_DIR_KERNEL)/head.o    \
+		$(BUILD_DIR_KERNEL)/syscall.o   $(BUILD_DIR_KERNEL)/sys.o
+
+
+USER_OBJS = $(BUILD_DIR_USER)/stdio.o
+
 
 PIC := PIC_APIC
 
@@ -33,112 +43,119 @@ PIC := PIC_APIC
 compile: $(OBJS)
 
 link: compile
-	@$(LD) $(LDFLAGS) $(OBJS) -o $(BUILD_DIR)/system
+	@$(LD) $(LDFLAGS) $(OBJS) -o $(BUILD_DIR_KERNEL)/system
 
 copy: link
-	@objcopy -I elf64-x86-64 -S -R ".eh_frame" -R ".comment" -O binary $(BUILD_DIR)/system $(BUILD_DIR)/kernel.bin
+	@objcopy -I elf64-x86-64 -S -R ".eh_frame" -R ".comment" -O binary $(BUILD_DIR_KERNEL)/system $(BUILD_DIR_KERNEL)/kernel.bin
 
 
 
-$(BUILD_DIR)/boot.bin: boot/boot.asm
+#bootloader程序
+$(BUILD_DIR_BOOT)/boot.bin: boot/boot.asm
 	$(NASM) $< -o $@
 
-$(BUILD_DIR)/loader.bin: boot/loader.asm
+$(BUILD_DIR_BOOT)/loader.bin: boot/loader.asm
 	$(NASM) $< -o $@
 
 
 
+#内核层程序
+$(BUILD_DIR_KERNEL)/head.o: kernel/head.S kernel/linkage.h
+	@gcc -E kernel/head.S > $(BUILD_DIR_KERNEL)/head.s
+	@$(AS)  $(BUILD_DIR_KERNEL)/head.s -o $@ -a=$(BUILD_DIR_KERNEL)/1.lst
 
-$(BUILD_DIR)/head.o: kernel/head.S kernel/linkage.h
-	@gcc -E kernel/head.S > $(BUILD_DIR)/head.s
-	@$(AS)  $(BUILD_DIR)/head.s -o $@ -a=$(BUILD_DIR)/1.lst
+$(BUILD_DIR_KERNEL)/entry.o: kernel/entry.S
+	@gcc -E kernel/entry.S > $(BUILD_DIR_KERNEL)/entry.s
+	@$(AS)  $(BUILD_DIR_KERNEL)/entry.s -o $@
 
-$(BUILD_DIR)/entry.o: kernel/entry.S
-	@gcc -E kernel/entry.S > $(BUILD_DIR)/entry.s
-	@$(AS)  $(BUILD_DIR)/entry.s -o $@
-
-$(BUILD_DIR)/APU_boot.o: kernel/APU_boot.S
-	@gcc -E kernel/APU_boot.S > $(BUILD_DIR)/APU_boot.s
-	@$(AS)  $(BUILD_DIR)/APU_boot.s -o $@
-
-
+$(BUILD_DIR_KERNEL)/APU_boot.o: kernel/APU_boot.S
+	@gcc -E kernel/APU_boot.S > $(BUILD_DIR_KERNEL)/APU_boot.s
+	@$(AS)  $(BUILD_DIR_KERNEL)/APU_boot.s -o $@
 
 
-$(BUILD_DIR)/main.o: kernel/main.c
+
+
+$(BUILD_DIR_KERNEL)/main.o: kernel/main.c
 	@$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/printk.o: lib/printk.c
+$(BUILD_DIR_KERNEL)/printk.o: lib/printk.c
 	@$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/screen.o: device/screen.c
+$(BUILD_DIR_KERNEL)/screen.o: device/screen.c
 	@@$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/init.o:kernel/init.c
+$(BUILD_DIR_KERNEL)/init.o:kernel/init.c
 	@$(CC) $(CFLAGS) -c $< -o $@ -D$(PIC)
 
-$(BUILD_DIR)/trap.o:kernel/trap.c kernel/trap.h
+$(BUILD_DIR_KERNEL)/trap.o:kernel/trap.c kernel/trap.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/memory.o:kernel/memory.c kernel/memory.h
+$(BUILD_DIR_KERNEL)/memory.o:kernel/memory.c kernel/memory.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/interrupt.o:kernel/interrupt.c kernel/interrupt.h
+$(BUILD_DIR_KERNEL)/interrupt.o:kernel/interrupt.c kernel/interrupt.h
 	@$(CC) $(CFLAGS) -c $< -o $@ -D$(PIC)
 
-$(BUILD_DIR)/cpu.o:kernel/cpu.c kernel/cpu.h
+$(BUILD_DIR_KERNEL)/cpu.o:kernel/cpu.c kernel/cpu.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/task.o:task/task.c task/task.h
+$(BUILD_DIR_KERNEL)/task.o:task/task.c task/task.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/schedule.o:task/schedule.c task/schedule.h
+$(BUILD_DIR_KERNEL)/schedule.o:task/schedule.c task/schedule.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/string.o:lib/string.c lib/string.h
+$(BUILD_DIR_KERNEL)/string.o:lib/string.c lib/string.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/APIC.o:device/APIC.c device/APIC.h
+$(BUILD_DIR_KERNEL)/APIC.o:device/APIC.c device/APIC.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/keyboard.o:device/keyboard.c device/keyboard.h
+$(BUILD_DIR_KERNEL)/keyboard.o:device/keyboard.c device/keyboard.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/mouse.o:device/mouse.c device/mouse.h
+$(BUILD_DIR_KERNEL)/mouse.o:device/mouse.c device/mouse.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/disk.o:device/disk.c device/disk.h
+$(BUILD_DIR_KERNEL)/disk.o:device/disk.c device/disk.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/time.o:device/time.c device/time.h
+$(BUILD_DIR_KERNEL)/time.o:device/time.c device/time.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/timer.o:device/timer.c device/timer.h
+$(BUILD_DIR_KERNEL)/timer.o:device/timer.c device/timer.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/HPET.o:device/HPET.c device/HPET.h
+$(BUILD_DIR_KERNEL)/HPET.o:device/HPET.c device/HPET.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/SMP.o:kernel/SMP.c kernel/SMP.h
+$(BUILD_DIR_KERNEL)/SMP.o:kernel/SMP.c kernel/SMP.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/softirq.o:kernel/softirq.c kernel/softirq.h
+$(BUILD_DIR_KERNEL)/softirq.o:kernel/softirq.c kernel/softirq.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/fat32.o:fs/fat32.c fs/fat32.h
+$(BUILD_DIR_KERNEL)/fat32.o:fs/fat32.c fs/fat32.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/log.o:lib/log.c lib/log.h
-	@$(CC) $(CFLAGS) -c $< -o $@
-
-
-$(BUILD_DIR)/VFS.o:fs/VFS.c fs/VFS.h
+$(BUILD_DIR_KERNEL)/log.o:lib/log.c lib/log.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 
-$(BUILD_DIR)/syscall.o:user/syscall.c user/syscall.h
+$(BUILD_DIR_KERNEL)/VFS.o:fs/VFS.c fs/VFS.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/sys.o:user/sys.c
+
+$(BUILD_DIR_KERNEL)/syscall.o:user/syscall.c user/syscall.h
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR_KERNEL)/sys.o:user/sys.c
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+
+
+#应用层程序
+$(BUILD_DIR_USER)/stdio.o:posix/stdio.c posix/stdio.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 
@@ -154,21 +171,20 @@ check:
 
 
 clean:
-	if [ ! -d $(BUILD_DIR) ]; then  \
-		mkdir $(BUILD_DIR);	\
-	fi
-	$(RM) $(RMFLAGS) kernel/head.s tools/boot.img $(BUILD_DIR)/* tools/*.lock
+	mkdir -p build $(BUILD_DIR_BOOT) $(BUILD_DIR_KERNEL) $(BUILD_DIR_USER)
+	$(RM) $(RMFLAGS) kernel/head.s tools/boot.img $(BUILD_DIR_KERNEL)/* tools/*.lock
 
 
-disk: copy $(BUILD_DIR)/loader.bin $(BUILD_DIR)/boot.bin
+disk: copy $(BUILD_DIR_BOOT)/loader.bin $(BUILD_DIR_BOOT)/boot.bin
 	cp ./disk/hard.img tools/hd60M.img
 	cp ./disk/hard.img tools/boot.img
-	dd if=$(BUILD_DIR)/boot.bin of=tools/boot.img bs=512 count=1 conv=notrunc
+	dd if=$(BUILD_DIR_BOOT)/boot.bin of=tools/boot.img bs=512 count=1 conv=notrunc
 	sudo mount tools/boot.img ./disk -t vfat -o loop
-	sudo cp $(BUILD_DIR)/loader.bin ./disk
-	sudo cp $(BUILD_DIR)/kernel.bin ./disk
+	sudo cp $(BUILD_DIR_BOOT)/loader.bin ./disk
+	sudo cp $(BUILD_DIR_KERNEL)/kernel.bin ./disk
 	sudo sync
 	sudo umount ./disk
+
 
 
 bochs:clean compile link disk
@@ -180,6 +196,7 @@ bochs:clean compile link disk
 	           bochs -f tools/bochsrc;; \
 	 * ) echo "无效的输入";; \
 	esac
+
 
 
 qemu:clean compile link disk

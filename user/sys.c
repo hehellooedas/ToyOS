@@ -8,6 +8,19 @@
 
 
 
+#define __NR_putstring      1
+#define __NR_open           2
+#define __NR_close          3
+#define __NR_read           4
+#define __NR_write          5
+#define __NR_lseek          6
+#define __NR_fork           7
+#define __NR_vfork          8
+
+
+
+long errno = 0;
+
 
 unsigned long default_system_call(void)
 {
@@ -89,3 +102,60 @@ unsigned long sys_vfork()
     struct pt_regs* regs = (struct pt_regs*)current->thread->rsp0 - 1;
     return do_fork(regs,CLONE_FS | CLONE_VM | CLONE_SIGNAL ,regs->rsp ,0 );
 }
+
+
+
+unsigned long sys_exit(int exit_code)
+{
+    return do_exit(exit_code);
+}
+
+
+
+
+#define SYSFUNC_DEF(name)       _SYSFUNC_DEF_(name,__NR_##name)
+#define _SYSFUNC_DEF_(name,nr)  __SYSFUNC_DEF__(name,nr)
+#define __SYSFUNC_DEF__(name,nr)        \
+asm (                                   \
+".global "#name"            \n\t"       \
+".type "#name",@function    \n\t"       \
+#name":                     \n\t"       \
+"movq $"#nr",%rax           \n\t"       \
+"jmp LABEL_SYSCALL          \n\t"       \
+);
+
+
+SYSFUNC_DEF(putstring)
+SYSFUNC_DEF(open)
+SYSFUNC_DEF(close)
+SYSFUNC_DEF(read)
+SYSFUNC_DEF(write)
+SYSFUNC_DEF(lseek)
+SYSFUNC_DEF(fork)
+SYSFUNC_DEF(vfork)
+
+
+asm (
+    "LABEL_SYSCALL:          \n\t"
+    "pushq %r10            \n\t"
+    "pushq %r11            \n\t"
+
+    "leaq sysexit_return_address(%rip),%r10      \n\t"
+    "movq %rsp,%r11       \n\t"
+    "sysenter               \n\t"
+    "sysexit_return_address: \n\t"
+
+    "xchgq %rdx,%r10      \n\t"
+    "xchgq %rcx,%r11      \n\t"
+
+    "popq %r11             \n\t"
+    "popq %r10             \n\t"
+
+    "cmpq $-0x1000,%rax     \n\t"
+    "jb LABEL_SYSCALL_RET   \n\t"
+    "movq %rax,errno(%rip)  \n\t"
+    "orq $-1,%rax           \n\t"
+
+    "LABEL_SYSCALL_RET:      \n\t"
+    "retq                   \n\t"
+);

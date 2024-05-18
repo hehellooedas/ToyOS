@@ -5,6 +5,7 @@
 
 
 
+
 int sprintf(char* buf,const char* fmt,...){
     int count = 0;
 
@@ -26,6 +27,7 @@ int printf(const char* fmt,...){
     va_start(args,fmt );
     count = vsprintf(buf,fmt ,args );
     va_end(args);
+
     putstring(buf);
 
     return count;

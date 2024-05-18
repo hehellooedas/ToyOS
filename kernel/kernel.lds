@@ -13,7 +13,7 @@ SECTIONS
 	{
 		PROVIDE(_text = .);
 
-		build/head.o (.text)
+		build/kernel/head.o (.text)
 		EXCLUDE_FILE (build/head.o) *(.text)
 
 		PROVIDE(_etext = .);
