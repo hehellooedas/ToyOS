@@ -17,11 +17,12 @@
 #define TASK_FILE_MAX 10 // 进程打开的文件超过这个值就会引入动态指针数组
 
 /*  进程状态  */
-#define TASK_RUNNING (1 << 0)         // 运行态
-#define TASK_INTERRUPTIBLE (1 << 1)   // 可以响应中断的等待态
-#define TASK_UNINTERRUPTIBLE (1 << 2) // 不响应中断的等待态
-#define TASK_ZOMBIE (1 << 3)          // 僵尸进程
-#define TASK_STOPPED (1 << 4)         // 进程的执行暂停
+#define TASK_RUNNING         (1 << 0)     // 运行态
+#define TASK_INTERRUPTIBLE   (1 << 1)     // 可以响应中断的等待态
+#define TASK_UNINTERRUPTIBLE (1 << 2)     // 不响应中断的等待态
+#define TASK_ZOMBIE          (1 << 3)     // 僵尸进程
+#define TASK_STOPPED         (1 << 4)     // 进程的执行暂停
+
 
 
 #define PF_KTHREAD    (1UL << 0)

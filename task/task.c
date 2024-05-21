@@ -340,6 +340,7 @@ void user_level_function() {
         : "0"(1), "D"(__FUNCTION__) // 使用1号系统调用(sys_printf)
         : "memory"
     );
+    //Disk1_FAT32_FS_init();
     //color_printk(RED,BLACK,"user_level_function task called sysenter,errno:%ld\n",errno);
     //print_cr0_info();//无法在用户态执行该函数
 

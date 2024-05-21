@@ -78,10 +78,10 @@ ENTRY(ret_from_intr)
     /*  判断当前进程是否允许被调度  */
     movq TASK_PREEMPT(%rbx),%rcx
     cmpq $0,%rcx    #为0则允许被调度
-    jne RESTORE_ALL
+    jne RESTORE_ALL #如果直接不被运行调度,那么就不用检查是否可被打断了
 
     movq TASK_FLAGS(%rbx),%rcx
-    testq $2,%rcx
+    testq $2,%rcx       #看当前进程是否可被打断
     jnz reschedule
     jmp RESTORE_ALL
 

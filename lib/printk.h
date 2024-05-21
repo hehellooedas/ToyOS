@@ -40,7 +40,7 @@ typedef unsigned int Color ;    //四字节表示一个像素
 
 
 
-
+/*  合成RGB颜色(256)  */
 static __attribute__((always_inline))
 Color gen_color(unsigned char Red,unsigned char Green,unsigned char Blue)
 {

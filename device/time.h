@@ -7,6 +7,15 @@
 #include <printk.h>
 
 
+
+/*
+ * RTC实时时钟,记录真实世界里的时间,存储在CMOS存储区中
+ * CMOS是记录各项硬件参数且嵌入在主板上面的寄存器
+ * CMOS存储器是一个位数极少的低电压静态内存芯片,由纽扣电池提供外部供电
+ */
+
+
+
 struct time{
     int second;
     int minute;

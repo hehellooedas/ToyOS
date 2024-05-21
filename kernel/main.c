@@ -18,7 +18,6 @@ extern struct ioqueue* mouse_queue;
 
 void Start_Kernel(void){
     init_all();
-    page_check();
     int x = 5;
 
     while(1){

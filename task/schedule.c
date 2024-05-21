@@ -28,7 +28,7 @@ void schedule_init(void)
 void schedule(void)
 {
     struct task_struct* task = NULL;
-    current->flags &= ~NEED_SCHEDULE;
+    current->flags &= ~NEED_SCHEDULE;   //取消当前进程的可调度标志
 
     task = get_next_task();
     long cpu_id = SMP_cpu_id();

@@ -20,6 +20,7 @@
 #include <spinlock.h>
 #include <log.h>
 #include <control.h>
+#include <fat32.h>
 
 
 #if PIC_APIC
@@ -76,7 +77,7 @@ void init_all(void){
     HPET_init();
     screen_clear();
     sti();
-
+    Disk1_FAT32_FS_init();
 
     //stop();
 }

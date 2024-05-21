@@ -24,50 +24,50 @@ struct Disk_Partition_Table_Entry{
 
 
 
-/*  硬盘分区表  */
+/*  主引导记录(从这里获取磁盘分区表)  */
 struct Disk_Partition_Table{
-    unsigned char BS_Reserved[446];     //主引导记录MBR
-    struct Disk_Partition_Table_Entry DPTE[4];   //4个分区表项
-    unsigned short BS_TrailSig;         //0x55aa标记
+    unsigned char BS_Reserved[446];     //存放启动引导程序的区块
+    struct Disk_Partition_Table_Entry DPTE[4];   //4个分区表项(记录整个硬盘分区的状态,总共64B)
+    unsigned short BS_TrailSig;         //0x55aa魔数标记
 }__attribute__((packed));
 
 
 
 
-/*  引导扇区(MBR)  */
+/*  启动扇区(MBR)  */
 struct FAT32_BootSector{
-    unsigned char BS_jmpBoot[3];        //跳转指令
-    unsigned char BS_OEMName[8];        //OEM厂商名
-    unsigned short BPB_BytesPerSec;     //每扇区字节数
-    unsigned char BPB_SecPerClus;       //每簇扇区数
-    unsigned short BPB_RsvdSecCnt;      //保留扇区数
-    unsigned char BPB_NumFATs;          //FAT表的份数
-    unsigned short BPB_RootEntCnt;      //根目录可容纳的目录项数
-    unsigned short BPB_TotSec16;        //总扇区数
-    unsigned char BPB_Media;            //介质描述符
-    unsigned short BPB_FATSz16;         //为0
-    unsigned short BPB_SecPerTrk;       //每磁道扇区数
-    unsigned short BPB_NumHeads;        //磁头数
-    unsigned int BPB_hiddSec;           //隐藏扇区数
-    unsigned int BPB_TotSec32;          //总扇区数(若BPB_TotSec16=0,则由这个变量记录)
+    unsigned char  BS_jmpBoot[3];        //跳转指令
+    unsigned char  BS_OEMName[8];        //OEM厂商名
+    unsigned short BPB_BytesPerSec;      //每扇区字节数
+    unsigned char  BPB_SecPerClus;       //每簇扇区数
+    unsigned short BPB_RsvdSecCnt;       //保留扇区数
+    unsigned char  BPB_NumFATs;          //FAT表的份数
+    unsigned short BPB_RootEntCnt;       //根目录可容纳的目录项数
+    unsigned short BPB_TotSec16;         //总扇区数
+    unsigned char  BPB_Media;            //介质描述符
+    unsigned short BPB_FATSz16;          //为0
+    unsigned short BPB_SecPerTrk;        //每磁道扇区数
+    unsigned short BPB_NumHeads;         //磁头数
+    unsigned int   BPB_hiddSec;          //隐藏扇区数
+    unsigned int   BPB_TotSec32;         //总扇区数(若BPB_TotSec16=0,则由这个变量记录)
 
-    unsigned int BPB_FATSz32;           //每FAT扇区数
-    unsigned short BPB_ExtFlags;        //拓展标志
-    unsigned short BPB_FSVer;           //FAT32文件系统的版本号
-    unsigned int BPB_RootClus;          //根目录起始簇号(位于数据区的起始簇中)
-    unsigned short BPB_FSInfo;          //FSInfo结构体所在的扇区号
-    unsigned short BPB_BKBootSec;       //引导扇区的备份扇区号
-    unsigned char BPB_Reserved[12];     //保留使用
+    unsigned int   BPB_FATSz32;          //每FAT扇区数
+    unsigned short BPB_ExtFlags;         //拓展标志
+    unsigned short BPB_FSVer;            //FAT32文件系统的版本号
+    unsigned int   BPB_RootClus;         //根目录起始簇号(位于数据区的起始簇中)
+    unsigned short BPB_FSInfo;           //FSInfo结构体所在的扇区号
+    unsigned short BPB_BKBootSec;        //引导扇区的备份扇区号
+    unsigned char  BPB_Reserved[12];     //保留使用
 
-    unsigned char BS_DrvNum;            //int 0x13的驱动器号
-    unsigned char BS_Reserved1;         //不使用
-    unsigned char BS_BootSig;           //拓展引导标记
-    unsigned int BS_VolID;              //卷序列号
-    unsigned char BS_VolLab[11];        //卷标
-    unsigned char BS_FileSysType[8];    //文件系统类型
+    unsigned char  BS_DrvNum;            //int 0x13的驱动器号
+    unsigned char  BS_Reserved1;         //不使用
+    unsigned char  BS_BootSig;           //拓展引导标记
+    unsigned int   BS_VolID;             //卷序列号
+    unsigned char  BS_VolLab[11];        //卷标
+    unsigned char  BS_FileSysType[8];    //文件系统类型
 
-    unsigned char BootCode[420];        //引导代码
-    unsigned short BS_TrailSig;         //0x55aa标记
+    unsigned char  BootCode[420];        //引导代码
+    unsigned short BS_TrailSig;          //0x55aa标记
 }__attribute__((packed));
 
 
@@ -80,13 +80,13 @@ struct FAT32_BootSector{
  * 占用一整个扇区,但大多数空间不使用
  */
 struct FAT32_FSInfo{
-    unsigned int FSI_LeadSig;           //标识符 0x41615252
+    unsigned int  FSI_LeadSig;          //标识符 0x41615252
     unsigned char FSI_Resevered1[480];  //保留
-    unsigned int FSI_StruSig;           //标识符 0x61417272
-    unsigned int FSI_Free_Count;        //上一次记录的空闲簇数量(参考值)
-    unsigned int FSI_Nxt_Free;          //空闲簇的起始搜索位置(参考值)
-    unsigned char FSI_Resevered2[12];
-    unsigned int FSI_TrailSig;          //结束标志 0xaa550000
+    unsigned int  FSI_StruSig;          //标识符 0x61417272
+    unsigned int  FSI_Free_Count;       //上一次记录的空闲簇数量(参考值)
+    unsigned int  FSI_Nxt_Free;         //空闲簇的起始搜索位置(参考值)
+    unsigned char FSI_Resevered2[12];   //FSInfo占用一个扇区的空间,但大部分都是保留的空间
+    unsigned int  FSI_TrailSig;         //结束标志 0xaa550000
 }__attribute__((packed));
 
 

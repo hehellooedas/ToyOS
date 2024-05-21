@@ -37,6 +37,8 @@ void Disk1_FAT32_FS_init()
     unsigned char buf[512];
     struct FAT32_Directory* dentry = NULL;
 
+    /*  读取引导扇区  */
+    memset(buf,0,512);
     IDE_device_operation.transfer(ATA_READ,0,1,buf);
 
     DPT = *(struct Disk_Partition_Table*)buf;
@@ -47,6 +49,7 @@ void Disk1_FAT32_FS_init()
     print_DPTE_info(DPT.DPTE[3]);
 
 
+    /*  读取第一个分区的引导扇区  */
     memset(buf,0,512);
     IDE_device_operation.transfer(ATA_READ,DPT.DPTE[0].start_LBA,1,buf);
 
@@ -75,15 +78,16 @@ void Disk1_FAT32_FS_init()
 
     color_printk(GREEN,BLACK ,"FirstDataSector:%d,FirstFAT1Sector:%d,FirstFAT2Sector:%d",FirstDataSector,FirstFAT1Sector,FirstFAT2Sector );
 
-    dentry = path_walk("/hello.c",0);
+    dentry = path_walk("/cpu.c",0);
     if(dentry != NULL){
         log_to_screen(INFO,"OK ");
+        color_printk(GREEN,BLACK,"file size = %d\n",dentry->Dir_FileSize);
         color_printk(GREEN,BLACK,"clusterHI:%#x,cluster_LO:%#x\n",dentry->Dir_FatClusHI,dentry->Dir_FatClusLO);
         //color_printk(GREEN,BLACK ,"find hello.c\nDir_FstClusHI:%#x,nDir_FstClusLO:%#x,Dir_FileSize:%#x\n",dentry->Dir_FatClusHI,dentry->Dir_FatClusLO,dentry->Dir_FileSize );
     }else{
         log_to_screen(WARNING,"Can't find file.");
     }
-
+    sti();
 }
 
 
@@ -240,7 +244,7 @@ next_cluster:
                             break;
                         }
                         else{
-                            log_to_screen(WARNING,"compare file name fail!");
+                            //log_to_screen(WARNING,"compare file name fail!");
                             goto continue_cmp_fail;    //匹配失败
                         }
                     }else {
@@ -250,7 +254,7 @@ next_cluster:
                         }else if(j == namelen){
                             continue;
                         }else{
-                            log_to_screen(WARNING,"compare file name fail!");
+                            //log_to_screen(WARNING,"compare file name fail!");
                             goto continue_cmp_fail;
                         }
                     }
@@ -261,7 +265,7 @@ next_cluster:
                             j++;
                             break;
                         }else{
-                            log_to_screen(WARNING,"compare file name fail!");
+                            //log_to_screen(WARNING,"compare file name fail!");
                             goto continue_cmp_fail;
                         }
                     }else{
@@ -269,7 +273,7 @@ next_cluster:
                             j++;
                             break;
                         }else{
-                            log_to_screen(WARNING,"compare file name fail!");
+                            //log_to_screen(WARNING,"compare file name fail!");
                             goto continue_cmp_fail;
                         }
                     }
@@ -675,4 +679,8 @@ struct super_block* fat32_read_superblock(struct Disk_Partition_Table_Entry* DPT
 
     return sbp;
 }
+
+
+
+
 

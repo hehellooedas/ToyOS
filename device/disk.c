@@ -245,7 +245,7 @@ void write_handler(unsigned long nr,unsigned long parameter){
 /*  硬盘操作请求结束后的善后工作  */
 void end_request(struct block_buffer_node* node){
     if(node == NULL) {
-        color_printk(RED,BLACK ,"end_request error\n" );
+        log_to_screen(ERROR,"end_request error");
     }
     node->wait_queue.task->state = TASK_RUNNING;
     insert_task_queue(node->wait_queue.task);
@@ -262,5 +262,5 @@ void end_request(struct block_buffer_node* node){
 
 
 void other_handler(){
-    log_to_screen(WARNING,"Sorry to tell you the dirver accept error cmd!");
+    log_to_screen(WARNING,"Sorry to tell you the disk dirver accept error cmd!");
 }
