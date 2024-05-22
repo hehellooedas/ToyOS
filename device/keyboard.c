@@ -4,6 +4,7 @@
 #include <memory.h>
 #include <APIC.h>
 #include <printk.h>
+#include "../fs/VFS.h"
 
 
 struct ioqueue* keyboard_queue = NULL;
@@ -182,3 +183,80 @@ unsigned char get_scancode()
 
     return ioqueue_consumer(keyboard_queue);
 }
+
+
+
+/*
+ * 以下代码会把键盘封装成一个文件
+ */
+
+
+long keyboard_open(struct index_node* inode,struct file* filep)
+{
+    filep->private_data = keyboard_queue;
+    keyboard_queue->head = keyboard_queue->tail = keyboard_queue->buf;
+    keyboard_queue->count = 0;
+    memset(keyboard_queue->buf,0,buffer_size);
+    return 1;
+}
+
+
+
+long keyboard_close(struct index_node* inode,struct file* filep)
+{
+    filep->private_data = NULL;
+    keyboard_queue->head = keyboard_queue->tail = keyboard_queue->buf;
+    keyboard_queue->count = 0;
+    memset(keyboard_queue->buf,0,buffer_size);
+    return 1;
+}
+
+
+
+long keyboard_ioctl(struct index_node* inode,
+                    struct file* filep,
+                    unsigned long cmd,
+                    unsigned long arg)
+{
+    switch (cmd) {
+        case KEY_CMD_RESET_BUFFER:  //情况键盘缓冲区
+            keyboard_queue->head = keyboard_queue->tail = keyboard_queue->buf;
+            keyboard_queue->count = 0;
+            memset(keyboard_queue->buf,0,buffer_size);
+            break;
+        default:
+            break;
+    }
+    return 1;
+}
+
+
+
+long keyboard_read(struct file* filep,unsigned char* buf,unsigned long count,long* position)
+{
+    return 1;
+}
+
+
+long keyboard_write(struct file* filep,unsigned char* buf,unsigned long count,long* position)
+{
+    return 0;
+}
+
+
+
+long keyboard_lseek(struct file* filep,long offset,long origin)
+{
+    return 0;
+}
+
+
+
+struct file_operations keyboard_fops = {
+    .open = keyboard_open,
+    .close = keyboard_close,
+    .read = keyboard_read,
+    .write = keyboard_write,
+    .lseek = keyboard_lseek,
+    .ioctl = keyboard_ioctl
+};

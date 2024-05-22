@@ -5,6 +5,7 @@
 #include <task.h>
 #include <log.h>
 #include <user.h>
+#include <io.h>
 #include "../posix/stdio.h"
 
 
@@ -17,6 +18,12 @@
 #define __NR_lseek          6
 #define __NR_fork           7
 #define __NR_vfork          8
+
+
+
+#define SYSTEM_REBOOT       (1 << 0)
+#define SYSTEM_POWEROFF     (1 << 1)
+#define SYSTEM_HALT         (1 << 2)
 
 
 
@@ -89,6 +96,7 @@ unsigned long sys_close(int fd)
 
 
 
+
 unsigned long sys_read(int fd,void* buf,long count)
 {
     struct file* filep = NULL;
@@ -105,6 +113,7 @@ unsigned long sys_read(int fd,void* buf,long count)
 
 
 
+
 unsigned long sys_write(int fd,void * buf,long count)
 {
     struct file* filep = NULL;
@@ -118,6 +127,7 @@ unsigned long sys_write(int fd,void * buf,long count)
     }
     return 0;
 }
+
 
 
 
@@ -165,6 +175,22 @@ unsigned long sys_exit(int exit_code)
 
 unsigned long sys_reboot(unsigned long cmd,void* arg)
 {
+    switch(cmd){
+        case SYSTEM_REBOOT:
+            out8(0x64,0xfe);
+            break;
+        case SYSTEM_POWEROFF:
+            log_to_screen(INFO,"System will poweroff.");
+            break;
+        case SYSTEM_HALT:
+            log_to_screen(WARNING,"Syetem will go to halt.");
+            while(1)
+                hlt();
+            break;
+        default:
+            log_to_screen(ERROR,"ERROR CMD!");
+            break;
+    }
     return 0;
 }
 

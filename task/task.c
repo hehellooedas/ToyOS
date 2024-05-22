@@ -367,6 +367,7 @@ struct task_struct* get_task(long pid){
 void wokeup_process(struct task_struct* task){
     task->state = TASK_RUNNING;
     insert_task_queue(task);
+    current->flags |= NEED_SCHEDULE;
 }
 
 

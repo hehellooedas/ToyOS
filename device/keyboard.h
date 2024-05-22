@@ -16,6 +16,7 @@
 */
 
 
+#define KEY_CMD_RESET_BUFFER    (1 << 0)        //清空键盘缓冲区命令
 
 
 #define PORT_KB_DATA    0x60    //读写数据端口
