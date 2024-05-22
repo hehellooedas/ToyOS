@@ -5,6 +5,7 @@
 #include <task.h>
 #include <log.h>
 #include <user.h>
+#include "../posix/stdio.h"
 
 
 
@@ -72,7 +73,7 @@ unsigned long sys_open(char* filename,int flags)
 unsigned long sys_close(int fd)
 {
     struct file* filep = NULL;
-    if(fd < -1 || fd > TASK_FILE_MAX){
+    if(fd < -1 || fd >= TASK_FILE_MAX){
         return -EBADF;
     }
     filep = current->file_struct[fd];
@@ -83,6 +84,56 @@ unsigned long sys_close(int fd)
 
     kfree(filep);
     current->file_struct[fd] = NULL;
+    return 0;
+}
+
+
+
+unsigned long sys_read(int fd,void* buf,long count)
+{
+    struct file* filep = NULL;
+    if(fd < 0 || fd >= TASK_FILE_MAX){
+        return -EBADF;
+    }
+    if(count < 0) return -EINVAL;
+    filep = current->file_struct[fd];
+    if(filep->f_ops != NULL && filep->f_ops->read != NULL){
+        filep->f_ops->read(filep,buf,count,&filep->position);
+    }
+    return 0;
+}
+
+
+
+unsigned long sys_write(int fd,void * buf,long count)
+{
+    struct file* filep = NULL;
+    if(fd < 0 || fd >= TASK_FILE_MAX){
+        return -EBADF;
+    }
+    if(count < 0) return -EINVAL;
+    filep = current->file_struct[fd];
+    if(filep->f_ops != NULL && filep->f_ops->write != NULL){
+        filep->f_ops->write(filep,buf,count,&filep->position);
+    }
+    return 0;
+}
+
+
+
+unsigned long sys_lseek(int fd,long offset,int whence)
+{
+    struct file* filep = NULL;
+    if(fd < 0 || fd >= TASK_FILE_MAX){
+        return -EBADF;
+    }
+    if(whence < 0 || whence > SEEK_MAX){
+        return -EINVAL;
+    }
+    filep = current->file_struct[fd];
+    if(filep->f_ops != NULL && filep->f_ops->lseek != NULL){
+        filep->f_ops->lseek(filep,offset,whence);
+    }
     return 0;
 }
 

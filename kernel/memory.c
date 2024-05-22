@@ -304,7 +304,7 @@ struct Page* alloc_pages(int zone_select,int number,unsigned long page_flags){
             unsigned long* p = memory_management_struct.bits_map + (j >> 6);
             unsigned long shift = j % 64;
             unsigned long num = (1UL << number) - 1; //需要几页就有几个1
-
+            __builtin_prefetch(p,1,3);
             for(unsigned long k = shift;k < 64;k++){
                 if(!((k? ((*p >= k) | (*(p + 1) << (64 - k))):*p) &(num))){
                     page = j + k - shift;
@@ -334,6 +334,7 @@ find_free_pages:
 /*  页释放函数  */
 void free_pages(struct Page* page,int number)
 {
+    __builtin_prefetch(page,1,3);
     if(page == NULL){  //页不存在,无需释放
         log_to_screen(ERROR,"free_pages() ERROR:page is invalid");
         return;
@@ -348,6 +349,7 @@ void free_pages(struct Page* page,int number)
         page->zone_struct->page_free_count++;
         page->zone_struct->page_using_count--;
         page->attribute = 0;
+        __builtin_prefetch(page+1,1,3);
     }
     spin_unlock(&Page_lock);
 }

@@ -7,6 +7,8 @@
 #include <time.h>
 #include <log.h>
 #include <list.h>
+#include "../posix/stdio.h"
+#include "../posix/errno.h"
 
 
 struct Disk_Partition_Table DPT;        //硬盘分区表
@@ -543,7 +545,27 @@ long FAT32_write(struct file* filep,unsigned char* buf,unsigned long count,long*
 
 
 long FAT32_lseek(struct file* filep,long offset,long origin){
-    return 1;
+    struct index_node* inode = filep->dentry->dir_inode;
+    long pos = 0;
+    switch(origin){
+        case SEEK_SET:
+            pos = offset;
+            break;
+        case SEEK_CUR:
+            pos = filep->position + offset;
+            break;
+        case SEEK_END:
+            pos = filep->dentry->dir_inode->file_size + offset;
+            break;
+        default:
+            return -EINVAL;
+            break;
+    }
+    if(pos < 0 || pos >filep->dentry->dir_inode->file_size){
+        return EOVERFLOW;
+    }
+    filep->position = pos;
+    return pos;
 }
 
 

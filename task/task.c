@@ -188,7 +188,7 @@ unsigned long do_fork(
                 *memory_management_struct.bits_map);
 
     task = (struct task_struct *)(Phy_To_Virt(p->PHY_address));  //pcb指向新分配页的首地址
-
+    __builtin_prefetch(task,1,3);
     color_printk(WHITE, BLACK, "struct task_struct address:%#018x\n",
                 (unsigned long)task);
 
@@ -357,6 +357,7 @@ struct task_struct* get_task(long pid){
         if(task->pid == pid){
             return task;
         }
+        __builtin_prefetch(task->next,0,3);
     }
     return NULL;
 }

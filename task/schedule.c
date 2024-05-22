@@ -28,15 +28,20 @@ void schedule_init(void)
 void schedule(void)
 {
     struct task_struct* task = NULL;
-    current->flags &= ~NEED_SCHEDULE;   //取消当前进程的可调度标志
+    struct task_struct* current_task = current;
+    __builtin_prefetch(current_task,1,3);
+    current_task->flags &= ~NEED_SCHEDULE;   //取消当前进程的可调度标志
+
 
     task = get_next_task();
     long cpu_id = SMP_cpu_id();
+    __builtin_prefetch(&cpu_id,0,1);
+    __builtin_prefetch(&task_schedule[cpu_id],1,3);
 
 
-    if(current->virtual_runtime >= task->virtual_runtime || current->state != TASK_RUNNING){
-        if(current->state == TASK_RUNNING){
-            insert_task_queue(current);
+    if(current_task->virtual_runtime >= task->virtual_runtime || current_task->state != TASK_RUNNING){
+        if(current_task->state == TASK_RUNNING){
+            insert_task_queue(current_task);
         }
         if(!task_schedule[cpu_id].CPU_exec_task_jiffies){
             switch (task->priority) {
@@ -94,7 +99,6 @@ void insert_task_queue(struct task_struct* task)
 
     struct task_struct* tmp = NULL;
     tmp = container_of(get_List_next(&task_schedule[SMP_cpu_id()].task_queue.list),struct task_struct,list);
-    //color_printk(RED,BLACK ,"CPU:%d,tmp address:%#lx\n",SMP_cpu_id(),tmp );
 
     if(list_is_empty(&task_schedule[SMP_cpu_id()].task_queue.list)){
     }else{

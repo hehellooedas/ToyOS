@@ -28,9 +28,12 @@
 
 #define IS_CONST(x)  __builtin_constant_p(x)     //判断是否为常量
 
+
 /*
- * 数据预取(在数据使用前提前放入cache里) 适用于数据访问有较大随机性的场景。
+ * 数据预取(在数据使用前提前放入cache里) 适用于数据访问有较大随机性的场景
+ * 在内存访问密集的操作中,会减小数据访问的延迟
  * __builtin_prefetch(const void* addr,int rw,int locality)
+ * rw表示读写情况,0为只读
  * locality表示数据在缓存中的时间局部性
  * 0:读取完addr的值之后不用保留在缓存中
  * 1:保留在L3 cache
@@ -60,15 +63,15 @@
 
 
 /*  
-根据成员找结构体变量
-@ptr:成员变量的地址
-@type:成员变量所在结构体类型
-@member:成员变量名
+ * 根据成员找结构体变量
+ * @ptr:成员变量的地址
+ * @type:成员变量所在结构体类型
+ * @member:成员变量名
 */
-#define container_of(ptr,type,member)           \
-({                                              \
-    typeof(((type*)0)->member)* p = (ptr);        \
-    (type*)((unsigned long)p - (unsigned long) & (((type*)0)->member)); \
+#define container_of(ptr,type,member)                                   \
+({                                                                      \
+    typeof(((type*)0)->member)* p = (ptr);                              \
+    (type*)((unsigned long)p - (unsigned long) &(((type*)0)->member));  \
 })
 
 
