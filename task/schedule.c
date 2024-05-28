@@ -4,6 +4,7 @@
 #include <schedule.h>
 #include <string.h>
 #include <printk.h>
+#include <interrupt.h>
 
 
 extern unsigned long jiffies;
@@ -27,6 +28,7 @@ void schedule_init(void)
 
 void schedule(void)
 {
+    cli();  //调度期间禁止中断
     struct task_struct* task = NULL;
     struct task_struct* current_task = current;
     __builtin_prefetch(current_task,1,3);
@@ -71,6 +73,7 @@ void schedule(void)
             }
         }
     }
+    sti();
 }
 
 

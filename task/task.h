@@ -17,11 +17,11 @@
 #define TASK_FILE_MAX 10 // 进程打开的文件超过这个值就会引入动态指针数组
 
 /*  进程状态  */
-#define TASK_RUNNING         (1 << 0)     // 运行态
-#define TASK_INTERRUPTIBLE   (1 << 1)     // 可以响应中断的等待态
-#define TASK_UNINTERRUPTIBLE (1 << 2)     // 不响应中断的等待态
-#define TASK_ZOMBIE          (1 << 3)     // 僵尸进程
-#define TASK_STOPPED         (1 << 4)     // 进程的执行暂停
+#define TASK_RUNNING         (1 << 0)   //进程处于可执行状态(正在执行或在就绪队列里)
+#define TASK_INTERRUPTIBLE   (1 << 1)   //可中断睡眠态(浅睡眠)被阻塞以等待某些条件达成或资源就位
+#define TASK_UNINTERRUPTIBLE (1 << 2)   //不可中断态(对信号不做任何反应)
+#define TASK_ZOMBIE          (1 << 3)   //僵尸态(进程已经消亡,但pcb还未释放)
+#define TASK_STOPPED         (1 << 4)   //进程停止运行
 
 
 
@@ -38,9 +38,9 @@
 
 
 
-#define CLONE_VM (1 << 0) // 进程间共享虚拟内存
-#define CLONE_FS (1 << 1) // 进程间共享文件系统信息(打开的文件)
-#define CLONE_SIGNAL (1 << 2) // 进程间共享信号
+#define CLONE_VM      (1 << 0)  // 进程间共享虚拟内存
+#define CLONE_FS      (1 << 1)  // 进程间共享文件系统信息(打开的文件)
+#define CLONE_SIGNAL  (1 << 2)  // 进程间共享信号
 
 
 extern char _text;
@@ -67,9 +67,10 @@ struct mm_struct {
 };
 
 
+
 /*  PCB是进程的身份证  */
 struct task_struct {
-    volatile long state; // 进程状态(保证实时状态)
+    volatile long state; // 进程状态
     unsigned long flags; // 进程标志(进程/线程/内核线程)
     long
         preempt_count; // preempt_count>0说明该进程持有自旋锁(受保护,不能被调度出去)
@@ -94,6 +95,7 @@ struct task_struct {
     struct task_struct *next;
     struct task_struct *parent;
 };
+
 
 
 

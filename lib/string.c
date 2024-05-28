@@ -50,7 +50,7 @@ void* memmove(void* dest,const void* src,unsigned long size)
 
 int strcmp(char* a,char* b)
 {
-    while(*a != 0 || *a == *b){
+    while(*a != 0 && *a == *b){
         a++;
         b++;
     }

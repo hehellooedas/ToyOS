@@ -7,6 +7,7 @@
 #include <user.h>
 #include <io.h>
 #include "../posix/stdio.h"
+#include "../posix/fcntl.h"
 
 
 
@@ -53,9 +54,11 @@ unsigned long sys_open(char* filename,int flags)
     char* path = NULL;
     long pathlen = 0;
     long error = 0;
+    struct dir_entry* dentry = NULL;
     struct file* filep = NULL;
     struct file** f = NULL;
     int fd = -1;
+
     path = (char *)kmalloc(PAGE_4K_SIZE,0);
     if(path == NULL){
         log_to_screen(ERROR,"Failed to alloc memory!");
@@ -71,7 +74,51 @@ unsigned long sys_open(char* filename,int flags)
         return -ENAMETOOLONG;
     }
     strncpy_from_user(filename,path ,pathlen );
-    return 0;
+    dentry = path_walk(path, 0);
+    kfree(path);
+    if(dentry != NULL){
+        log_to_screen(INFO,"Find the file!");
+    }else{
+        log_to_screen(WARNING,"Can't find the file!");
+        return -ENOENT;
+    }
+    if(dentry->dir_inode->attribute == FS_ATTR_DIR){
+        return -EISDIR;     //open系统调用应当打开的是文件
+    }
+    filep = (struct file*)kmalloc(sizeof(struct file),0);
+    memset(filep,0,sizeof(struct file));
+    filep->dentry = dentry;
+    filep->mode = flags;
+    filep->f_ops = dentry->dir_inode->f_ops;
+    if(filep->f_ops != NULL && filep->f_ops->open != NULL){
+        error = filep->f_ops->open(dentry->dir_inode,filep);
+    }
+    if(error != 1){
+        kfree(filep);
+        return EFAULT;
+    }
+    if(filep->mode & O_TRUNC){  //把文件截断掉(覆盖)
+        filep->dentry->dir_inode->file_size = 0;
+    }
+    if(filep->mode & O_APPEND){
+        filep->position = filep->dentry->dir_inode->file_size;
+    }
+
+    /*  打开文件之后还要把文件和进程进行绑定  */
+    f = current->file_struct;
+    for(int i=0;i<TASK_FILE_MAX;i++){
+        if(f[i] == NULL){
+            fd = i;
+            break;
+        }
+    }
+    if(fd == TASK_FILE_MAX){
+        kfree(filep);
+        return -ENFILE;
+    }
+
+    f[fd] = filep;
+    return fd;
 }
 
 

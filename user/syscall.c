@@ -1,16 +1,8 @@
 #include <printk.h>
 #include "../posix/errno.h"
+#include <sys.h>
 
 
-
-#define __NR_putstring      1
-#define __NR_open           2
-#define __NR_close          3
-#define __NR_read           4
-#define __NR_write          5
-#define __NR_lseek          6
-#define __NR_fork           7
-#define __NR_vfork          8
 
 
 #define SYSCALL_COMMON(nr,sym)  extern unsigned long sym(void);

@@ -5,7 +5,7 @@
 #include <list.h>
 
 
-
+extern struct super_block* root_sb;
 
 /*
  * VFS虚拟文件系统是一个抽象层,对用户提供一组固定的API
@@ -13,8 +13,10 @@
  */
 
 
+/*  inode的属性  */
 #define FS_ATTR_FILE    (1UL << 0)
 #define FS_ATTR_DIR     (1UL << 1)
+#define FS_ATTR_DEVICE  (1UL << 2)
 
 
 /*
@@ -22,14 +24,16 @@
  * 代表一个目录项,是路径的一个组成部分
  */
 struct dir_entry{
+    /*  目录项名称和长度  */
     char* name;
     int name_length;
+
     struct List child_node;
     struct List subdirs_list;
 
-    struct index_node* dir_inode;
-    struct dir_entry* parent;
-    struct dir_entry_options* dir_ops;
+    struct index_node* dir_inode;   //目录项对应的inode
+    struct dir_entry* parent;       //父目录项
+    struct dir_entry_options* dir_ops;  //目录项的操作方法(不同文件系统有不同的操作方法,这里把他们给封装起来了)
 };
 
 
@@ -74,12 +78,12 @@ struct super_block_operations{
  */
 struct index_node{
     unsigned long file_size;    //文件大小
-    unsigned long blocks;       //
-    unsigned long attribute;    //用自己的方式描述文件的属性
+    unsigned long blocks;       //inode表示的文件占用了几个簇
+    unsigned long attribute;    //用自己的方式描述文件的属性(区分文件或者目录)
 
-    struct super_block* sb;
-    struct file_operations* f_ops;
-    struct index_node_operations* inode_ops;
+    struct super_block* sb;     //inode所在的文件系统的超级块信息
+    struct file_operations* f_ops;  //inode表示的文件的操作方法
+    struct index_node_operations* inode_ops;    //inode自己的操作方法
     void* private_index_info;   //文件系统特有的inode信息
 };
 
@@ -141,7 +145,9 @@ struct file_system_type{
 /*  函数声明  */
 struct super_block* mount_fs(char* name,struct Disk_Partition_Table_Entry* DPTE,void* buf);
 unsigned long register_filesystem(struct file_system_type* fs);
-
+unsigned long register_filesystem(struct file_system_type* fs);
+unsigned check_filesystem();
+struct dir_entry* path_walk(char* name,unsigned long flags);
 
 
 #endif

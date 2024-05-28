@@ -3,6 +3,8 @@
 
 
 #include <printk.h>
+#include <log.h>
+
 
 
 /*  硬盘分区表项(16B)  */
@@ -92,6 +94,49 @@ struct FAT32_FSInfo{
 
 
 
+
+/* FAT32中的每个FAT表项占用4B 只使用低28位
+ *      FAT表项值                  说明
+ *      0x0000000           可用簇(还没分配出去)
+ * 0x0000002~0xfffffef      已用簇(值为下一个簇的簇号)
+ * 0xffffff0~0xffffff6      保留簇(不使用)
+ *      0xffffff7           坏簇(不使用)为了避免潜在的风险而不使用
+ * 0xffffff8~0xfffffff      文件的最后一个簇
+ *
+ * FAT表的前2个表项不使用,因此数据区的前两个簇也跟着不使用
+ */
+
+
+/*  根据以上性质,可以对FAT表项性质进行构造  */
+enum FATEntryType{
+    FAT_free=0,          //未分配的簇
+    FAT_using_not_end,   //已分配的簇且不是最后一个簇
+    FAT_using_end,       //已分配且是最后一个簇
+    FAT_res              //不使用
+};
+
+
+/*  根据簇号判断FAT表项的性质  */
+static __attribute__((always_inline))
+enum FATEntryType getFATEntryType(unsigned int cluster)
+{
+    switch (cluster) {
+        case 0:
+            return FAT_free;
+        case 0x0000002 ... 0xfffffef:
+            return FAT_using_not_end;
+        case 0xffffff0 ... 0xffffff7:
+            return FAT_res;
+        case 0xffffff8 ... 0xfffffff:
+            return FAT_using_end;
+    }
+    log_to_screen(ERROR,"get Error cluster!");
+    return 0;
+}
+
+
+
+
 /*  目录项属性  */
 #define ATTR_READ_ONLY      (1 << 0)    //只读
 #define ATTR_HIDDEN         (1 << 1)    //隐藏
@@ -102,48 +147,110 @@ struct FAT32_FSInfo{
 #define ATTR_LONG_NAME (ATTR_READ_ONLY | ATTR_HIDDEN | ATTR_SYSTEM | ATTR_VOLUME_ID) //长文件名
 
 
+/*  NT字段的值  */
+#define LOWERCASE_BASE  (8)
+#define LOWERCASE_EXT   (16)
 
-/*  FAT32目录项(32B)  */
+
+/*  FAT32短目录项(32B)  */
 struct FAT32_Directory{
-    unsigned char Dir_Name[11];     //目录名(文件名最多8,扩展名最多3,不足使用空格补充)
-    unsigned char Dir_Attr;         //文件属性(短目录项和长目录项的Attr在同一个地方)
-    unsigned char Dir_NTRes;        //保留
-    unsigned char Dir_CrtTimeTenth; //文件创建时的时间戳
-    unsigned short Dir_CrtTime;     //文件创建的时间
-    unsigned short Dir_CrtDate;     //文件创建的日期
-    unsigned short Dir_LastAccDate; //最后访问日期
-    unsigned short Dir_FatClusHI;   //起始簇号(高位)
-    unsigned short Dir_WrtTime;     //最后写入时间
-    unsigned short Dir_WrtDate;     //最后写入日期
-    unsigned short Dir_FatClusLO;   //起始簇号(低位)
-    unsigned int Dir_FileSize;      //文件大小
+    /*
+     * 文件名由8B的基础名和3B的扩展名组成(总共11B)
+     * 如果基础名和扩展名的长度不足,则使用空格符号(0x20)来补足
+     * 基础名中不允许含有空格,也就是空格只能放到最后
+     * 使用ASCII编码,每个字符占用1B
+     * 短目录项不区分大小写,都是大写
+     * 当Dir_Name[0]=0xE5 0x00 0x05时表明该目录项无效或未使用
+     * Dir_Name[0] != 0x20
+     */
+    unsigned char  Dir_Name[11];     //目录/文件名
+    unsigned char  Dir_Attr;         //文件属性
+    /*
+     * 数值              描述
+     * 0x00      基础名大写.扩展名大写
+     * 0x08      基础名小写.扩展名大写
+     * 0x10      基础名大写.扩展名小写
+     * 0x18      基础名小写,扩展名小写
+     */
+    unsigned char  Dir_NTRes;        //保留
+    unsigned char  Dir_CrtTimeTenth; //文件创建时的时间戳
+    unsigned short Dir_CrtTime;      //文件创建的时间
+    unsigned short Dir_CrtDate;      //文件创建的日期
+    unsigned short Dir_LastAccDate;  //最后访问日期
+    unsigned short Dir_FatClusHI;    //起始簇号(高位)
+    unsigned short Dir_WrtTime;      //最后写入时间
+    unsigned short Dir_WrtDate;      //最后写入日期
+    unsigned short Dir_FatClusLO;    //起始簇号(低位)
+    unsigned int   Dir_FileSize;     //文件大小
+
+    /*
+     * 两个簇号合成后 可以确定FAT表项的索引,它同时也是文件或目录在数据区的索引
+     */
 }__attribute__((packed));
 
 
 
+/*  日期结构(2B)  */
+struct FAT32_date{
+    unsigned short
+        day:5,      //取值范围:1~31
+        month:4,    //取值范围:1~12
+        year:7;     //取值范围:0~127 => (1980 - 2107)
+};
 
-/*  长目录项(32B)  */
+
+
+static __attribute__((always_inline))
+void print_FAT32_date(unsigned short date)
+{
+    struct FAT32_date date_struct = *(struct FAT32_date *)&date;
+    color_printk(GREEN,BLACK ,"%d-%d-%d\n",1980 + date_struct.year,date_struct.month,date_struct.day );
+}
+
+
+
+/*  时间结构(2B)  */
+struct FAT32_time{
+    unsigned short
+        second:5,   //取值范围:0~29(每2s一次步进)
+        minute:6,   //取值范围:0~59
+        hour:5;     //取值范围:0~23
+};
+
+
+
+static __attribute__((always_inline))
+void print_FAT32_time(unsigned short time)
+{
+    struct FAT32_time time_struct = *(struct FAT32_time *)&time;
+    color_printk(GREEN,BLACK ,"%d:%d:%d\n",time_struct.hour,time_struct.minute,time_struct.second );
+}
+
+
+
+
+/*
+ * FAT32长目录项(32B) 长目录项补足了短目录项的缺点
+ * 长目录项更多用于记录文件名(5 + 6 + 2)
+ * 它不拿来记录日期和时间
+ * 使用unicode编码,每个字符占用2B
+ * 文件名区分大小写,并且支持多种语言符号
+ * 文件名以NULL空字符表示结尾,剩余的空间使用0xffff填充
+ */
 struct FAT32_LongDirectory{
-    unsigned char LDIR_Ord;         //长目录项的序号
+    unsigned char  LDIR_Ord;        //长目录项的序号
     unsigned short LDIR_Name1[5];   //长文件名的1-5个字符(名称的第一部分)
-    unsigned char LDIR_Attr;        //属性必须为ATTR_LONG_NAME
-    unsigned char LDIR_Type;        //如果为0,说明是长目录项的子项
-    unsigned char LDIR_Chksum;      //短文件名的校验和
+    unsigned char  LDIR_Attr;       //属性必须为ATTR_LONG_NAME
+    unsigned char  LDIR_Type;       //如果为0,说明是长目录项的子项
+    unsigned char  LDIR_Chksum;     //短文件名的校验和
     unsigned short LDIR_Name2[6];   //6-11(第二部分)
     unsigned short LDIR_FstClusLO;  //必须为0
     unsigned short LDIR_Name3[2];   //12-13(第三部分)
 }__attribute__((packed));
 
 
-#define LOWERCASE_BASE  (8)
-#define LOWERCASE_EXT   (16)
 
 
-void Disk1_FAT32_FS_init();
-struct FAT32_Directory* path_walk(char* name,unsigned long flags);
-struct FAT32_Directory* lookup(char* name,int namelen,struct FAT32_Directory* dentry,int flags);
-unsigned int DISK1_FAT32_read_FAT_Entry(unsigned int fat_entry);
-unsigned long DISK1_FAT32_write_FAT_Entry(unsigned int fat_entry,unsigned int value);
 
 
 
@@ -182,11 +289,16 @@ struct FAT32_sb_info{
 
 
 
-/*  FAT32特有的inode信息  */
+/*  FAT32特有的inode信息,用于在VFS抽象层中表明自己是FAT32  */
 struct FAT32_inode_info{
-    unsigned long first_cluster;
-    unsigned long dentry_location;
-    unsigned long dentry_position;
+    unsigned long first_cluster;    //文件本身的起始簇号,也就是目录项所指向的簇号
+
+    /*
+     * 有了这两个参数就可以通过inode快速查找到目录项
+     * 从这个目录项里也能查到first_cluster
+     */
+    unsigned long dentry_location;  //目录项所在的簇(到这个簇里去找)
+    unsigned long dentry_position;  //目录项所在簇内的偏移量
 
     unsigned short create_date;
     unsigned short create_time;
@@ -196,7 +308,14 @@ struct FAT32_inode_info{
 };
 
 
+
+void Disk1_FAT32_FS_init();
+unsigned int DISK1_FAT32_read_FAT_Entry(struct FAT32_sb_info* fsbi,unsigned int fat_entry);
+unsigned long DISK1_FAT32_write_FAT_Entry(struct FAT32_sb_info* fsbi,unsigned int fat_entry,unsigned int value);
 struct super_block* fat32_read_superblock(struct Disk_Partition_Table_Entry* DPTE,void* buf);
+
+
+
 
 
 #endif

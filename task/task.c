@@ -14,7 +14,7 @@
 #include <fat32.h>
 #include <log.h>
 #include <timer.h>
-
+#include <sys.h>
 
 
 
@@ -92,6 +92,7 @@ void task_init(void) {
 /*  init内核线程(0x200000~0x208000)  */
 unsigned long init(unsigned long arg) {
     struct pt_regs *regs;
+    Disk1_FAT32_FS_init();
 
     color_printk(RED, BLACK, "init task is running,arg:%#018x\n", arg);
 
@@ -310,7 +311,8 @@ unsigned long do_execute(struct pt_regs *regs) {
     flush_tlb();
 
     if(!(current->flags & PF_KTHREAD)){
-        current->addr_limit = 0xffff800000000000;
+        /*  进程的地址空间范围(不能超越)  */
+        current->addr_limit = 0xffff7fffffffffff;
     }
 
     memcpy((void *)0x800000, user_level_function, 1024);
@@ -321,7 +323,7 @@ unsigned long do_execute(struct pt_regs *regs) {
 
 void user_level_function() {
     int errno = 0;
-
+    char string[] = "/cpu.c";
     asm volatile(
         "pushq %%r10        \n\t"
         "pushq %%r11        \n\t"
@@ -337,10 +339,9 @@ void user_level_function() {
         "popq %%r11         \n\t"
         "popq %%r10         \n\t"
         : "=a"(errno)                 //rax存储系统调用号和返回值
-        : "0"(1), "D"(__FUNCTION__) // 使用1号系统调用(sys_printf)
+        : "0"(__NR_open), "D"(string),"S"(0)
         : "memory"
     );
-    //Disk1_FAT32_FS_init();
     //color_printk(RED,BLACK,"user_level_function task called sysenter,errno:%ld\n",errno);
     //print_cr0_info();//无法在用户态执行该函数
 

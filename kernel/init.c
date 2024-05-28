@@ -77,7 +77,6 @@ void init_all(void){
     HPET_init();
     screen_clear();
     sti();
-    Disk1_FAT32_FS_init();
 
     //stop();
 }

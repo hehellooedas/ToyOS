@@ -219,7 +219,7 @@ long keyboard_ioctl(struct index_node* inode,
                     unsigned long arg)
 {
     switch (cmd) {
-        case KEY_CMD_RESET_BUFFER:  //情况键盘缓冲区
+        case KEY_CMD_RESET_BUFFER:  //清空键盘缓冲区
             keyboard_queue->head = keyboard_queue->tail = keyboard_queue->buf;
             keyboard_queue->count = 0;
             memset(keyboard_queue->buf,0,buffer_size);
