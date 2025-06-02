@@ -85,6 +85,7 @@ struct dir_entry* path_walk(char* name,unsigned long flags)
         while(*name && (*name != '/')) name++;
         tmpnamelen = name - tmpname;        //确定目录名或文件名
 
+
         path = (struct dir_entry*)kmalloc(sizeof(struct dir_entry),0);
         memset(path,0,sizeof(struct dir_entry));
 
@@ -94,7 +95,7 @@ struct dir_entry* path_walk(char* name,unsigned long flags)
         path->name_length = tmpnamelen;
 
         if(parent->dir_inode->inode_ops->lookup(parent->dir_inode,path) == NULL){
-            log_to_screen(WARNING,"[warning] can't find file or dir:%s",path->name);
+            //log_to_screen(WARNING,"[warning] can't find file or dir:%s",path->name);
             kfree(path->name);
             kfree(path);
             return NULL;

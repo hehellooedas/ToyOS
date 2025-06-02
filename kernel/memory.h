@@ -90,7 +90,7 @@ struct Global_Memory_Descriptor{
     unsigned long   zones_size;   //zone结构的个数
     unsigned long   zones_length; //zone结构长度
 
-    unsigned long start_code,end_code,end_data,end_brk; //链接器中设定的重要参数
+    unsigned long start_code,end_code,end_data,end_rodata,start_brk; //链接器中设定的重要参数
 
     unsigned long end_of_struct; //内存页管理结构的结尾地址(重要位置)
 };
@@ -286,6 +286,7 @@ void print_memory_manager(struct Global_Memory_Descriptor m)
 
 
 
+
 /*  刷新TLB  */
 static __attribute__((always_inline))
 void flush_tlb(void){
@@ -401,6 +402,6 @@ void* kmalloc(unsigned long size,unsigned long gfp_flages);
 bool kfree(void* address);
 struct Slab* kmalloc_create(unsigned long size);
 void page_check();
-
+void print_Slab_info();
 
 #endif // !__KERNEL_MEMORY_H

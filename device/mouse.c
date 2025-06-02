@@ -104,7 +104,7 @@ void analysis_mousecode(void)
         case 3:     //只有凑足了三个字节才是一个完整的数据包
             mouse.Byte2 = -(char)code;
             mouse_count = 1;
-            color_printk(RED,BLACK,"(M:%#x,X:%3d,Y:%3d)\n",mouse.Byte0,mouse.Byte1,mouse.Byte2);
+            color_printk(RED,BLACK,"(Status:%#x,X offset:%3d,Y offset:%3d)\n",mouse.Byte0,mouse.Byte1,mouse.Byte2);
             break;
         default:
             break;

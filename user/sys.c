@@ -79,7 +79,7 @@ unsigned long sys_open(char* filename,int flags)
     if(dentry != NULL){
         log_to_screen(INFO,"Find the file!");
     }else{
-        log_to_screen(WARNING,"Can't find the file!");
+        //log_to_screen(WARNING,"Can't find the file!");
         return -ENOENT;
     }
     if(dentry->dir_inode->attribute == FS_ATTR_DIR){
@@ -200,7 +200,7 @@ unsigned long sys_lseek(int fd,long offset,int whence)
 unsigned long sys_fork()
 {
     struct pt_regs* regs = (struct pt_regs*)current->thread->rsp0 - 1;
-    return do_fork(regs,0 ,regs->rsp ,0 );
+    return do_fork(regs,0 ,regs->rsp ,0 ,2);
 }
 
 
@@ -208,7 +208,7 @@ unsigned long sys_fork()
 unsigned long sys_vfork()
 {
     struct pt_regs* regs = (struct pt_regs*)current->thread->rsp0 - 1;
-    return do_fork(regs,CLONE_FS | CLONE_VM | CLONE_SIGNAL ,regs->rsp ,0 );
+    return do_fork(regs,CLONE_FS | CLONE_VM | CLONE_SIGNAL ,regs->rsp ,0 ,2);
 }
 
 

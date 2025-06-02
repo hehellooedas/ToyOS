@@ -1,3 +1,4 @@
+#include "lib.h"
 #include <printk.h>
 #include <screen.h>
 #include <init.h>

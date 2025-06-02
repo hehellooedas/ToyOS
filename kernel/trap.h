@@ -63,16 +63,16 @@ static __attribute__((always_inline))
 void print_regs(struct pt_regs* regs)
 {
     /*  打印段寄存器信息  */
-    color_printk(RED,BLACK,"CS:%#lx,DS:%#lx,ES:%#lx,SS:%#lx\n",regs->cs,regs->ds,regs->es,regs->ss);
+    color_printk(RED,BLACK,"CS:%#lx,  DS:%#lx,  ES:%#lx,  SS:%#lx\n",regs->cs,regs->ds,regs->es,regs->ss);
 
     /*  打印特殊通用寄存器信息  */
-    color_printk(RED,BLACK ,"RIP:%#lx,RSP:%lx,RBP:%#lx,rflags:%#lx\n",regs->rip,regs->rsp,regs->rbp,regs->rflags );
+    color_printk(RED,BLACK ,"RIP:%#lx,  RSP:%lx,  RBP:%#lx,  rflags:%#lx\n",regs->rip,regs->rsp,regs->rbp,regs->rflags );
 
     /*  打印通用寄存器信息  */
-    color_printk(RED,BLACK,"RAX:%#lx,RBX:%lx,RCX:%lx,RDX:%lx,RSI:%lx,RDI:%lx\n",regs->rax,regs->rbx,regs->rcx,regs->rdx,regs->rsi,regs->rdi);
+    color_printk(RED,BLACK,"RAX:%#lx,  RBX:%lx,  RCX:%lx,  RDX:%lx,  RSI:%lx,  RDI:%lx\n",regs->rax,regs->rbx,regs->rcx,regs->rdx,regs->rsi,regs->rdi);
 
     /*  打印其他通用寄存器信息  */
-    color_printk(RED,BLACK,"R8:%#lx,R9:%lx,R10:%#lx,R11:%lx,R12:%lx,R13:%#lx,R14:%lx,R15:%lx\n",regs->r8,regs->r9,regs->r10,regs->r11,regs->r12,regs->r13,regs->r14,regs->r15);
+    color_printk(RED,BLACK,"R8:%#lx,  R9:%lx,  R10:%#lx,  R11:%lx,  R12:%lx,  R13:%#lx,  R14:%lx,  R15:%lx\n",regs->r8,regs->r9,regs->r10,regs->r11,regs->r12,regs->r13,regs->r14,regs->r15);
 
 }
 

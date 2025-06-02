@@ -15,7 +15,7 @@
 */
 
 
-#define HPET_cycle     1000                    //时钟周期(ms)
+#define HPET_cycle     500                    //时钟周期(ms)
 #define HPET_frequency (1000 / HPET_cycle)     //时钟频率(HZ)
 
 

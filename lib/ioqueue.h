@@ -3,13 +3,14 @@
 
 
 #include <string.h>
+#include <printk.h>
 
 /*
  * 环形队列缓冲区适合 流式数据处理任务(字符设备)
  * 比如鼠标、键盘、串口,键盘控制器发来的数据需要找一个地方缓存
 */
 
-#define buffer_size     200
+#define buffer_size     40
 
 struct ioqueue{
     unsigned char* head;    //队头指向最后一个放入的数据
@@ -22,15 +23,12 @@ struct ioqueue{
 
 
 /*  初始化循环队列缓冲区  */
-static __attribute__((__always_inline__))
-void ioqueue_init(struct ioqueue *ioqueue)
-{
-    ioqueue->head = ioqueue->tail = ioqueue->buf;
-    ioqueue->count = 0;
-    memset(ioqueue->buf,buffer_size,0);
+static __attribute__((__always_inline__)) void
+ioqueue_init(struct ioqueue *ioqueue) {
+  ioqueue->head = ioqueue->tail = ioqueue->buf;
+  ioqueue->count = 0;
+  memset(ioqueue->buf, buffer_size, 0);
 }
-
-
 
 /*  生产者  */
 static __attribute__((always_inline))
@@ -58,6 +56,12 @@ unsigned char ioqueue_consumer(struct ioqueue* ioqueue)
     ret = *ioqueue->tail;
     ioqueue->tail++;
     ioqueue->count--;
+    // color_printk(GREEN, BLACK, "current keyboard ioqueue:");
+    // for (int i = 0; i < buffer_size; i++)
+    // {
+    //     color_printk(GREEN, BLACK, "%x",ioqueue->buf[i]);
+    // }
+    // color_printk(GREEN, BLACK, "\n");
     return ret;
 }
 

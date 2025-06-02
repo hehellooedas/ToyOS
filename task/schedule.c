@@ -53,11 +53,13 @@ void schedule(void)
                     break;
                 case 2:     //高优先级给的时间片多
                 default:
-                    task_schedule[cpu_id].CPU_exec_task_jiffies = 4 / task_schedule[cpu_id].running_task_count * 3;
+                    task_schedule[cpu_id].CPU_exec_task_jiffies = 4 / task_schedule[cpu_id].running_task_count * current->priority;
                     break;
             }
         }
-        switch_to(current,task );   //进程切换
+        switch_mm(current,task );
+        print_pcb_info();
+        switch_to(current, task); // 进程切换
     }else{
         insert_task_queue(task);
         if(!task_schedule[cpu_id].CPU_exec_task_jiffies){
@@ -68,7 +70,7 @@ void schedule(void)
                     break;
                 case 2:
                 default:
-                    task_schedule[cpu_id].CPU_exec_task_jiffies = 4 / task_schedule[cpu_id].running_task_count * 3;
+                    task_schedule[cpu_id].CPU_exec_task_jiffies = 4 / task_schedule[cpu_id].running_task_count * current->priority;
                     break;
             }
         }

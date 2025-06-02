@@ -19,6 +19,16 @@
 #define stop()  asm volatile("jmp .     \n\t")
 #define pause() asm volatile("pause     \n\t")
 
+/*
+  pause主要用于优化自旋等待循环(spin-wait Loop)，避免CPU在自旋时过度占用资源
+  提示处理器当前处于忙等待，延迟几个时钟周期从而减小功耗
+*/
+
+/*
+  hlt使处理器进入低功耗休眠状态，直到被外部中断唤醒(使用hlt指令前会开启中断)
+  显著降低功耗(节能)，操作系统空闲时使用
+  hlt指令在休眠后需要中断唤醒，响应延迟较高
+*/
 
 
 /*  GNU c内建函数  */

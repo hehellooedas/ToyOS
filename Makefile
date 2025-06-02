@@ -179,7 +179,8 @@ disk: copy $(BUILD_DIR_BOOT)/loader.bin $(BUILD_DIR_BOOT)/boot.bin
 	@cp ./disk/hard.img tools/hd60M.img
 	@mkfs.fat -F32 tools/hd60M.img
 	@sudo mount tools/hd60M.img ./disk
-	@sudo cp kernel/cpu.c ./disk && sync
+	@sudo mkdir ./disk/test1_dir/test2_dir/test3_dir/ -p
+	@sudo cp kernel/cpu.c ./disk/test1_dir/test2_dir/test3_dir/ && sync
 	@sudo umount ./disk
 	@cp ./disk/hard.img tools/boot.img
 	@dd if=$(BUILD_DIR_BOOT)/boot.bin of=tools/boot.img bs=512 count=1 conv=notrunc

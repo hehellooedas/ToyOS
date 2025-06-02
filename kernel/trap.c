@@ -1,3 +1,6 @@
+#include "interrupt.h"
+#include "lib.h"
+#include "printk.h"
 #include <gate.h>
 #include <stddef.h>
 #include <trap.h>
@@ -75,14 +78,15 @@ Error Code
 
 /*  除0异常  */
 void do_divide_error(struct pt_regs* regs, unsigned long error_code) {
-    __builtin_prefetch(regs,0,1);
-    color_printk(RED,BLACK,"do_divide_error,ERROR_CODE:%d,CPU:%d,PID:%d\n",error_code,SMP_cpu_id(),current->pid);
+    color_printk(GREEN, BLACK,
+                 "A division by 0 problem occurred in the program, and a "
+                 "division by 0 exception trap was entered.\n");
+    __builtin_prefetch(regs, 0, 1);
+    color_printk(RED, BLACK, "do_divide_error,ERROR_CODE:%d,CPU:%d,PID:%d\n",
+                 error_code, SMP_cpu_id(), current->pid);
     print_regs(regs);
-    while (1)
-        hlt();
+    stop();
 }
-
-
 
 void do_debug(struct pt_regs* regs, unsigned long error_code) {
     __builtin_prefetch(regs,0,1);
@@ -138,7 +142,7 @@ void do_bounds(struct pt_regs* regs, unsigned long error_code) {
 
 void do_undefined_opcode(struct pt_regs* regs, unsigned long error_code) {
     __builtin_prefetch(regs,0,1);
-    color_printk(RED,BLACK,"do_undefined_opcodeERROR_CODE:%d,CPU:%d,PID:%d\n",error_code,SMP_cpu_id(),current->pid);
+    color_printk(RED,BLACK,"do_undefined_opcode,ERROR_CODE:%d,CPU:%d,PID:%d\n",error_code,SMP_cpu_id(),current->pid);
     print_regs(regs);
     while (1)
         hlt();

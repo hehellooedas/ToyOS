@@ -15,7 +15,8 @@
 #include <log.h>
 #include <timer.h>
 #include <sys.h>
-
+#include <VFS.h>
+#include <disk.h>
 
 
 extern char _data;
@@ -24,8 +25,7 @@ extern char _erodata;
 extern char _stack_start;
 
 
-static long global_pid;
-
+static long global_pid = 0;
 
 struct tss_struct init_tss[NR_CPUS] = {[0 ... (NR_CPUS - 1)] = INIT_TSS};
 
@@ -50,7 +50,7 @@ struct thread_struct init_thread = {
 
 
 
-
+unsigned long new_process(unsigned long arg);
 
 void task_init(void) {
     struct task_struct *p = NULL;
@@ -59,10 +59,14 @@ void task_init(void) {
     init_mm.end_code = memory_management_struct.end_code;
     init_mm.start_data = (unsigned long)&_data;
     init_mm.end_data = memory_management_struct.end_data;
+
     init_mm.start_rodata = (unsigned long)&_rodata;
-    init_mm.end_rodata = (unsigned long)&_erodata;
-    init_mm.start_brk = 0;
-    init_mm.end_brk = memory_management_struct.end_brk;
+    init_mm.end_rodata = memory_management_struct.end_rodata;
+
+    init_mm.start_bss = (unsigned long)&_bss;
+    init_mm.end_bss = (unsigned long)&_ebss;
+    init_mm.start_brk = memory_management_struct.start_brk;
+    init_mm.end_brk = current->addr_limit;
     init_mm.start_stack = (unsigned long)&_stack_start;
 
     if(SMP_cpu_id() == 0){
@@ -83,9 +87,13 @@ void task_init(void) {
     //color_printk(YELLOW,BLACK ,"currect->thread->rsp0=%#lx\n",current->thread->rsp0 );
     color_printk(YELLOW,BLACK ,"current=%#lx\n",current );
     kernel_thread(init, 10,
-                CLONE_FS | CLONE_SIGNAL); // 创建init进程(非内核线程)
+                CLONE_FS | CLONE_SIGNAL,5); // 创建init进程(非内核线程)
+
 
 }
+
+
+
 
 
 
@@ -94,7 +102,7 @@ unsigned long init(unsigned long arg) {
     struct pt_regs *regs;
     Disk1_FAT32_FS_init();
 
-    color_printk(RED, BLACK, "init task is running,arg:%#018x\n", arg);
+    //color_printk(RED, BLACK, "init task is running,arg:%#018x\n", arg);
 
 
     current->thread->rip = (unsigned long)ret_system_call;
@@ -151,7 +159,7 @@ asm(
 
 int kernel_thread(unsigned long (*fn)(unsigned long),
                   unsigned long arg,
-                  unsigned long flags
+                  unsigned long flags,long priority
 ){
     struct pt_regs regs;
     memset(&regs, 0, sizeof(regs)); //没赋值的变量都为0
@@ -165,7 +173,7 @@ int kernel_thread(unsigned long (*fn)(unsigned long),
     regs.rflags = (1 << 9);
     regs.rip = (unsigned long)kernel_thread_func;
 
-    return do_fork(&regs, flags, 0, 0);
+    return do_fork(&regs, flags, 0, 0,priority);
 }
 
 
@@ -174,14 +182,15 @@ unsigned long do_fork(
     struct pt_regs *regs,
     unsigned long clone_flags,
     unsigned long stack_start,
-    unsigned long stack_size
+    unsigned long stack_size,long priority
 ){
+    int retval = 0;
     struct task_struct *task = NULL;
+    
     struct thread_struct *thread = NULL;
     struct Page *p = NULL;
 
-    color_printk(WHITE, BLACK, "alloc_pages,bitmap:%#018x\n",
-                *memory_management_struct.bits_map);
+    //color_printk(WHITE, BLACK, "alloc_pages,bitmap:%#018x\n",*memory_management_struct.bits_map);
 
     p = alloc_pages(ZONE_NORMAL, 1, PG_PTable_Maped | PG_Kernel);
 
@@ -199,9 +208,9 @@ unsigned long do_fork(
     list_init(&task->list);
 
 
-    task->pid++;
+    task->pid = global_pid++;
     task->state = TASK_UNINTERRUPTIBLE;
-    task->priority = 2;
+    task->priority = priority;
     task->preempt_count = 0;
     task->cpu_id = SMP_cpu_id();
 
@@ -225,7 +234,7 @@ unsigned long do_fork(
 
     insert_task_queue(task);    //把创建好的新进程pcb插入到当前核心对应的调度队列中
 
-    return 0;
+    return retval;
 }
 
 
@@ -281,41 +290,45 @@ unsigned long do_exit(unsigned long exit_code) {
 
 
 unsigned long do_execute(struct pt_regs *regs) {
-    unsigned long addr = 0x800000;
-    unsigned long* tmp;
-    unsigned long* virtual = NULL;
-    struct Page* p = NULL;
+  unsigned long addr = 0x2000000;
+  unsigned long *tmp;
+  unsigned long *virtual = NULL;
+  struct Page *p = NULL;
 
+  regs->r10 = 0x2000000; // rip
+  regs->r11 = 0x2200000; // rsp
+  regs->rax = 1;
+  regs->ds = 0;
+  regs->es = 0;
+  //color_printk(RED, BLACK, "do_execute task is running\n");
 
-    regs->r10 = 0x800000; // rip
-    regs->r11 = 0xa00000; // rsp
-    regs->rax = 1;
-    regs->ds = 0;
-    regs->es = 0;
-    color_printk(RED, BLACK, "do_execute task is running\n");
+  Global_CR3 = Get_gdt();
+  tmp = Phy_To_Virt((unsigned long *)((unsigned long)Global_CR3 & (~0xfffUL)) +
+                    ((addr >> PAGE_GDT_SHIFT) & 0x1ff));
+  virtual = kmalloc(PAGE_4K_SIZE, 0);
+  set_pml4t(tmp, mk_pml4t(Virt_To_Phy(virtual), PAGE_USER_GDT));
+  // set_pml4t(tmp, mk_pml4t(Virt_To_Phy(virtual), PAGE_KERNEL_GDT));
 
-    Global_CR3 = Get_gdt();
-    tmp = Phy_To_Virt((unsigned long*)((unsigned long)Global_CR3 & (~0xfffUL)) + ((addr >> PAGE_GDT_SHIFT) & 0x1ff));
-    virtual = kmalloc(PAGE_4K_SIZE,0);
-    set_pml4t(tmp,mk_pml4t(Virt_To_Phy(virtual),PAGE_USER_GDT ) );
+  tmp = Phy_To_Virt((unsigned long *)(*tmp & (~0xfffUL)) +
+                    ((addr >> PAGE_1G_SHIFT) & 0x1ff));
+  virtual = kmalloc(PAGE_4K_SIZE, 0);
+  set_pdpt(tmp, mk_pdpt(Virt_To_Phy(virtual), PAGE_USER_Dir));
+  // set_pdpt(tmp, mk_pdpt(Virt_To_Phy(virtual), PAGE_KERNEL_Dir));
 
-    tmp = Phy_To_Virt((unsigned long*)(*tmp & (~0xfffUL)) + ((addr >> PAGE_1G_SHIFT) & 0x1ff));
-    virtual = kmalloc(PAGE_4K_SIZE,0);
-    set_pdpt(tmp,mk_pdpt(Virt_To_Phy(virtual),PAGE_USER_Dir ) );
+  tmp = Phy_To_Virt((unsigned long *)(*tmp & (~0xfffUL)) +
+                    ((addr >> PAGE_2M_SHIFT) & 0x1ff));
+  p = alloc_pages(ZONE_NORMAL, 1, PG_PTable_Maped);
+  set_pdt(tmp, mk_pdt(p->PHY_address, PAGE_USER_Page));
+  // set_pdt(tmp, mk_pdt(p->PHY_address, PAGE_KERNEL_Page));
 
+  flush_tlb();
 
-    tmp = Phy_To_Virt((unsigned long*)(*tmp & (~0xfffUL)) + ((addr >> PAGE_2M_SHIFT) & 0x1ff));
-    p = alloc_pages(ZONE_NORMAL,1,PG_PTable_Maped);
-    set_pdt(tmp,mk_pdt(p->PHY_address,PAGE_USER_Page ) );
+  if (!(current->flags & PF_KTHREAD)) {
+    /*  进程的地址空间范围(不能超越)  */
+    current->addr_limit = 0xffff7fffffffffff;
+  }
 
-    flush_tlb();
-
-    if(!(current->flags & PF_KTHREAD)){
-        /*  进程的地址空间范围(不能超越)  */
-        current->addr_limit = 0xffff7fffffffffff;
-    }
-
-    memcpy((void *)0x800000, user_level_function, 1024);
+    memcpy((void *)0x2000000, user_level_function, 1024);
     return 0;
 }
 
@@ -323,7 +336,8 @@ unsigned long do_execute(struct pt_regs *regs) {
 
 void user_level_function() {
     int errno = 0;
-    char string[] = "/cpu.c";
+    stop();
+    char string[] = "Test system call";
     asm volatile(
         "pushq %%r10        \n\t"
         "pushq %%r11        \n\t"
@@ -338,12 +352,11 @@ void user_level_function() {
 
         "popq %%r11         \n\t"
         "popq %%r10         \n\t"
-        : "=a"(errno)                 //rax存储系统调用号和返回值
-        : "0"(__NR_open), "D"(string),"S"(0)
-        : "memory"
-    );
-    //color_printk(RED,BLACK,"user_level_function task called sysenter,errno:%ld\n",errno);
-    //print_cr0_info();//无法在用户态执行该函数
+        : "=a"(errno) // rax存储系统调用号和返回值
+        : "0"(__NR_putstring), "D"(string)
+        : "memory");
+    // color_printk(RED,BLACK,"user_level_function task called sysenter,errno:%ld\n",errno);
+    // print_cr0_info();//无法在用户态执行该函数
 
     while (1);
 }
@@ -365,7 +378,7 @@ struct task_struct* get_task(long pid){
 
 
 
-void wokeup_process(struct task_struct* task){
+void wakeup_process(struct task_struct* task){
     task->state = TASK_RUNNING;
     insert_task_queue(task);
     current->flags |= NEED_SCHEDULE;
@@ -383,13 +396,61 @@ unsigned long copy_flags(unsigned long clone_flags,struct task_struct* task){
 
 
 unsigned long copy_files(unsigned long clone_flags,struct task_struct* task){
-    return 0;
+    int error = 0;
+    if(clone_flags & CLONE_FS){
+        goto out;
+    }
+    for (int i = 0; i < TASK_FILE_MAX;i++){
+        if(current->file_struct[i] != NULL){
+            task->file_struct[i] = (struct file *)kmalloc(sizeof(struct file), 0);
+            memcpy(task->file_struct[i], current->file_struct[i], sizeof(struct file));
+        }
+    }
+    out:
+        return error;
+}
+
+
+
+void exit_files(struct task_struct* task){
+    if(task->flags & PF_VFORK){
+        ;
+    }else{
+        for (int i = 0; i < TASK_FILE_MAX;i++){
+            kfree(task->file_struct[i]);
+        }
+    }
+    memset(task->file_struct, 0, sizeof(struct file *) * TASK_FILE_MAX);
 }
 
 
 
 unsigned long copy_mm(unsigned long clone_flags,struct task_struct* task){
-    return 0;
+    int error = 0;
+    struct mm_struct *newmm = NULL;
+    unsigned long code_start_address = 0x800000;
+    unsigned long stack_start_address = 0xa00000;
+    unsigned long *tmp;
+    unsigned long* virtual = NULL;
+    struct Page *p = NULL;
+
+    // 子进程共享父进程的地址空间 vfork
+    if (clone_flags & CLONE_VM){
+        newmm = current->mm;    //此时不需要新建一个mm,直接用父进程的就好了
+        goto out;
+    }
+    newmm = (struct mm_struct *)kmalloc(sizeof(struct mm_struct),0);
+
+
+out:
+    task->mm = newmm;
+    return error;
+}
+
+
+
+void exit_mm(struct task_struct* task){
+
 }
 
 

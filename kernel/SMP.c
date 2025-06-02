@@ -30,11 +30,11 @@ void SMP_init(void){
         if(((c >> 8) & 0xff) == 0){
             break;
         }
-        color_printk(WHITE,BLACK,"Local APIC ID Package_../Core_2/SMT_1,type(%#lx)Width:%#lx,num of logical processor(%#lx)\n",c >> 8 & 0xff,a & 0x1f,b & 0xff);
+        //color_printk(WHITE,BLACK,"Local APIC ID Package_../Core_2/SMT_1,type(%#lx)Width:%#lx,num of logical processor(%#lx)\n",c >> 8 & 0xff,a & 0x1f,b & 0xff);
     }
-    color_printk(WHITE,BLACK ,"x2APIC ID level:%#lx\tx2APIC ID the current logical processor:%#lx\n",c & 0xff,d );
+   // color_printk(WHITE,BLACK ,"x2APIC ID level:%#lx\tx2APIC ID the current logical processor:%#lx\n",c & 0xff,d );
 
-    color_printk(WHITE,BLACK ,"SMP copy byte:%#lx\n",(unsigned long)&_APU_boot_end - (unsigned long)&_APU_boot_start );
+    //color_printk(WHITE,BLACK ,"SMP copy byte:%#lx\n",(unsigned long)&_APU_boot_end - (unsigned long)&_APU_boot_start );
 
     spin_init(&SMP_lock);
 
@@ -111,7 +111,7 @@ void SMP_init(void){
 /*  由AP核在执行(AP核心进入长模式后直接跳过来)  */
 void Start_SMP(void){
     unsigned int x,y;
-    color_printk(YELLOW,BLACK ,"APU starting......\n" );
+    color_printk(YELLOW,BLACK ,"Application Processor starting........\n" );
 
     unsigned long msr = rdmsr(IA32_APIC_BASE_MSR);
     msr |= 0b110000000000;  //开启x2APIC模式
@@ -126,7 +126,7 @@ void Start_SMP(void){
     unsigned long APIC_ID = rdmsr(IA32_APIC_ID_MSR );
     //color_printk(GREEN,BLACK ,"APIC ID:%#lx\n",APIC_ID );
 
-    //color_printk(GREEN,BLACK ,"CPU%d is running!\n",global_i - 1 );
+    color_printk(GREEN,BLACK ,"CPU%d is running!\n",global_i - 1 );
 
     interrupt_init();
 

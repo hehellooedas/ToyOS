@@ -1,7 +1,7 @@
 #ifndef __USER_SYS_H
 #define __USER_SYS_H
 
-
+#define __NR_default        0
 #define __NR_putstring      1
 #define __NR_open           2
 #define __NR_close          3

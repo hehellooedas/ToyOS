@@ -61,7 +61,7 @@ Label_Start:
     mov ax,0x1301           ;标准输出信息(自动移动光标)
     mov bx,0x000f           ;白色高亮
     mov dx,0x0000           ;打印在第一行
-    mov cx,10               ;字符串的长度
+    mov cx,8               ;字符串的长度
 
     push ax     ;注意寄存器的信息保护
     mov ax,ds
@@ -69,7 +69,7 @@ Label_Start:
     pop ax
 
     mov bp,StartBootMessage ;要打印的字符串的地址([ES:BP])
-    int 0x10
+    ;int 0x10
 
 
     
@@ -191,7 +191,7 @@ Odd:                dw 0
 Count:              db 0
 
 ;显示信息
-StartBootMessage:  db 'Start Boot'
+StartBootMessage:  db 'MBR Boot'
 NoLoaderMessage:   db 'ERROR:NO LOADER FOUND!'
 LoaderFileName:    db 'LOADER  BIN',0
 ;文件名8字节(不足8字节的拿空格填充),拓展名3字节

@@ -1,3 +1,4 @@
+#include "screen.h"
 #include <list.h>
 #include <iso646.h>
 #include <memory.h>
@@ -30,27 +31,28 @@ unsigned int ZONE_UNMAPED_INDEX = 0;
 
 
 void memory_init(void){
-    unsigned long TotalMem = 0;
-    struct E820* p = NULL;
-    //color_printk(BLUE, BLACK, "Display Physics Address Map,Type \
+  unsigned long TotalMem = 0;
+  struct E820 *p = NULL;
+  //color_printk(BLUE, BLACK, "Display Physics Address Map,Type \
     (1:RAM,2:ROM or Reserved,3:ACPI Reclaim Memory,4:ACPI VNS Memory,Others:Undefine)\n");
 
-    p = (struct E820*)(0xffff800000007e00); //ARDS缓存地址
+  p = (struct E820 *)(0xffff800000007e00); // ARDS缓存地址
 
-    for(int i=0;i<32;i++){  //遍历ARDS寻找所有可用内存
-        color_printk(ORANGE, BLACK,\
-        "Address:%#lx\tLength:%#lx\tType:%#lx\n",p->address,p->length,p->type);
-        if(p->type == 1){  //type为1才是有效的
-            TotalMem += p->length;
-        }
-        memory_management_struct.e820[i].address = p->address;
-        memory_management_struct.e820[i].length = p->length;
-        memory_management_struct.e820[i].type = p->type;
-        memory_management_struct.e820_length = i;
-
-        p++; //指向下一个ARDS结构(如果下一个结构出现以下条件则直接退出)
-        if(p->type > 4 || p->length == 0 || p->type < 1) break;
+  for (int i = 0; i < 32; i++) { // 遍历ARDS寻找所有可用内存
+    color_printk(ORANGE, BLACK, "Address:%#lx\tLength:%#lx\tType:%#lx\n",
+                 p->address, p->length, p->type);
+    if (p->type == 1) { // type为1才是有效的
+      TotalMem += p->length;
     }
+    memory_management_struct.e820[i].address = p->address;
+    memory_management_struct.e820[i].length = p->length;
+    memory_management_struct.e820[i].type = p->type;
+    memory_management_struct.e820_length = i;
+
+    p++; // 指向下一个ARDS结构(如果下一个结构出现以下条件则直接退出)
+    if (p->type > 4 || p->length == 0 || p->type < 1)
+      break;
+  }
     color_printk(ORANGE,BLACK,"OS can used Total Ram:%#lx\n",TotalMem);
     TotalMem = 0;
     for(int i=0;i<=memory_management_struct.e820_length;i++){
@@ -72,18 +74,17 @@ void memory_init(void){
     memory_management_struct.start_code = (unsigned long)&_text;
     memory_management_struct.end_code = (unsigned long)&_etext;
     memory_management_struct.end_data = (unsigned long)&_edata;
-    memory_management_struct.end_brk = (unsigned long)&_end;
+    memory_management_struct.end_rodata = (unsigned long)&_erodata;
+    memory_management_struct.start_brk = (unsigned long)&_end;
 
-    
-
-    TotalMem = memory_management_struct.e820[memory_management_struct.e820_length-2].address + \
+        TotalMem = memory_management_struct.e820[memory_management_struct.e820_length-2].address + \
     memory_management_struct.e820[memory_management_struct.e820_length-2].length;  //总共能使用的内存大小
     color_printk(ORANGE,BLACK,"TotalMem = %#lx\n",TotalMem);  //象征性打印一下
 
     /*--------------------------------------------------------------------*/
 
     /*  初始化bitmap(跟在内核程序后面)  */
-    memory_management_struct.bits_map = (unsigned long*)((memory_management_struct.end_brk + PAGE_4K_SIZE - 1) & PAGE_4K_MASK);
+    memory_management_struct.bits_map = (unsigned long*)((memory_management_struct.start_brk + PAGE_4K_SIZE - 1) & PAGE_4K_MASK);
     memory_management_struct.bits_size = TotalMem >> PAGE_2M_SHIFT;  //总共有几页就需要几个bit
     color_printk(RED,BLACK,"TotalMem = %x,size = %x\n",TotalMem,TotalMem >> PAGE_2M_SHIFT);
     memory_management_struct.bits_length = (((unsigned long)(TotalMem >> PAGE_2M_SHIFT) + sizeof(long) * 8 - 1) / 8) & (~(sizeof(long) - 1));  //需要的位数要用多大的空间来存储
@@ -202,10 +203,27 @@ void memory_init(void){
     flush_tlb();
 
     spin_init(&Page_lock);
+    // screen_clear();
+    // struct Zone *zone = memory_management_struct.zones_struct;
+    // color_printk(GREEN, BLACK, "Zone has free page number:%d\n",zone->page_free_count);
+    // struct Page *page1 = alloc_pages(ZONE_NORMAL, 1, PG_PTable_Maped | PG_Kernel);
+    // color_printk(GREEN, BLACK, "page1's address:%x\n",page1->PHY_address);
+    // color_printk(GREEN, BLACK, "page1's attribute:%x\n",page1->attribute);
+
+    // struct Page *page2 =
+    //     alloc_pages(ZONE_NORMAL, 1, PG_PTable_Maped | PG_Kernel);
+    // color_printk(GREEN, BLACK, "page2's address:%x\n", page2->PHY_address);
+    // color_printk(GREEN, BLACK, "page2's attribute:%x\n", page2->attribute);
+    // color_printk(BLUE, BLACK, "After malloc pages\n");
+
+    // color_printk(GREEN, BLACK, "Zone has free page number:%d\n",zone->page_free_count);
+    // free_pages(page1,1);
+    // free_pages(page2, 1);
+    // color_printk(BLUE, BLACK, "After free pages!\n");
+    // color_printk(GREEN, BLACK, "Zone has free page number:%d\n",
+    //              zone->page_free_count);
+    // stop();
 }
-
-
-
 
 /*  页表初始化函数  */
 void pagetable_init(void)
@@ -433,9 +451,26 @@ bool slab_init(void)
 
     color_printk(ORANGE,BLACK ,"3.memory_management_struct.bitmap:%lx\tzone_struct->page_using_count:%ld\tzone_struct->page_free_count:%ld\n",*memory_management_struct.bits_map,memory_management_struct.zones_struct->page_using_count,memory_management_struct.zones_struct->page_free_count );
 
-    color_printk(ORANGE,BLACK ,"start_code:%lx,end_code:%lx,end_data:%lx,end_brk:%lx,end_of_struct:%lx\n",memory_management_struct.start_code,memory_management_struct.end_code,memory_management_struct.end_data,memory_management_struct.end_brk,memory_management_struct.end_of_struct );
+    color_printk(ORANGE,BLACK ,"start_code:%lx,end_code:%lx,end_data:%lx,start_brk:%lx,end_of_struct:%lx\n",memory_management_struct.start_code,memory_management_struct.end_code,memory_management_struct.end_data,memory_management_struct.start_brk,memory_management_struct.end_of_struct );
 
     spin_init(&Slab_lock);
+
+    // screen_clear();
+    // print_Slab_info();
+
+    // screen_clear();
+    // char *var_1 = NULL;
+    // var_1 = kmalloc(100,0);
+    // char* var_2 = kmalloc(1000, 0);
+    // char *var_3 = kmalloc(1 * 1024 * 1024, 0);
+    // print_Slab_info();
+
+    // screen_clear();
+    // kfree(var_1);
+    // kfree(var_2);
+    // kfree(var_3);
+    // print_Slab_info();
+    // stop();
     return true;
 }
 
@@ -860,5 +895,13 @@ bool slab_free(struct Slab_cache* slab_cache,void* address,unsigned long arg)
     return false;
 }
 
-
-
+/*  输出Slab内存管理的信息  */
+void print_Slab_info() {
+  for (int i = 0; i < 16; i++) {
+    color_printk(GREEN, BLACK, "%dBytes Slab information:\n",
+                 kmalloc_cache_size[i].size);
+    color_printk(GREEN, BLACK, "free memory blacks:%d,page address:%x",
+                 kmalloc_cache_size[i].total_free,kmalloc_cache_size[i].cache_pool->Vaddress);
+    color_printk(GREEN, BLACK, "\n\n");
+  }
+}

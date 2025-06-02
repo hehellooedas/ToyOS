@@ -12,7 +12,7 @@ SectorNo:                    dw      0
 Odd:                         dw      0
 DisplayPosition:             dd      0
 OffsetOfKernelFileCount:     dd      OffsetOfKernelFile
-StartLoaderMessage:          db      "Start Loader"
+StartLoaderMessage:          db      "OBR Load OS's Loader success!"
 KernelFileName:              db      'KERNEL  BIN',0
 NoKernelMessage:             db      'ERROR:NO Kernel FOUND!'
 StartGetMemStructMessage:    db      'Start Get Memory Struct.'
@@ -77,7 +77,7 @@ Label_Start:
     mov ax,0x1301
     mov bx,0x000f
     mov dx,0x0200
-    mov cx,12
+    mov cx,29
 
     push ax
     mov ax,ds
@@ -86,6 +86,7 @@ Label_Start:
 
     mov bp,StartLoaderMessage ;es:bp为字符串的地址
     int 0x10
+
 
 
 ;------打开A20地址线------

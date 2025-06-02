@@ -70,20 +70,25 @@ void HPET_handler(unsigned long nr,unsigned long parameter,struct pt_regs* regs)
 {
 
     jiffies++;
+    color_printk(RED,BLACK,"time interrupt  ");
+    // color_printk(GREEN, BLACK,
+    //              "Now a clock interrupt occurs, and the value of the current "
+    //              "time slice variable is %d\n",jiffies);
 
     /*  把时钟中断发送给其他核心  */
 
-    struct INT_CMD_REG icr_entry;
-    memset(&icr_entry,0,sizeof(struct INT_CMD_REG));    //没赋值的参数就是0
-    icr_entry.vector = 0xc8;
-    icr_entry.dest_shorthand = ICR_SHORTHAND_ALL_NOT_SELF;
-    icr_entry.trigger_mode = ICR_TRIGGER_MODE_EDGE;
-    icr_entry.dest_mode = ICR_DEST_MODE_PHY;
-    icr_entry.deliver_mode = ICR_DELIVER_MODE_FIXED;
-    wrmsr(0x830,*(unsigned long*)&icr_entry );
+    // struct INT_CMD_REG icr_entry;
+    // memset(&icr_entry,0,sizeof(struct INT_CMD_REG)); //没赋值的参数就是0
+    // icr_entry.vector = 0xc8;
+    // icr_entry.dest_shorthand = ICR_SHORTHAND_ALL_NOT_SELF;
+    // icr_entry.trigger_mode = ICR_TRIGGER_MODE_EDGE;
+    // icr_entry.dest_mode = ICR_DEST_MODE_PHY;
+    // icr_entry.deliver_mode = ICR_DELIVER_MODE_FIXED;
+    // wrmsr(0x830,*(unsigned long*)&icr_entry );
 
-
-    if((container_of(get_List_next(&timer_list_head.list),struct timer_list ,list )->expire_jiffies <= jiffies))
+    if ((container_of(get_List_next(&timer_list_head.list),
+                      struct timer_list, list)
+             ->expire_jiffies <= jiffies))
         set_softirq_status(TIMER_STRQ);
     switch (current->priority) {
         case 0:
@@ -93,7 +98,7 @@ void HPET_handler(unsigned long nr,unsigned long parameter,struct pt_regs* regs)
             break;
         case 2:
         default:
-            task_schedule[SMP_cpu_id()].CPU_exec_task_jiffies -= 2;
+            task_schedule[SMP_cpu_id()].CPU_exec_task_jiffies -= current->priority;
             current->virtual_runtime += 2;
             break;
     }

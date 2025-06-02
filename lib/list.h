@@ -83,7 +83,9 @@ struct List *get_List_next(struct List *entry)
 {
   if (entry->next == NULL) 
     return NULL;
-  else return entry->next;
+  else {
+    return entry->next;
+  }
 }
 
 

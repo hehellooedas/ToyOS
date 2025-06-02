@@ -25,7 +25,7 @@
 
 
 
-#define PF_KTHREAD    (1UL << 0)
+#define PF_KTHREAD    (1UL << 0)  //内核线程标记
 #define NEED_SCHEDULE (1UL << 1) // 标记当前进程是否可被调度
 #define PF_VFORK      (1UL << 2) // 在调用exec类函数时,明确是否要为进程再开辟独立的资源空间
 
@@ -95,7 +95,6 @@ struct task_struct {
     struct task_struct *next;
     struct task_struct *parent;
 };
-
 
 
 
@@ -210,9 +209,9 @@ extern struct tss_struct init_tss[NR_CPUS];
 void task_init(void);
 unsigned long init(unsigned long arg);
 int kernel_thread(unsigned long (*fn)(unsigned long), unsigned long arg,
-                  unsigned long flags);
+                  unsigned long flags,long priority);
 unsigned long do_fork(struct pt_regs *regs, unsigned long clone_flags,
-                      unsigned long stack_start, unsigned long stack_size);
+                      unsigned long stack_start, unsigned long stack_size,long priority);
 unsigned long do_exit(unsigned long code);
 
 extern void ret_from_intr(void);
@@ -223,7 +222,7 @@ unsigned long system_call_function(struct pt_regs *regs);
 unsigned long do_execute(struct pt_regs *regs);
 void user_level_function();
 struct task_struct *get_task(long pid);
-void wokeup_process(struct task_struct *task);
+void wakeup_process(struct task_struct *task);
 unsigned long copy_flags(unsigned long clone_flags, struct task_struct *task);
 
 
@@ -246,6 +245,42 @@ static __attribute__((always_inline)) struct task_struct *get_current() {
   "andq $-32768,%rbx  \n\t"
 
 
+
+static __attribute__((always_inline)) void print_pcb_info() {
+  struct task_struct *task = current;   //获取pcb
+  color_printk(GREEN, BLACK, "print current pcb information:\n");
+
+  /*  当前状态  */
+  switch(task->state){
+    case TASK_RUNNING:
+        color_printk(GREEN, BLACK, "process state:running\n");
+      break;
+    case TASK_UNINTERRUPTIBLE:
+        color_printk(GREEN, BLACK, "process state:uninterruptible\n");
+        break;
+    case TASK_STOPPED:
+      color_printk(GREEN, BLACK, "process state:stopped\n");
+      break;
+    case TASK_INTERRUPTIBLE:
+      color_printk(GREEN, BLACK, "process state:interruptible\n");
+      break;
+    case TASK_ZOMBIE:
+      color_printk(GREEN, BLACK, "process state:zombie\n");
+      break;
+  }
+
+  /*  所属  */
+  switch(task->flags){
+    case PF_KTHREAD:
+        color_printk(GREEN, BLACK, "process flags:kernel thread\n");
+        break;
+    }
+
+    color_printk(GREEN, BLACK, "pid:%d\t", task->pid);
+    color_printk(GREEN, BLACK, "priority:%d\t",task->priority);
+    color_printk(GREEN, BLACK, "virtual_runtime::%d\t", task->virtual_runtime);
+    color_printk(GREEN, BLACK, "\n\n");
+}
 
 /*
 prev in rdi and next in rsi
@@ -276,7 +311,7 @@ switch_to为进程切换的前半段
 
 static __attribute__((always_inline))
 void switch_mm(struct task_struct *prev,struct task_struct *next) {
-    asm volatile("movq %0,cr3    \n\t" : : "r"(next->mm->pgd) : "memory");
+    asm volatile("movq %0,%%cr3    \n\t" : : "r"(next->mm->pgd) : "memory");
 }
 
 #endif // !__Task_Task_H
