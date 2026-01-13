@@ -1,3 +1,4 @@
+#include "stdio.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <memory.h>
@@ -133,7 +134,7 @@ unsigned long init(unsigned long arg) {
 
     current->thread->fs = USER_DS;
     current->thread->gs = USER_DS;
-    current->flags &= ~PF_KTHREAD;
+    current->flags &= ~PF_KTHREAD;  //init进程放弃内核线程的身份,将自己转换为用户态进程
 
     asm volatile(
         "movq %[stack],%%rsp    \n\t"
@@ -181,6 +182,8 @@ asm(
 
 
 
+
+/*  用于创建内核线程  */
 int kernel_thread(unsigned long (*fn)(unsigned long),
                   unsigned long arg,
                   unsigned long flags,long priority
@@ -190,6 +193,7 @@ int kernel_thread(unsigned long (*fn)(unsigned long),
     regs.rbx = (unsigned long)fn;  // 记录init重要的执行函数地址信息
     regs.rdx = (unsigned long)arg; // 记录函数的参数信息
 
+    //由于创建的是内核线程,设置所有段寄存器的值为ring0段
     regs.ds = KERNEL_DS;
     regs.es = KERNEL_DS;
     regs.cs = KERNEL_CS;
@@ -202,6 +206,7 @@ int kernel_thread(unsigned long (*fn)(unsigned long),
 
 
 
+/*  用于创建和初始化PCB  */
 unsigned long do_fork(
     struct pt_regs *regs,
     unsigned long clone_flags,
@@ -344,7 +349,11 @@ unsigned long do_exit(unsigned long exit_code) {
 
 
 
-
+/*
+    从do_execve函数返回后进入ret_system_call
+    pt_regs中所有值恢复到寄存器
+    原来的进程current会永远消失,被用户态进程取而代之
+*/
 unsigned long do_execve(
     struct pt_regs *regs,
     char* name
@@ -374,21 +383,29 @@ unsigned long do_execve(
         current->mm->pgd = (pml4t_t*)Virt_To_Phy(kmalloc(PAGE_4K_SIZE,0));
         color_printk(RED,BLACK,"load_binary_file malloc new pgd:%#018x\n",current->mm->pgd);
         memset(Phy_To_Virt(current->mm->pgd),0,PAGE_4K_SIZE/2); //前256项
-        memcpy(Phy_To_Virt(current->mm->pgd)+256,Phy_To_Virt(init_task[SMP_cpu_id()]->mm->pgd),PAGE_4K_SIZE/2);
+        memcpy(Phy_To_Virt(current->mm->pgd)+256,Phy_To_Virt(init_task[SMP_cpu_id()]->mm->pgd)+256,PAGE_4K_SIZE/2);
     }
 
 
 
     tmp = Phy_To_Virt((unsigned long *)((unsigned long)current->mm->pgd & (~0xfffUL)) +
                         ((code_start_address >> PAGE_GDT_SHIFT) & 0x1ff));
-    virtual = kmalloc(PAGE_4K_SIZE, 0);
-    set_pml4t(tmp, mk_pml4t(Virt_To_Phy(virtual), PAGE_USER_GDT));
+    if(*tmp == NULL){
+        virtual = kmalloc(PAGE_4K_SIZE, 0);
+        memset(virtual,0,PAGE_4K_SIZE);
+        set_pml4t(tmp, mk_pml4t(Virt_To_Phy(virtual), PAGE_USER_GDT));
+    }
+
     // set_pml4t(tmp, mk_pml4t(Virt_To_Phy(virtual), PAGE_KERNEL_GDT));
 
     tmp = Phy_To_Virt((unsigned long *)(*tmp & (~0xfffUL)) +
                         ((code_start_address >> PAGE_1G_SHIFT) & 0x1ff));
-    virtual = kmalloc(PAGE_4K_SIZE, 0);
-    set_pdpt(tmp, mk_pdpt(Virt_To_Phy(virtual), PAGE_USER_Dir));
+    if(*tmp == NULL){
+        virtual = kmalloc(PAGE_4K_SIZE, 0);
+        memset(virtual,0,PAGE_4K_SIZE);
+        set_pdpt(tmp, mk_pdpt(Virt_To_Phy(virtual), PAGE_USER_Dir));
+    }
+
     // set_pdpt(tmp, mk_pdpt(Virt_To_Phy(virtual), PAGE_KERNEL_Dir));
 
     tmp = Phy_To_Virt((unsigned long *)(*tmp & (~0xfffUL)) +
@@ -399,7 +416,12 @@ unsigned long do_execve(
     }
 
 
-    flush_tlb();
+    asm volatile (
+        "movq %0,%%cr3   \n\t"
+        :
+        :"r"(current->mm->pgd)
+        :"memory"
+    );
 
     if (!(current->flags & PF_KTHREAD)) {
         /*  
@@ -423,11 +445,11 @@ unsigned long do_execve(
     exit_files(current);
     current->flags &= -PF_VFORK;
 
-    filep = open_exec_file(name);
+    //filep = open_exec_file(name);
 
     /*  加载文件内容到内存中  */
-    memset((void*)0x800000,0,PAGE_2M_SIZE);
-    retval = filep->f_ops->read(filep,(void*)0x800000,filep->dentry->dir_inode->file_size,&pos);
+    memcpy((void*)0x800000,user_level_function,1024);
+    //retval = filep->f_ops->read(filep,(void*)0x800000,filep->dentry->dir_inode->file_size,&pos);
     return retval;
 }
 
@@ -435,7 +457,7 @@ unsigned long do_execve(
 
 void user_level_function() {
     int errno = 0;
-    stop();
+
     char string[] = "Test system call";
     asm volatile(
         "pushq %%r10        \n\t"
@@ -456,7 +478,6 @@ void user_level_function() {
         : "memory");
     // color_printk(RED,BLACK,"user_level_function task called sysenter,errno:%ld\n",errno);
     // print_cr0_info();//无法在用户态执行该函数
-
     while (1);
 }
 

@@ -306,7 +306,6 @@ switch_to为进程切换的前半段
 #define switch_to(prev, next)                                                                                                   \
   do {                                                                                                                          \
     asm volatile(                                                                                                               \
-        "pushq %%rbp    \n\t" /*栈帧非常重要,必须保存*/                                                               \
         "pushq %%rax    \n\t"                                                                                                   \
         "movq %%rsp,%0  \n\t" /*保存prev进程的栈*/                                                                        \
         "movq %2,%%rsp  \n\t" /*更新rsp为next的栈*/                                                                        \
@@ -316,7 +315,6 @@ switch_to为进程切换的前半段
         "jmp __switch_to \n\t" /*这里使用jmp而不是call,__switch_to函数执行结束后会直接跳到next->thread_rip*/ \
         "1:              \n\t"                                                                                                  \
         "popq %%rax     \n\t"                                                                                                   \
-        "popq %%rbp     \n\t"                                                                                                   \
         : "=m"(prev->thread->rsp), "=m"(prev->thread->rip)                                                                      \
         : "m"(next->thread->rsp), "m"(next->thread->rip), "D"(prev), "S"(next)                                                  \
         : "memory");                                                                                                            \
