@@ -97,22 +97,6 @@ struct task_struct {
 };
 
 
-
-/*
-占用32KB,起始地址按照32KB对齐
--------------------------
-        内核层栈空间
--------------------------
-     进程pcb(约等于1KB)
--------------------------
-*/
-union task_union { // 两个变量共享一个区域(大小为stack变量的大小)
-    struct task_struct task;
-    unsigned long stack[STACK_SIZE /sizeof(unsigned long)]; // 32KB(视堆栈中元素为8字节变量)
-} __attribute__((aligned(8)));
-
-
-
 /*  参与进程调度所必须的信息  */
 struct thread_struct {
     unsigned long rsp0; // 内核层栈基地址(在tss里) 一直指向pcb的末尾
@@ -132,10 +116,32 @@ struct thread_struct {
 
 
 /*
+占用32KB,起始地址按照32KB对齐
+-------------------------
+        内核层栈空间
+-------------------------
+     进程pcb(约等于1KB)
+-------------------------
+*/
+union task_union { // 两个变量共享一个区域(大小为stack变量的大小)
+    struct task_struct task;
+    struct thread_struct thread;
+    unsigned long stack[STACK_SIZE /sizeof(unsigned long)]; // 32KB(视堆栈中元素为8字节变量)
+} __attribute__((aligned(8)));
+
+
+
+
+/*
 在保护模式下，TSS主要用于硬件级别的任务切换，每个任务都有自己的TSS(通常不用)
 在长模式下，TSS主要用于在发生中断或权限级别更改后，更新栈指针
 当中断发生时,CPU会查看IDT中对应的中断门/陷进门的属性字段。
 若该字段的IST位指定了索引，则将索引对应的IST作为堆栈指针
+
+如果本来就在内核态CPL=0，当发生中断/异常时，不使用rsp0~rsp2，这时候是否换栈由IST决定
+rsp0:进入CPL=0时使用(最重要)
+rsp1:进入CPL=1时使用(本系统不使用)
+rsp2:进入CPL=2时使用(本系统不使用)
 */
 struct tss_struct {
     unsigned int reserved0; // 保留,没有特定用途
@@ -219,14 +225,24 @@ extern void ret_system_call(void);
 extern void system_call(void);
 
 unsigned long system_call_function(struct pt_regs *regs);
-unsigned long do_execute(struct pt_regs *regs);
+unsigned long do_execve(struct pt_regs *regs,char* name);
 void user_level_function();
 struct task_struct *get_task(long pid);
 void wakeup_process(struct task_struct *task);
 unsigned long copy_flags(unsigned long clone_flags, struct task_struct *task);
-
-
-
+unsigned long copy_files(unsigned long clone_flags,struct task_struct* task);
+void exit_files(struct task_struct* task);
+unsigned long copy_mm(unsigned long clone_flags,struct task_struct* task);
+void exit_mm(struct task_struct* task);
+unsigned long copy_thread(
+    unsigned long clone_flags,
+    unsigned long stack_start,
+    unsigned long stack_size,
+    struct task_struct* task,
+    struct pt_regs* regs
+);
+void exit_thread(struct task_struct* task);
+struct file* open_exec_file(char* name);
 
 /*  获取当前正在运行的进程的pcb  */
 static __attribute__((always_inline)) struct task_struct *get_current() {
@@ -308,7 +324,10 @@ switch_to为进程切换的前半段
 
 
 
-
+/*
+  切换cr3寄存器的值,切换页表
+  必须在内核层地址中执行,也就是在发生调度的时候schedule()
+*/
 static __attribute__((always_inline))
 void switch_mm(struct task_struct *prev,struct task_struct *next) {
     asm volatile("movq %0,%%cr3    \n\t" : : "r"(next->mm->pgd) : "memory");

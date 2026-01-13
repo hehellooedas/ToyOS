@@ -50,7 +50,7 @@ struct pt_regs{
     unsigned long es;
     unsigned long rax;
     
-    /*  下面几个就不用pop了(会通过task_struct->thread->保存和恢复)  */
+    /*  下面几个就不用pop了(直接addq $0x38,%rsp绕过去)  */
     unsigned long func;
     unsigned long errcode;
     unsigned long rip;

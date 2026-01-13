@@ -154,9 +154,9 @@ void Start_SMP(void){
 
     current->preempt_count = 0;
 
-    task_init();
+    //task_init();
 
-    sti();
+    //sti();
 
 
     while(1){

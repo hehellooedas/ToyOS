@@ -89,7 +89,7 @@ void IOAPIC_pagetable_remap(void)
 
     Global_CR3 = Get_gdt();
 
-    tmp = Phy_To_Virt(Global_CR3 + (((unsigned long)IOAPIC_addr >> PAGE_GDT_SHIFT) & (0x1ff)));
+    tmp = Phy_To_Virt((unsigned long)Global_CR3 & (~0xfff) + (((unsigned long)IOAPIC_addr >> PAGE_GDT_SHIFT) & (0x1ff)));
     if(*tmp == 0){
         unsigned long* virtual = kmalloc(PAGE_4K_SIZE,0 );
         set_pml4t(tmp,mk_pml4t(Virt_To_Phy(virtual),PAGE_KERNEL_GDT ) );

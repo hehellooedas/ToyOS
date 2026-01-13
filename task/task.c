@@ -1,3 +1,5 @@
+#include <errno.h>
+#include <fcntl.h>
 #include <memory.h>
 #include <schedule.h>
 #include <lib.h>
@@ -25,7 +27,7 @@ extern char _erodata;
 extern char _stack_start;
 
 
-static long global_pid = 0;
+static unsigned long global_pid = 0;
 
 struct tss_struct init_tss[NR_CPUS] = {[0 ... (NR_CPUS - 1)] = INIT_TSS};
 
@@ -53,7 +55,26 @@ struct thread_struct init_thread = {
 unsigned long new_process(unsigned long arg);
 
 void task_init(void) {
-    struct task_struct *p = NULL;
+    /*
+        确保系统创建出来的子进程始终拥有相同的内核层地址空间
+        率先把内核层地址空间在顶层页表pml4t_t中映射好
+    */
+    unsigned long *tmp = NULL,*vaddr = NULL;
+    vaddr = (unsigned long*)Phy_To_Virt((unsigned long)Get_gdt() & (~0xfffUL));
+    /*
+        移除早期启动阶段的低地址恒等映射
+        子进程共享内核高半区地址,低半区是由每个进程各自建立的用户空间,不应该默认就带一份启动时的映射
+    */
+    *vaddr = 0UL;
+    for(int i=256;i<512;i++){
+        tmp = vaddr + i;
+        if(*tmp == 0){
+            unsigned long* virtual = kmalloc(PAGE_4K_SIZE,0);
+            memset(virtual,0,PAGE_4K_SIZE);
+            set_pml4t(tmp,mk_pml4t(Virt_To_Phy(virtual),PAGE_KERNEL_GDT));
+        }
+    }
+
     init_mm.pgd = (pml4t_t *)Get_gdt();
     init_mm.start_code = memory_management_struct.start_code;
     init_mm.end_code = memory_management_struct.end_code;
@@ -110,10 +131,14 @@ unsigned long init(unsigned long arg) {
         (unsigned long)current + STACK_SIZE - sizeof(struct pt_regs);
     regs = (struct pt_regs *)current->thread->rsp;
 
+    current->thread->fs = USER_DS;
+    current->thread->gs = USER_DS;
+    current->flags &= ~PF_KTHREAD;
+
     asm volatile(
         "movq %[stack],%%rsp    \n\t"
         "pushq %2               \n\t" // 确立返回地址ret_system_call
-        "jmp do_execute         \n\t" //从do_execute函数返回的时候就会自动进入ret_system_call
+        "jmp do_execve         \n\t" //从do_execute函数返回的时候就会自动进入ret_system_call
         :
         :"D"(regs),[stack] "m"(current->thread->rsp),
             "m"(current->thread->rip)
@@ -148,7 +173,6 @@ asm(
     "movq %rax,%es          \n\t"
     "popq %rax              \n\t"
     "addq $0x38,%rsp        \n\t" // 7 * 8 = 56 = 0x38
-
     "movq %rdx,%rdi         \n\t" // rdx记录参数信息
     "callq *%rbx            \n\t" // rbx中记录关键地址信息
     "movq %rax,%rdi         \n\t"
@@ -173,7 +197,7 @@ int kernel_thread(unsigned long (*fn)(unsigned long),
     regs.rflags = (1 << 9);
     regs.rip = (unsigned long)kernel_thread_func;
 
-    return do_fork(&regs, flags, 0, 0,priority);
+    return do_fork(&regs, flags|CLONE_VM, 0, 0,priority);
 }
 
 
@@ -188,22 +212,28 @@ unsigned long do_fork(
     struct task_struct *task = NULL;
     
     struct thread_struct *thread = NULL;
-    struct Page *p = NULL;
+    //struct Page *p = NULL;
 
     //color_printk(WHITE, BLACK, "alloc_pages,bitmap:%#018x\n",*memory_management_struct.bits_map);
 
-    p = alloc_pages(ZONE_NORMAL, 1, PG_PTable_Maped | PG_Kernel);
+    //p = alloc_pages(ZONE_NORMAL, 1, PG_PTable_Maped | PG_Kernel);
 
-    color_printk(WHITE, BLACK, "alloc_pages,bitmap:%#018x\n",
-                *memory_management_struct.bits_map);
+    //color_printk(WHITE, BLACK, "alloc_pages,bitmap:%#018x\n",
+    //            *memory_management_struct.bits_map);
 
-    task = (struct task_struct *)(Phy_To_Virt(p->PHY_address));  //pcb指向新分配页的首地址
+    //task = (struct task_struct *)(Phy_To_Virt(p->PHY_address));  //pcb指向新分配页的首地址
+
+    task = (struct task_struct*)kmalloc(STACK_SIZE,0);
+    if(task == NULL){
+        retval = -EAGAIN;
+        goto alloc_copy_task_fail;
+    }
     __builtin_prefetch(task,1,3);
     color_printk(WHITE, BLACK, "struct task_struct address:%#018x\n",
                 (unsigned long)task);
 
     memset(task, 0, sizeof(*task));
-    *task = *current; //不同的部分后面可以修改
+    memcpy(task,current,sizeof(struct task_struct)); //不同的部分后面可以修改
 
     list_init(&task->list);
 
@@ -214,26 +244,52 @@ unsigned long do_fork(
     task->preempt_count = 0;
     task->cpu_id = SMP_cpu_id();
 
-    thread = (struct thread_struct *)(task + 1);
-    task->thread = thread;
+    task->next = init_task_union.task.next;
+    task->parent = current;
 
-    memcpy((void *)((unsigned long)task + STACK_SIZE - sizeof(struct pt_regs)),
-            regs, sizeof(struct pt_regs));
-
-    thread->rsp0 = (unsigned long)task + STACK_SIZE;
-    thread->rip = regs->rip;
-    thread->rsp = (unsigned long)task + STACK_SIZE - sizeof(struct pt_regs);
-    thread->fs = KERNEL_DS;
-    thread->gs = KERNEL_DS;
-
-    if (!(task->flags & PF_KTHREAD)) {
-        /*  如果不是内核层,则设置进程运行的入口为ret_system_call,由此进入用户态  */
-        thread->rip = regs->rip = (unsigned long)ret_system_call;
+    retval = -ENOMEM;
+    // copy flags
+    if(copy_flags(clone_flags,task)){
+        goto copy_flags_fail;
     }
-    task->state = TASK_RUNNING;
+    // copy mm
+    if(copy_mm(clone_flags,task)){
+        goto copy_mm_fail;
+    }
+    // copy files
+    if(copy_files(clone_flags,task)){
+        goto copy_files_fail;
+    }
+    // copy thread
+    if(copy_thread(clone_flags,stack_start,stack_size,task,regs)){
+        goto copy_thread_fail;
+    }
+    // 返回fork出来新进程的pid
+    retval = task->pid;
+    /*
+        唤醒fork出来的新进程
+        设置state为运行态
+        插入到就绪队列
+    */
+    wakeup_process(task);
 
-    insert_task_queue(task);    //把创建好的新进程pcb插入到当前核心对应的调度队列中
 
+
+fork_ok:
+    return retval;
+copy_thread_fail:
+    exit_thread(task);
+copy_files_fail:
+    exit_files(task);
+copy_mm_fail:
+    exit_mm(task);
+
+
+    //复制标志失败
+copy_flags_fail:
+    // 为task分配空间失败
+alloc_copy_task_fail:
+    kfree(task);
     return retval;
 }
 
@@ -289,47 +345,90 @@ unsigned long do_exit(unsigned long exit_code) {
 
 
 
-unsigned long do_execute(struct pt_regs *regs) {
-  unsigned long addr = 0x2000000;
-  unsigned long *tmp;
-  unsigned long *virtual = NULL;
-  struct Page *p = NULL;
+unsigned long do_execve(
+    struct pt_regs *regs,
+    char* name
+) {
+    unsigned long code_start_address = 0x800000;
+    unsigned long stack_start_address = 0xa00000;
+    unsigned long *tmp;
+    unsigned long *virtual = NULL;
+    struct Page *p = NULL;
+    struct file* filep = NULL;
+    unsigned long retval = 0;
+    long pos = 0;
 
-  regs->r10 = 0x2000000; // rip
-  regs->r11 = 0x2200000; // rsp
-  regs->rax = 1;
-  regs->ds = 0;
-  regs->es = 0;
-  //color_printk(RED, BLACK, "do_execute task is running\n");
+    regs->r10 = 0x800000; // rip
+    regs->r11 = 0xa00000; // rsp
+    regs->rax = 1;
+    regs->ds = USER_DS;
+    regs->es = USER_DS;
+    regs->ss = USER_DS;
+    regs->cs = USER_CS;
+    color_printk(RED, BLACK, "do_execve task is running\n");
 
-  Global_CR3 = Get_gdt();
-  tmp = Phy_To_Virt((unsigned long *)((unsigned long)Global_CR3 & (~0xfffUL)) +
-                    ((addr >> PAGE_GDT_SHIFT) & 0x1ff));
-  virtual = kmalloc(PAGE_4K_SIZE, 0);
-  set_pml4t(tmp, mk_pml4t(Virt_To_Phy(virtual), PAGE_USER_GDT));
-  // set_pml4t(tmp, mk_pml4t(Virt_To_Phy(virtual), PAGE_KERNEL_GDT));
+    //与父进程共享地址空间
+    if(current->flags & PF_VFORK){
+        current->mm = (struct mm_struct*)kmalloc(sizeof(struct mm_struct),0);
+        memset(current->mm,0,sizeof(struct mm_struct));
+        current->mm->pgd = (pml4t_t*)Virt_To_Phy(kmalloc(PAGE_4K_SIZE,0));
+        color_printk(RED,BLACK,"load_binary_file malloc new pgd:%#018x\n",current->mm->pgd);
+        memset(Phy_To_Virt(current->mm->pgd),0,PAGE_4K_SIZE/2); //前256项
+        memcpy(Phy_To_Virt(current->mm->pgd)+256,Phy_To_Virt(init_task[SMP_cpu_id()]->mm->pgd),PAGE_4K_SIZE/2);
+    }
 
-  tmp = Phy_To_Virt((unsigned long *)(*tmp & (~0xfffUL)) +
-                    ((addr >> PAGE_1G_SHIFT) & 0x1ff));
-  virtual = kmalloc(PAGE_4K_SIZE, 0);
-  set_pdpt(tmp, mk_pdpt(Virt_To_Phy(virtual), PAGE_USER_Dir));
-  // set_pdpt(tmp, mk_pdpt(Virt_To_Phy(virtual), PAGE_KERNEL_Dir));
 
-  tmp = Phy_To_Virt((unsigned long *)(*tmp & (~0xfffUL)) +
-                    ((addr >> PAGE_2M_SHIFT) & 0x1ff));
-  p = alloc_pages(ZONE_NORMAL, 1, PG_PTable_Maped);
-  set_pdt(tmp, mk_pdt(p->PHY_address, PAGE_USER_Page));
-  // set_pdt(tmp, mk_pdt(p->PHY_address, PAGE_KERNEL_Page));
 
-  flush_tlb();
+    tmp = Phy_To_Virt((unsigned long *)((unsigned long)current->mm->pgd & (~0xfffUL)) +
+                        ((code_start_address >> PAGE_GDT_SHIFT) & 0x1ff));
+    virtual = kmalloc(PAGE_4K_SIZE, 0);
+    set_pml4t(tmp, mk_pml4t(Virt_To_Phy(virtual), PAGE_USER_GDT));
+    // set_pml4t(tmp, mk_pml4t(Virt_To_Phy(virtual), PAGE_KERNEL_GDT));
 
-  if (!(current->flags & PF_KTHREAD)) {
-    /*  进程的地址空间范围(不能超越)  */
-    current->addr_limit = 0xffff7fffffffffff;
-  }
+    tmp = Phy_To_Virt((unsigned long *)(*tmp & (~0xfffUL)) +
+                        ((code_start_address >> PAGE_1G_SHIFT) & 0x1ff));
+    virtual = kmalloc(PAGE_4K_SIZE, 0);
+    set_pdpt(tmp, mk_pdpt(Virt_To_Phy(virtual), PAGE_USER_Dir));
+    // set_pdpt(tmp, mk_pdpt(Virt_To_Phy(virtual), PAGE_KERNEL_Dir));
 
-    memcpy((void *)0x2000000, user_level_function, 1024);
-    return 0;
+    tmp = Phy_To_Virt((unsigned long *)(*tmp & (~0xfffUL)) +
+                        ((code_start_address >> PAGE_2M_SHIFT) & 0x1ff));
+    if(*tmp == NULL){
+        p = alloc_pages(ZONE_NORMAL, 1, PG_PTable_Maped);
+        set_pdt(tmp, mk_pdt(p->PHY_address, PAGE_USER_Page));
+    }
+
+
+    flush_tlb();
+
+    if (!(current->flags & PF_KTHREAD)) {
+        /*  
+        进程的地址空间范围(不能超越)
+
+        */
+        current->addr_limit = STACK_SIZE;
+    }
+    current->mm->start_code = code_start_address;
+    current->mm->end_code = 0;
+    current->mm->start_data = 0;
+    current->mm->end_data = 0;
+    current->mm->start_rodata = 0;
+    current->mm->end_rodata = 0;
+    current->mm->start_bss = 0;
+    current->mm->end_bss = 0;
+    current->mm->start_brk = 0;
+    current->mm->end_brk = 0;
+    current->mm->start_stack = stack_start_address;
+
+    exit_files(current);
+    current->flags &= -PF_VFORK;
+
+    filep = open_exec_file(name);
+
+    /*  加载文件内容到内存中  */
+    memset((void*)0x800000,0,PAGE_2M_SIZE);
+    retval = filep->f_ops->read(filep,(void*)0x800000,filep->dentry->dir_inode->file_size,&pos);
+    return retval;
 }
 
 
@@ -440,7 +539,30 @@ unsigned long copy_mm(unsigned long clone_flags,struct task_struct* task){
         goto out;
     }
     newmm = (struct mm_struct *)kmalloc(sizeof(struct mm_struct),0);
+    memcpy(newmm,current->mm,sizeof(struct mm_struct));
+    newmm->pgd = (pml4t_t*)Virt_To_Phy(kmalloc(PAGE_4K_SIZE,0));
+    // copy内核空间
+    memcpy(Phy_To_Virt(newmm->pgd)+256,Phy_To_Virt(init_task[SMP_cpu_id()]->mm->pgd)+256,PAGE_4K_SIZE/2);
+    // copy用户空间代码段、数据段、bss段空间
+    memset(Phy_To_Virt(newmm->pgd),0,PAGE_4K_SIZE/2);
 
+    tmp = Phy_To_Virt((unsigned long*) ((unsigned long)newmm->pgd & (~0xfffUL) + (code_start_address >> PAGE_GDT_SHIFT) & 0x1ff));
+    virtual = kmalloc(PAGE_4K_SIZE,0);
+    memset(virtual,0,PAGE_4K_SIZE);
+    set_pml4t(tmp,mk_pml4t(Virt_To_Phy(virtual),PAGE_USER_GDT));
+
+
+    tmp = Phy_To_Virt((unsigned long*)((unsigned long)*tmp & (~0xfffUL) + (code_start_address >> PAGE_1G_SHIFT) & 0x1ffUL));
+    virtual = kmalloc(PAGE_4K_SIZE,0);
+    memset(virtual,0,PAGE_4K_SIZE);
+    set_pdpt(tmp,mk_pdpt(Phy_To_Virt(virtual),PAGE_USER_Dir));
+
+
+    tmp = Phy_To_Virt((unsigned long*)((unsigned long)*tmp & 0xfffUL) + ((code_start_address >> PAGE_2M_SHIFT) & 0x1ffUL));
+    p = alloc_pages(ZONE_NORMAL,1,PG_PTable_Maped);
+    set_pdt(tmp,mk_pdt(p->PHY_address,PAGE_USER_Page));
+
+    memcpy(Phy_To_Virt(p->PHY_address),(void*)code_start_address,stack_start_address - code_start_address);
 
 out:
     task->mm = newmm;
@@ -450,7 +572,29 @@ out:
 
 
 void exit_mm(struct task_struct* task){
+    unsigned long code_start_address = 0x800000;
+    unsigned long *tmp2,*tmp3,*tmp4;
 
+    if(task->flags & PF_VFORK){
+        return;
+    }
+    if(task->mm->pgd != NULL){
+        // 释放该进程cr3所指的空间
+        tmp4 = Phy_To_Virt((unsigned long*)((unsigned long)task->mm->pgd & (~0xfffUL) + (code_start_address >> PAGE_GDT_SHIFT) & 0xfffUL));
+
+        tmp3 = Phy_To_Virt((unsigned long*)((unsigned long)*tmp4 & (~0xfffUL) + (code_start_address >> PAGE_1G_SHIFT) & 0x1ffUL));
+
+        tmp2 = Phy_To_Virt((unsigned long*)((unsigned long)*tmp3 &(~0xfffUL) + (code_start_address >> PAGE_2M_SHIFT) & 0x1ff));
+
+        free_pages(Phy_To_2M_Page(*tmp2),1);
+        kfree(Phy_To_Virt(*tmp4));
+        kfree(Phy_To_Virt(*tmp3));
+        kfree(Phy_To_Virt(task->mm->pgd));
+
+    }
+    if(task->mm != NULL){
+        kfree(task->mm);
+    }
 }
 
 
@@ -462,6 +606,34 @@ unsigned long copy_thread(
     struct task_struct* task,
     struct pt_regs* regs
 ){
+    struct thread_struct* thread = NULL;
+    struct pt_regs* childregs = NULL;
+
+    thread = (struct thread_struct*)(task + 1);
+    memset(thread,0,sizeof(struct thread_struct));
+    task->thread = thread;
+
+    childregs = (struct pt_regs*)((unsigned long)task + STACK_SIZE) -1;
+    memcpy(childregs,regs,sizeof(struct pt_regs));
+
+    // fork函数在子进程中的返回值rax
+    childregs->rax = 0;
+    // 子进程的应用层栈指针
+    childregs->rsp = stack_start;
+
+    thread->rsp0 = (unsigned long)task + STACK_SIZE;
+    thread->rsp = (unsigned long)childregs;
+    thread->fs = current->thread->fs;
+    thread->gs = current->thread->gs;
+
+
+    if(task->flags & PF_KTHREAD){
+        thread->rip = (unsigned long)kernel_thread_func;
+    }else{
+        thread->rip = (unsigned long)ret_system_call;
+    }
+
+
     return 0;
 }
 
@@ -469,4 +641,26 @@ unsigned long copy_thread(
 
 void exit_thread(struct task_struct* task){
 
+}
+
+
+struct file* open_exec_file(char* path){
+    struct dir_entry* dentry = NULL;
+    struct file* filep = NULL;
+    dentry = path_walk(path,0);
+    if(dentry == NULL){
+        return (void*)-ENOENT;
+    }
+    if(dentry->dir_inode->attribute == FS_ATTR_DIR){
+        return (void*)-ENOTDIR;
+    }
+    filep = (struct file*)kmalloc(sizeof(struct file),0);
+    if(filep == NULL){
+        return (void*)-ENOMEM;
+    }
+    filep->position = 0;
+    filep->mode = 0;
+    filep->dentry = dentry;
+    filep->f_ops = O_RDONLY;
+    return filep;
 }

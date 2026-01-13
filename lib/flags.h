@@ -52,7 +52,7 @@ struct rflag_struct get_rflags(void)
 {
     unsigned long rflags;
     asm volatile (
-        "pushfq     \n\t" //rflags入栈(r表示flags,q表示尺寸)
+        "pushfq     \n\t" //rflags入栈(f表示flags,q表示尺寸)
         "popq %0    \n\t" //取出保存在栈里的rflags
         "mfence     \n\t"
         :"=g"(rflags)
@@ -95,10 +95,7 @@ static __attribute__((always_inline))
 void clear_rflags(void)
 {
     asm volatile (
-        "pushfq     \n\t"
-        "popq %rax  \n\t"
-        "andq $0,%rax   \n\t"
-        "pushq %rax \n\t"
+        "pushq $0   \n\t"
         "popfq      \n\t"
         "mfence     \n\t"
     );

@@ -12,8 +12,8 @@ SECTIONS
 	{
 		PROVIDE(_text = .);
 
-		build/head.o (.text)
-		EXCLUDE_FILE (build/head.o) *(.text)
+		build/user/init.o (.text)
+		EXCLUDE_FILE (build/user/init.o) *(.text)
 
 		PROVIDE(_etext = .);
 	}

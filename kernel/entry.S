@@ -1,5 +1,7 @@
 #include "linkage.h"
 
+#define true 1
+#define false 0
 
 /*  这是PCB中几个变量的偏移地址  */
 TASK_STATE   =   0x00
@@ -383,7 +385,7 @@ ENTRY(ret_system_call)
     popq %r8; 
     popq %rbx; 
     popq %rcx; #上面保存的地址信息就在这里还原了
-    popq %rdx; #在do_execute中写入的信息(这两个寄存器非常重要)
+    popq %rdx; #在do_execve中写入的信息(这两个寄存器非常重要)
     popq %rsi; 
     popq %rdi; 
     popq %rbp; 
@@ -404,3 +406,23 @@ ENTRY(ret_system_call)
 #在使用sysexit之前必须设定好MSR寄存器和rdx,rcx
 #IA32_SYSENTER_CS(0x174)
 #rdx:被装入rip,rcx:被装入rsp
+
+
+.macro DEF_STACK_REGS trap_name,has_error_code,vector
+.global \trap_name
+\trap_name:
+    .if \has_error_code == true
+        pushq $0
+    .endif
+    push $\vector
+.endm
+
+DEF_STACK_REGS trap_myself,true,0
+DEF_STACK_REGS lanyangyang,false,1
+
+
+.data
+.global TRAP_ASM_ENTRY
+TRAP_ASM_ENTRY:
+    .quad divide_error
+    .quad debug

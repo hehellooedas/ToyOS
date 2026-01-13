@@ -1,3 +1,5 @@
+#include "lib.h"
+#include "preempt.h"
 #include <screen.h>
 #include <memory.h>
 #include <string.h>
@@ -13,15 +15,22 @@ void frame_buffer_init(void){
     tmp = Phy_To_Virt((unsigned long*)((unsigned long)Global_CR3 & (~ 0xfffUL)) + (((unsigned long)FB_addr >> PAGE_GDT_SHIFT) & 0x1ff));
 
     if(*tmp == 0){
+        /*
+            4KB的尺寸刚好能装下512个映射条目
+        */
         unsigned long* virtual = kmalloc(PAGE_4K_SIZE,0 );
+        //*tmp = Virt_To_Phy(virtual) | PAGE_KERNEL_GDT;
         set_pml4t(tmp,mk_pml4t(Virt_To_Phy(virtual),PAGE_KERNEL_GDT ) );
     }
 
     tmp = Phy_To_Virt((unsigned long*)(*tmp & (~ 0xfffUL)) + (((unsigned long)FB_addr >> PAGE_1G_SHIFT) & (0x1ff)));
+
     if(*tmp == 0){
         unsigned long* virtual = kmalloc(PAGE_4K_SIZE,0 );
         set_pdpt(tmp,mk_pdpt(Virt_To_Phy(virtual),PAGE_KERNEL_Dir ) );
     }
+
+
 
     for(unsigned long i=0;i<Pos.FB_length;i+=PAGE_2M_SIZE){
         tmp1 = Phy_To_Virt(((unsigned long*)(*tmp & (~ 0xfffUL))) + (((unsigned long)((unsigned long)FB_addr + i) >>PAGE_2M_SHIFT) & (0x1ff)));

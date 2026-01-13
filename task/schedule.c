@@ -1,3 +1,4 @@
+#include "ptrace.h"
 #include <SMP.h>
 #include <lib.h>
 #include <task.h>
@@ -5,6 +6,7 @@
 #include <string.h>
 #include <printk.h>
 #include <interrupt.h>
+#include <ptrace.h>
 
 
 extern unsigned long jiffies;
@@ -58,7 +60,6 @@ void schedule(void)
             }
         }
         switch_mm(current,task );
-        print_pcb_info();
         switch_to(current, task); // 进程切换
     }else{
         insert_task_queue(task);
